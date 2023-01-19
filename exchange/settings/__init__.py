@@ -1,6 +1,7 @@
 from .env import *
 from .common import *
 from .admin import *
+from .all_auth import *
 from .auth import *
 from .bots import *
 from .celery import *
@@ -15,6 +16,7 @@ from .nodes import *
 from .exchange import *
 from .redis import *
 from .rest import *
+from .rest_auth import *
 from .sci import *
 from .sentry import *
 from .spectacular import *

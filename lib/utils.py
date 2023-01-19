@@ -17,7 +17,6 @@ from django.core.mail import send_mail
 from django.http import Http404
 from rest_framework import exceptions
 from rest_framework.response import Response
-from rest_framework.views import set_rollback
 
 LOCK_EXPIRE = 60 * 10  # Lock expires in 10 minutes
 CAMEL_TO_SNAKE_RE = re.compile('((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))')
@@ -162,6 +161,8 @@ def exception_handler(exc, context):
     Any unhandled exceptions may return `None`, which will cause a 500 error
     to be raised.
     """
+    from rest_framework.views import set_rollback
+
     if isinstance(exc, Http404):
         exc = exceptions.NotFound()
     elif isinstance(exc, PermissionDenied):
