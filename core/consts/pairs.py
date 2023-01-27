@@ -1,0 +1,2 @@
+BTC_USDT = 1
+ETH_USDT = 2

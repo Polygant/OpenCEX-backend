@@ -1,0 +1,2 @@
+You started the purchase {{amount}} BTC for {{quantity}} EUR ({{payment}}). Click here to see the current status of your purchase
+{{link}}

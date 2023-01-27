@@ -1,0 +1,17 @@
+{% load account %}{% user_display user as user_display %}{% load i18n %}
+{% autoescape off %}
+{% blocktrans with site_name=current_site.name site_domain=current_site.domain %}
+
+Здравствуйте, {{ user_display }} !
+
+Ваш адрес электронной почты был указан при регистрации аккаунта на {{ site_name }}.
+Для того, чтобы подтвердить аккаунт, пожалуйста, перейдите по ссылке:
+
+https://{{site_domain}}/account/email-verify/{{key}}
+
+Если Вы получили это письмо ошибочно, просто проигнорируйте его.
+
+С уважением, {{ site_name }}
+
+{% endblocktrans %}
+{% endautoescape %}

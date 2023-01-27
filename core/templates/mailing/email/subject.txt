@@ -1,0 +1,13 @@
+{% if lang == "ru" %}
+	{% include "mailing/email/subject.ru.txt" %}
+{% else %}
+	{% load account %}{% user_display user as user_display %}{% load i18n %}
+	{% autoescape off %}
+
+
+{{subject}}
+
+	{% endautoescape %}
+
+
+{% endif %}

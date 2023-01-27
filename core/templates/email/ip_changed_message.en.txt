@@ -1,0 +1,3 @@
+Dear, {{ username }}!
+
+Login to your account was made from a new ip-address {{ ip_address }}. Check the strength of your password and security settings.

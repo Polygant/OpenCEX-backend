@@ -1,0 +1,11 @@
+deploy/*quark*
+deploy/pgdata
+deploy/electrum
+deploy/tmp
+cleanup_backups
+backup_trash
+static
+staticfiles
+logs
+venv
+env

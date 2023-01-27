@@ -1,0 +1,15 @@
+{% if lang == "ru" %}
+	{% include "mailing/email/message.ru.txt" %}
+{% else %}
+	{% load account %}{% user_display user as user_display %}{% load i18n %}
+	{% autoescape off %}
+
+
+{{text}}
+
+{% blocktrans with site_name=current_site.name site_domain=current_site.domain %}
+Yours faithfully, {{ site_name }}
+{% endblocktrans %}
+	{% endautoescape %}
+
+{% endif %}

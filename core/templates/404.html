@@ -1,0 +1,20 @@
+{% extends 'base_layout.html' %}
+{% load get_domain %}
+{% load i18n %}
+{% block style %}
+    <link rel="stylesheet" href="{% get_domain %}/static/css/404.css">
+{% endblock %}
+{% block body %}
+    <div >
+        <div class="page-container">
+            <a class="logo" href="{% get_domain %}/">
+                <img src="{% get_domain %}/static/img/logo_big.png" alt="Logo">
+            </a>
+            <p class="text">{% trans 'Error 404' %}</p>
+            <p class="text">{% trans 'Page not found' %}</p>
+            <a class="btn" href="{% get_domain %}/">
+                {% trans 'To main page' %}
+            </a>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,3 @@
+Dear, {{ username }}!
+
+An failed attempt was made to login to your account. Check the strength of your password and security settings.

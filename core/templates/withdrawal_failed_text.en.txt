@@ -1,0 +1,5 @@
+Dear user {{ username }}!
+
+There was an error when we sent your withdrawal, funds were returned to your account. If you still want to make a withdrawal, create it again, it will be executed as soon as possible.
+
+Kind Regards, technical support.

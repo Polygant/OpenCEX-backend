@@ -1,0 +1,7 @@
+{% extends "admin_tools/dashboard/module.html" %}
+{% load admin_tools_menu_tags %}
+{% block module_content %}
+{% for item in module.children %}
+    {% admin_tools_render_menu_item item forloop.counter %}
+{% endfor %}
+{% endblock %}

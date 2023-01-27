@@ -1,0 +1,10 @@
+{% load i18n %}
+{% autoescape off %}
+
+{% if lang == "ru" %}
+	{% include "account/email/email_confirmation_subject.ru.txt" %}
+{% else %}
+	Account activation
+{% endif %}
+
+{% endautoescape %}

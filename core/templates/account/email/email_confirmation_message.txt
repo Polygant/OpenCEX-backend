@@ -1,0 +1,26 @@
+{% if lang == "ru" %}
+	{% include "account/email/email_confirmation_message.ru.txt" %}
+{% else %}
+	{% load account %}{% user_display user as user_display %}{% load i18n %}
+	{% autoescape off %}
+	{% blocktrans with site_name=current_site.name site_domain=current_site.domain %}
+
+
+Hello, {{ user_display }}!
+
+Your e-mail address was specified during the registration process on {{ site_name }}
+To confirm your account, please click on the link below:
+
+
+https://{{site_domain}}/account/email-verify/{{key}}
+
+If you received this email by mistake, just ignore it.
+
+Yours faithfully, {{ site_name }}
+
+
+	{% endblocktrans %}
+	{% endautoescape %}
+
+
+{% endif %}

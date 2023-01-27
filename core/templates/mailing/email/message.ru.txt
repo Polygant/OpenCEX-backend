@@ -1,0 +1,9 @@
+{% load account %}{% user_display user as user_display %}{% load i18n %}
+{% autoescape off %}
+
+{{text}}
+{% blocktrans with site_name=current_site.name site_domain=current_site.domain %}
+С уважением, {{ site_name }}
+
+{% endblocktrans %}
+{% endautoescape %}

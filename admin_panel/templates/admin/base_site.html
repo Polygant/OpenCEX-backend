@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% block extrahead %}
+    <style>
+        #changelist .results {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #changelist-filter h2 {
+            margin-bottom: inherit;
+        }
+
+        #changelist .results,
+        #changelist .paginator,
+        #changelist .actions,
+        #toolbar,
+        div.xfull {
+            box-sizing: content-box;
+            width: auto;
+        }
+
+    </style>
+{% endblock %}

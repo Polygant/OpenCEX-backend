@@ -1,0 +1,1 @@
+You deposited {{amount}} BTC to your deposit adress {{address}}. We are found source of your bitcoins is bad. Please contact the support https://{{site_domain}}/account/support

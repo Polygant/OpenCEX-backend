@@ -1,0 +1,13 @@
+{% load admin_tools_menu_tags %}
+{% spaceless %}
+{% if not item.is_empty %}
+    <h3><a href="#">{{ item.title|capfirst }}</a></h3>
+    {% if item.children and item.enabled %}
+    <ul>
+        {% for child_item in item.children %}
+        {% admin_tools_render_menu_item child_item %}
+        {% endfor %}
+    </ul>
+    {% endif %}
+{% endif %}
+{% endspaceless %}

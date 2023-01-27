@@ -1,0 +1,4 @@
+Exchange completed!
+You got {{quote_value}} {{quote_currency}} for {{base_value}} {{base_currency}}.
+
+{{quote_value}} {{quote_currency}} sent to {% if address %}address {{address}}{% else %}<a href="https://{{site_domain}}/account/wallet">your wallet</a>{% endif %}

@@ -1,0 +1,124 @@
+{% load i18n %}
+{% load change_lang %}
+{% load get_domain %}
+{% get_current_language as LANGUAGE_CODE %}
+<!DOCTYPE html>
+<html >
+<head>
+    <meta charset="utf-8">
+    <base href="{% get_domain %}/">
+    <title>{% block title %}{% trans 'Crypto Exchange - store, trade and accept Cryptocurrency. Buy and sell Bitcoin (BTC), Ethereum (ETH).' %}{% endblock %}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta
+            name="viewport"
+            content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    >
+
+    <!-- CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.3.5/jquery.fancybox.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link
+            rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+            integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"
+    >
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+
+    <!-- CUSTOM STYLE -->
+    <link rel="stylesheet" href="{% get_domain %}/static/css/main.css">
+    <link rel="stylesheet" href="{% get_domain %}/static/css/main-new-page.css">
+    <link rel="stylesheet" href="{% get_domain %}/static/css/select2custom.css">
+    <link rel="stylesheet" href="{% get_domain %}/static/scrollbar/mscrollbar.min.css">
+    <link rel="stylesheet" href="{% get_domain %}/static/css/fonts.css">
+    <link rel="stylesheet" href="{% get_domain %}/static/css/header.css">
+    <link rel="stylesheet" href="{% get_domain %}/static/css/blog.css">
+    {% block style %}
+    {% endblock %}
+
+    <!-- FAVICON -->
+    <link rel="apple-touch-icon" sizes="57x57" href="{% get_domain %}/static/favicon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="{% get_domain %}/static/favicon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="{% get_domain %}/static/favicon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="{% get_domain %}/static/favicon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="{% get_domain %}/static/favicon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="{% get_domain %}/static/favicon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="{% get_domain %}/static/favicon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="{% get_domain %}/static/favicon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% get_domain %}/static/favicon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="{% get_domain %}/static/favicon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% get_domain %}/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="{% get_domain %}/static/favicon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% get_domain %}/static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="{% get_domain %}/static/favicon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="{% get_domain %}/static/favicon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+    <meta property="og:image" content="{% get_domain %}/static/favicon/favicon-32x32.png">
+
+
+    <script type="text/javascript" async="" src="https://mc.yandex.ru/metrika/tag.js"></script>
+
+    <!-- Chrome, Firefox OS and Opera -->
+    <meta name="theme-color" content="#000">
+    <!-- Windows Phone -->
+    <meta name="msapplication-navbutton-color" content="#000">
+    <!-- iOS Safari -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="#000">
+
+    <meta property="og:image" content="{% block og_image %}{% get_domain %}/static/img/biglogo.jpg{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{% get_domain %}{% endblock %}">
+    <meta property="og:site_name" content="Crypto Exchange">
+    <meta name="description" content="{% block description %}{% trans 'Crypto Exchange - secure platform that makes it easy to buy, sell, accept and store cryptocurrency like Bitcoin, Ethereum, and more. Exchange for cryptocurrency traders. Buy and sell Bitcoin (BTC), Ethereum (ETH), Ripple (XRP), Tether (USDT), EOS, Litecoin (LTC).' %}{% endblock %}">
+    {% if LANGUAGE_CODE == 'ru' %}<meta property="og:locale" content="ru_RU">{% endif %}
+    {% if LANGUAGE_CODE == 'en' %}<meta property="og:locale" content="en_US">{% endif %}
+    <meta property="og:title" content="{% block og_title %}{% trans 'Crypto Exchange - store, trade and accept Cryptocurrency. Buy and sell Bitcoin (BTC), Ethereum (ETH).' %}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{% trans 'Crypto Exchange - secure platform that makes it easy to buy, sell, accept and store cryptocurrency like Bitcoin, Ethereum, and more. Exchange for cryptocurrency traders. Buy and sell Bitcoin (BTC), Ethereum (ETH), Ripple (XRP), Tether (USDT), EOS, Litecoin (LTC).' %}{% endblock %}">
+</head>
+<body>
+
+{% block body %}
+{% endblock %}
+<!-- CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script
+        src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"
+></script>
+<script
+        src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"
+></script>
+
+<!-- COMMON -->
+<script src="{% get_domain %}/static/js/common.js"></script>
+<script src="{% get_domain %}/static/js/seo-page-menu.js"></script>
+<script src="https://code.highcharts.com/stock/highstock.js"></script>
+<script src="{% get_domain %}/static/js/blog.js"></script>
+
+<script type="text/javascript">
+    jQuery(document).ready(function($) {
+        localStorage.setItem('current_lang', '{{ LANGUAGE_CODE }}')
+
+        $('.go_exch').on('click', function(){
+            window.location.href = '/account/BTC-USDT'
+        })
+
+        var cookie_box = $('.cookie-message__box')
+        cookie_box.find('.btn').on('click', function(){
+          localStorage.setItem('cookie_message_accept', true)
+          cookie_box.hide()
+        })
+
+        if (!localStorage.getItem('cookie_message_accept')) {
+          cookie_box.show()
+        }
+
+    });
+</script>
+{% block script %}
+{% endblock %}
+
+</body>
+</html>

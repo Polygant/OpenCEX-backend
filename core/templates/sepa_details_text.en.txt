@@ -1,0 +1,7 @@
+Exchange summary: {{quantity}} EUR (SEPA) for {{amount}} BTC
+
+Payment details (SEPA):
+Account holder: Exchange
+IBAN Number: LT533570020000005230
+BIC Code: VIPULT22
+Payment Reference: {{remittance_id}}

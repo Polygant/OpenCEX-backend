@@ -1,0 +1,9 @@
+Your payment was received after the expiration of the waiting period. The exchange cannot be made, the funds are credited to your wallet {{link}}
+
+Exchange summary: {{amount}} {{currency}} (SEPA) for {{quoted_amount}} {{quoted_currency}}
+
+Payment details (SEPA):
+Account holder: Exchange
+IBAN Number: LT533570020000005230
+BIC Code: VIPULT22
+Payment Reference: {{payment_reference}}

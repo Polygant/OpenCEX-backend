@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load utils %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit">
+</form>
+<div id="changelist">
+<div class="results" style="margin-top: 50px;">
+    <table id="result_list">
+        <thead>
+            <tr>
+                {% for column in withdrawal_requests_column %}
+                <th scope="col">
+                    <div class="text"><span>{{ column.label|capfirst }}</span></div>
+                    <div class="clear"></div>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for withdrawal in withdrawal_requests %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+                {% for column in withdrawal_requests_column %}
+                    <td>
+                        {{ withdrawal|getattribute:column.param|bool_to_icon|safe }}
+                    </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,4 @@
+Withdrawal request confirmation
+
+To confirm or cancel withdrawal request please follow this link: {{ confirmation_url }}
+Withdrawal would be processed after confirmation.

@@ -1,0 +1,3 @@
+Обмен совершен!
+Вы получили {{quote_value}} {{quote_currency}} за {{base_value}} {{base_currency}}.
+{{quote_value}} {{quote_currency}} отправлены на{% if address %} адрес {{address}}{% else %} <a href="https://{{site_domain}}/account/wallet">ваш кошелек</a>{% endif %}
