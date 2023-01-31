@@ -25,7 +25,7 @@ from cryptocoins.utils.commons import create_keeper
 from core.consts.currencies import CRYPTO_WALLET_CREATORS
 from core.currency import Currency
 from core.utils.wallet_history import create_or_update_wallet_history_item_from_transaction
-from core.models import UserWallet
+from core.models import UserWallet, UserFee, Profile
 from core.models import Transaction
 from core.models import FeesAndLimits
 from core.models import PairSettings
@@ -226,6 +226,11 @@ def main():
                 primary=True,
             )
 
+            UserFee.objects.create(
+                user=bot,
+                fee_rate=0,
+            )
+
             # top up bot
             topup_list = {
                 BTC: 3,
@@ -327,6 +332,8 @@ def main():
         else:
             user.set_password(password)
             user.save()
+
+        Profile.objects.filter(user=user).update(is_auto_orders_enabled=True)
 
         to_write.append('Admin Info:')
         to_write.append(f'Email: {name}  Password: {password}')
