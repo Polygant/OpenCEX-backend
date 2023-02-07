@@ -4,7 +4,7 @@ from django.urls.conf import include
 from rest_framework.routers import DefaultRouter
 
 from core.views.inouts import BalanceView, PortfolioBalanceView, TopupRequestView, interaction, \
-    interaction_dev, topup_amount, check_status_topup, withdraw_amount
+    interaction_dev, topup_amount, check_status_topup, withdraw_amount, BalanceByCurrencyView
 from core.views.inouts import CoinsStatusView
 from core.views.inouts import FeesLimitsView
 from core.views.inouts import WithdrawalFeeView
@@ -30,7 +30,8 @@ router.register(r'transactions', TransactionsView, basename='transaction')
 
 
 urlpatterns = [
-    url(r'^balance/((?P<currency>[-:\w]+)/)?$', BalanceView.as_view()),
+    url(r'^balance/(?P<currency>[-:\w]+)/$', BalanceByCurrencyView.as_view()),
+    url(r'^balance/$', BalanceView.as_view()),
     url(r'^portfolio-balance/$', PortfolioBalanceView.as_view()),
     path(r'getlastaddresses/', LastCryptoWithdrawalAddressesList.as_view()),
     path('withdrawal/', include(withdrawal_url_patterns)),

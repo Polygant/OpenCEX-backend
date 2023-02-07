@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework import permissions
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -11,9 +13,32 @@ from notifications.helpers import get_order_notifications
 
 
 class NotificationView(viewsets.ViewSet):
-    """
-    Список
-    """
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    'data': {
+                        'id',
+                        'state',
+                        'pair',
+                        'operation',
+                        'type',
+                        'quantity',
+                        'price',
+                    },
+                    'date': "<str>",
+                    'type': "<str: ORDER_OPEN|ORDER_CANCEL|ORDER_CLOSE>",
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def list(self, request):
         data = []
 
@@ -27,6 +52,9 @@ class UserNotificationView(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
     http_method_names = ['get', 'delete']
 
+    @extend_schema(
+        responses=NotificationsSerializer,
+    )
     def list(self, request):
         data = []
         if not request.user.is_anonymous:

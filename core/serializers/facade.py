@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from core.exceptions.facade import SOFSetAllFieldsRequiredError
@@ -6,6 +7,9 @@ from core.models.facade import SourceOfFunds
 from lib.fields import JSDatetimeField
 
 
+@extend_schema_serializer(
+
+)
 class SourceOfFundsSerializer(serializers.ModelSerializer):
 
     def validate(self, data):

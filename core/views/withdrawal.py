@@ -4,6 +4,8 @@ import uuid
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework import permissions, status, views, viewsets
 from rest_framework.response import Response
 
@@ -48,6 +50,9 @@ class ConfirmWithdrawalRequestView(views.APIView):
         permissions.AllowAny,
     ]
 
+    @extend_schema(
+        request=ConfirmationTokenSerializer,
+    )
     def post(self, request):
         serializer = ConfirmationTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -79,6 +84,9 @@ class CancelWithdrawalRequestView(views.APIView):
         permissions.AllowAny,
     ]
 
+    @extend_schema(
+        request=ConfirmationTokenSerializer,
+    )
     def post(self, request):
         serializer = ConfirmationTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -111,6 +119,9 @@ class WithdrawalRequestInfoView(views.APIView):
         permissions.AllowAny,
     ]
 
+    @extend_schema(
+        responses=WithdrawalSerializer,
+    )
     def get(self, request, token):
         expiration_date = timezone.now() - timezone.timedelta(minutes=settings.WITHDRAWAL_REQUEST_EXPIRATION_M)
         withdrawal_request = WithdrawalRequest.objects.filter(
@@ -132,6 +143,9 @@ class ResendWithdrawalRequestConfirmationEmailView(views.APIView):
     """
     Resend confirmation email
     """
+    @extend_schema(
+        request=ConfirmationTokenSerializer,
+    )
     def post(self, request):
         serializer = ConfirmationTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -155,6 +169,24 @@ class ResendWithdrawalRequestConfirmationEmailView(views.APIView):
 
 class WithdrawalUserLimitView(views.APIView):
 
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    'current_limit_amount': 0,
+                    'level': 0,
+                    'level_limit': 0,
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request):
         limit_data = WithdrawalUserLimit.get_limits(request.user)
         user_limit = limit_data.get('limit')

@@ -3,6 +3,8 @@ import logging
 from django.conf import settings
 from django.db.models import Q
 from django_filters import rest_framework as filters
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiParameter, extend_schema_view
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework import viewsets
@@ -13,6 +15,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.consts.currencies import CURRENCIES_LIST
 from core.consts.inouts import CANCELLED
 from core.currency import Currency
 from core.lib.inouts import BasePayGate
@@ -35,19 +38,120 @@ class BalanceView(APIView):
     permission_classes = (AllowAny,)
     http_method_names = ['get']
 
-    def get(self, request, currency=None, format=None):
+    @extend_schema(
+        description='Perform balance data',
+        # request=TransactionSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "balance": {
+                        "BTC": {
+                            "actual": 0,
+                            "orders": 0
+                        },
+                        "ETH": {
+                            "actual": 0,
+                            "orders": 0
+                        },
+                        "USDT": {
+                            "actual": 0,
+                            "orders": 0
+                        },
+                        "<currency>": {
+                            "actual": 0,
+                            "orders": 0
+                        },
+                    }
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+    def get(self, request):
         if request.user.is_anonymous:
             return Response({'balance': {}})
 
-        if currency is not None:
-            currency = Currency.get(currency)
-        result = Balance.for_user(request.user, currency)
-        return Response({'balance': result})
+        return Response({'balance': Balance.for_user(request.user)})
+
+
+class BalanceByCurrencyView(APIView):
+    permission_classes = (AllowAny,)
+
+    @extend_schema(
+        description='Perform balance data by currency',
+        # request=TransactionSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "balance": {
+                        "actual": 0,
+                        "orders": 0,
+                        "currency": "<currency>",
+                    }
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+    def get(self, request, currency=None):
+        if request.user.is_anonymous:
+            return Response({'balance': {}})
+
+        currency_model = Currency.get(currency)
+        return Response({'balance': Balance.for_user(request.user, currency_model)})
 
 
 class PortfolioBalanceView(APIView):
     http_method_names = ['get']
 
+    @extend_schema(
+        description='Perform portfolio balance data',
+        parameters=[
+            OpenApiParameter(
+                required=True,
+                name='currency',
+                type=str,
+                description='currency code.',
+                default='USDT',
+                enum=[i[1] for i in CURRENCIES_LIST],
+            ),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "balance": {
+                        "<currency>": {
+                            "actual": 0,
+                            "orders": 0,
+                            "price": 0,
+                            "price_24h": 0,
+                            "price_24h_value": 0,
+                            "actual_usd": 0,
+                        },
+                    }
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request):
         currency = request.GET.get('currency', 'USDT')
         currency = Currency.get(currency)
@@ -91,6 +195,12 @@ class LastCryptoWithdrawalAddressesList(APIView):
         permissions.IsAuthenticated,
     ]
 
+    @extend_schema(
+        description='Perform data',
+        responses={
+            200: OpenApiResponse(response=LastCryptoWithdrawalAddressesSerializer(many=True))
+        },
+    )
     def get(self, request):
         # get present currencies
         currencies = WithdrawalRequest.objects.filter(
@@ -135,6 +245,38 @@ class LastCryptoWithdrawalAddressesList(APIView):
 class CoinsStatusView(GenericAPIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        description='Perform data',
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "BTC": {
+                        "disable_topups": "<bool>",
+                        "disable_withdrawals": "<bool>",
+                        "disable_exchange": "<bool>",
+                        "disable_pairs": "<bool>",
+                        "disable_stack": "<bool>",
+                        "disable_all": "<bool>"
+                    },
+                    "<currency>": {
+                        "disable_topups": "<bool>",
+                        "disable_withdrawals": "<bool>",
+                        "disable_exchange": "<bool>",
+                        "disable_pairs": "<bool>",
+                        "disable_stack": "<bool>",
+                        "disable_all": "<bool>"
+                    },
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request):
         coins = DisabledCoin.get_coins_status()
         if not request.user.is_anonymous:
@@ -149,6 +291,62 @@ class CoinsStatusView(GenericAPIView):
 class FeesLimitsView(GenericAPIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "<currency>": {
+                        "limits": {
+                            "deposit": {
+                                "min": 0.0001,
+                                "max": 1000.0
+                            },
+                            "withdrawal": {
+                                "min": 0.0001,
+                                "max": 15.0
+                            },
+                            "order": {
+                                "min": 0.001,
+                                "max": 15.0
+                            },
+                            "code": {
+                                "max": 100.0
+                            },
+                            "accumulation": {
+                                "min": 0.001
+                            }
+                        },
+                        "fee": {
+                            "deposit": {
+                                "address": 1e-07,
+                                "code": 0.0
+                            },
+                            "withdrawal": {
+                                "address": {
+                                    "<currency>": 1e-07
+                                },
+                                "code": 0.0
+                            },
+                            "order": {
+                                "limit": 0.001,
+                                "market": 0.002
+                            },
+                            "exchange": {
+                                "value": 0.002
+                            }
+                        }
+                    },
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request):
         fl = FeesAndLimits.get_fees_and_limits()
         return Response(status=status.HTTP_200_OK, data=fl)
@@ -157,6 +355,23 @@ class FeesLimitsView(GenericAPIView):
 class WithdrawalFeeView(GenericAPIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.STR
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    'BTC': 0,
+                    '<currency>': 0,
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request, currency):
         try:
             curr = Currency.get(currency)
@@ -170,6 +385,36 @@ def generate_remittance_id():
     return generate_random_string(length=12).upper()
 
 
+@extend_schema_view(
+    post=extend_schema(
+        responses={
+            200: OpenApiTypes.STR
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value='OK',
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    ),
+    get=extend_schema(
+        responses={
+            200: OpenApiTypes.STR
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value='OK',
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    ),
+)
 @api_view(['POST', 'GET'])
 @permission_classes((AllowAny,))
 def interaction(request, gate_name):
@@ -183,6 +428,10 @@ def interaction(request, gate_name):
     return Response('OK', status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(exclude=True,),
+    get=extend_schema(exclude=True,),
+)
 @api_view(['POST', 'GET'])
 @permission_classes((AllowAny,))
 def interaction_dev(request, gate_name):
@@ -229,6 +478,29 @@ class TopupRequestView(viewsets.ReadOnlyModelViewSet, viewsets.mixins.CreateMode
         return self.instance
 
 
+@extend_schema_view(
+    post=extend_schema(
+        description='Check top-up status.',
+        parameters=[
+            OpenApiParameter(required=True, name='gate_id', type=int,),
+            OpenApiParameter(required=True, name='id', type=str,),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    'state': '<int: PENDING:0|COMPLETED:1|FAILED:2>',
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def check_status_topup(request):
     try:
@@ -260,6 +532,30 @@ def check_status_topup(request):
     return Response(status=status.HTTP_404_NOT_FOUND)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        description='Calculate topup fee depending of paygate.',
+        parameters=[
+            OpenApiParameter(required=True, name='gate_id', type=int,),
+            OpenApiParameter(required=True, name='target_amount', type=float,),
+            OpenApiParameter(required=True, name='currency', type=str,),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    'amount': 0,
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def topup_amount(request):
     """
@@ -276,6 +572,7 @@ def topup_amount(request):
 
     gate = GATES[gate_id]
 
+    # TODO: sci/topup_amount - refactoring for all gates
     # only Cauri supported for now
     if gate.NAME == 'cauri':
         amount = gate.get_topup_amount(
@@ -289,6 +586,30 @@ def topup_amount(request):
     return Response(status=status.HTTP_404_NOT_FOUND)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        description='Calculate withdrawal fee depending of paygate.',
+        parameters=[
+            OpenApiParameter(required=True, name='gate_id', type=int,),
+            OpenApiParameter(required=True, name='target_amount', type=float,),
+            OpenApiParameter(required=True, name='currency', type=str,),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    'amount': 0,
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def withdraw_amount(request):
     """
@@ -305,6 +626,7 @@ def withdraw_amount(request):
 
     gate = GATES[gate_id]
 
+    # TODO: sci/withdrawal_amount - refactoring for all gates
     # only WinPay supported for now
     if gate.NAME == 'win_pay':
         amount = gate.get_withdrawal_amount(

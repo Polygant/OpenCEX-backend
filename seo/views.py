@@ -2,6 +2,8 @@ import random
 
 from django.conf import settings
 from django.utils import translation
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
@@ -40,6 +42,24 @@ class PostApiView(viewsets.ReadOnlyModelViewSet):
 class PostSlugsApiView(viewsets.ReadOnlyModelViewSet):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value={
+                    "slugs": [
+                        "<str>",
+                    ]
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def list(self, request):
         return Response({'slugs': Post.get_slugs_list()})
 
@@ -58,6 +78,64 @@ class ContentPhotoApiView(viewsets.ReadOnlyModelViewSet):
     queryset = ContentPhoto.objects.all()
 
 
+@extend_schema_view(
+    get=extend_schema(
+        description='Perform data',
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "btc_usdt_price": 0,
+                    "btc_usdt_percent": -100.0,
+                    "btc_usdt_profit": -3450,
+                    "pairs_data": {
+                        "BTC-USDT": {
+                            "volume": 0,
+                            "base_volume": 0,
+                            "price": 0,
+                            "price_24h": 0,
+                            "price_24h_value": 0,
+                            "pair": "BTC-USDT",
+                            "pair_data": {
+                                "id": 1,
+                                "code": "BTC-USDT",
+                                "base": {
+                                    "id": 1,
+                                    "code": "BTC",
+                                    "is_token": False,
+                                    "blockchain_list": []
+                                },
+                                "quote": {
+                                    "id": 4,
+                                    "code": "USDT",
+                                    "is_token": True,
+                                    "blockchain_list": [
+                                        "ETH"
+                                    ]
+                                },
+                                "stack_precisions": [
+                                    "100",
+                                    "10",
+                                    "1",
+                                    "0.1",
+                                    "0.01"
+                                ]
+                            }
+                        },
+                    },
+                    "type_human": 2,
+                    "currency": "USDT"
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['GET'])
 @permission_classes((AllowAny,))
 def home_api(request):

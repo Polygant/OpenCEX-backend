@@ -3,6 +3,8 @@ import decimal
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.utils.timezone import now
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -182,6 +184,36 @@ class StatsView(APIView):
     http_method_names = ['post']
     CHART_DATA_SOURCE = PairTradeChartDataWithPreAggregattion
 
+    @extend_schema(
+        request=StatsSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "records": [
+                        [
+                            1000000000000.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                        ],
+                    ],
+                    "start": 1000000000000,
+                    "stop": 1000000000000,
+                    "frame": "minute",
+                    "last_record_dt": "2000-01-01 00:00:00+00:00"
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def post(self, request, **kwargs):
         serializer = StatsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
