@@ -12,6 +12,8 @@ from django.http import HttpResponse
 from django.utils import translation, timezone
 from django.utils.timezone import now
 from django_countries import countries
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiExample, OpenApiParameter
 from ipware import get_client_ip
 from rest_framework import status
 from rest_framework import views, viewsets
@@ -53,6 +55,25 @@ from lib.views import ExceptionHandlerMixin
 logger = logging.getLogger(__name__)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response base',
+                value={
+                    'token': '<str>',
+                    'userId': '<str>',
+                },
+                request_only=False,
+                response_only=True,
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def kyc_get_access_token(request):
     if not settings.IS_KYC_ENABLED:
@@ -64,6 +85,9 @@ def kyc_get_access_token(request):
     return Response(status=status.HTTP_200_OK, data=result)
 
 
+@extend_schema_view(
+    post=extend_schema(exclude=True),
+)
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def kyc_callback_url(request):
@@ -115,6 +139,42 @@ def kyc_callback_url(request):
     return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response base',
+                value={
+                    'kyc_answer': '<str>'
+                },
+                request_only=False,
+                response_only=True,
+            ),
+            OpenApiExample(
+                'Example ON',
+                summary='response GREEN',
+                value={
+                    'kyc_answer': UserKYC.ANSWER_GREEN
+                },
+                request_only=False,
+                response_only=True,
+            ),
+            OpenApiExample(
+                'Example OFF',
+                summary='response RED',
+                value={
+                    'kyc_answer': UserKYC.ANSWER_RED
+                },
+                request_only=False,
+                response_only=True,
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def check_kyc_verification(request):
     # simple patch to not modify front for this time
@@ -144,6 +204,25 @@ class MessagesView(viewsets.ReadOnlyModelViewSet):
         return qs.filter(user=self.request.user)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        parameters=[
+            OpenApiParameter(required=True, name='id', type=int, description='Message id.'),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={'result': 'ok'},
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def mark_message_as_read(request):
     msg_id = request.data.get('id', None)
@@ -161,6 +240,30 @@ class CountryList(views.APIView):
         AllowAny,
     ]
 
+    @extend_schema(
+        description='Perform data',
+        # request=TransactionSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "AF": "Afghanistan",
+                    "AX": "Åland Islands",
+                    "AL": "Albania",
+                    "DZ": "Algeria",
+                    "AS": "American Samoa",
+                    "AD": "Andorra",
+                    "<country_code>": "<country_name>",
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request):
         lang = request.GET.get('lang', 'en')
         translation.activate(lang)
@@ -185,6 +288,9 @@ class RegenerateApiKey(views.APIView):
         IsAuthenticated,
     ]
 
+    @extend_schema(
+        exclude=True,
+    )
     def post(self, request):
         profile = request.user.profile
         profile.regenerate_keys()
@@ -200,6 +306,52 @@ class PhoneVerification(views.APIView):
         IsAuthenticated,
     ]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                required=True,
+                name='phone',
+                type=str,
+                description='phone number.'
+            ),
+            OpenApiParameter(
+                required=True,
+                name='verify',
+                type=str,
+                description='verify type.',
+                default=TwilioClient.TYPE_PHONE,
+                enum=TwilioClient.VERIFICATION_TYPES,
+            ),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='success response',
+                value={
+                    "result": "<bool>",
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+            OpenApiExample(
+                'Example',
+                summary='error response',
+                value={
+                    "result": "<bool>",
+                    "error": "<str>",
+                    "extra": {
+                        "ts": "<int>",
+                        "timeout": "<int>",
+                    },
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def post(self, request):
         if settings.IS_SMS_ENABLED:
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -254,6 +406,44 @@ class CodePhoneVerification(views.APIView):
         IsAuthenticated,
     ]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                required=True,
+                name='phone',
+                type=str,
+                description='phone number.'
+            ),
+            OpenApiParameter(
+                required=True,
+                name='verify',
+                type=str,
+                description='verify type.',
+                default=TwilioClient.TYPE_PHONE,
+                enum=TwilioClient.VERIFICATION_TYPES,
+            ),
+            OpenApiParameter(
+                required=True,
+                name='code',
+                type=str,
+                description='verify code.',
+            ),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "status": "<bool>",
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def post(self, request):
         if settings.IS_SMS_ENABLED:
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -319,6 +509,183 @@ class CodePhoneVerification(views.APIView):
         })
 
 
+@extend_schema_view(
+    get=extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value={
+                  "commons": {
+                    "blockchain_definitions": {
+                      "ETH": "ERC-20",
+                    },
+                    "token_tx_explorers": {
+                      "ETH": "https://etherscan.io/tx/",
+                    }
+                  },
+                  "coins": {
+                    "ETH": {
+                      "name": "Ethereum",
+                      "base": "<bool>",
+                      "decimals": "<int>",
+                      "index": "<int>",
+                      "tx_explorer": "https://etherscan.io/tx/",
+                      "links": {
+                        "bt": {
+                          "href": "https://bitcointalk.org/index.php?topic=428589.0",
+                          "title": "BitcoinTalk"
+                        },
+                        "cmc": {
+                          "href": "https://coinmarketcap.com/currencies/ethereum/",
+                          "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                          "href": "https://etherscan.io/",
+                          "title": "Explorer"
+                        },
+                        "official": {
+                          "href": "http://ethereum.org",
+                          "title": "ethereum.org"
+                        }
+                      },
+                      "is_token": "<bool>",
+                      "blockchain_list": [],
+                      "disable_topups": "<bool>",
+                      "disable_withdrawals": "<bool>",
+                      "disable_exchange": "<bool>",
+                      "disable_pairs": "<bool>",
+                      "disable_stack": "<bool>",
+                      "disable_all": "<bool>",
+                      "disable_p2p_code": "<bool>",
+                      "price": "<float>",
+                      "volume": "<float>",
+                      "price_24h": "<float>"
+                    },
+                    "BTC": {
+                      "name": "Bitcoin",
+                      "base": "<bool>",
+                      "decimals": "<int>",
+                      "index": "<int>",
+                      "tx_explorer": "https://www.blockchain.com/btc/tx/",
+                      "links": {
+                        "bt": {
+                          "href": "https://bitcointalk.org/index.php",
+                          "title": "BitcoinTalk"
+                        },
+                        "cmc": {
+                          "href": "https://coinmarketcap.com/currencies/bitcoin/",
+                          "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                          "href": "https://www.blockchain.com/en/explorer",
+                          "title": "Explorer"
+                        },
+                        "official": {
+                          "href": "https://bitcoin.org",
+                          "title": "bitcoin"
+                        }
+                      },
+                      "is_token": "<bool>",
+                      "blockchain_list": [],
+                      "disable_topups": "<bool>",
+                      "disable_withdrawals": "<bool>",
+                      "disable_exchange": "<bool>",
+                      "disable_pairs": "<bool>",
+                      "disable_stack": "<bool>",
+                      "disable_all": "<bool>",
+                      "disable_p2p_code": "<bool>",
+                      "price": "<float>",
+                      "volume": "<float>",
+                      "price_24h": "<float>",
+                    },
+                  },
+                  "pairs_data": {
+                    "BTC-USDT": {
+                      "volume": "<float>",
+                      "base_volume": "<float>",
+                      "price": "<float>",
+                      "price_24h": "<float>",
+                      "price_24h_value": "<float>",
+                      "pair": "BTC-USDT",
+                      "pair_data": {
+                        "id": "<int>",
+                        "code": "BTC-USDT",
+                        "base": {
+                          "id": "<int>",
+                          "code": "BTC",
+                          "is_token": "<bool>",
+                          "blockchain_list": []
+                        },
+                        "quote": {
+                          "id": "<int>",
+                          "code": "USDT",
+                          "is_token": "<bool>",
+                          "blockchain_list": [
+                            "ETH",
+                            "BNB",
+                            "TRX"
+                          ]
+                        },
+                        "stack_precisions": [
+                          "100",
+                          "10",
+                          "1",
+                          "0.1",
+                          "0.01"
+                        ]
+                      }
+                    },
+                    "ETH-USDT": {
+                      "volume": "<float>",
+                      "base_volume": "<float>",
+                      "price": "<float>",
+                      "price_24h": "<float>",
+                      "price_24h_value": "<float>",
+                      "pair": "ETH-USDT",
+                      "pair_data": {
+                        "id": "<int>",
+                        "code": "ETH-USDT",
+                        "base": {
+                          "id": "<int>",
+                          "code": "ETH",
+                          "is_token": "<bool>",
+                          "blockchain_list": []
+                        },
+                        "quote": {
+                          "id": "<int>",
+                          "code": "USDT",
+                          "is_token": "<bool>",
+                          "blockchain_list": [
+                            "ETH",
+                            "BNB",
+                            "TRX"
+                          ]
+                        },
+                        "stack_precisions": [
+                          "100",
+                          "10",
+                          "1",
+                          "0.1",
+                          "0.01"
+                        ]
+                      }
+                    },
+                  },
+                  "langs": [
+                    "ru",
+                    "tr"
+                  ]
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['GET'])
 @permission_classes((AllowAny,))
 def coins_api_view(request):
@@ -406,6 +773,13 @@ class SourceOfFundsViewSet(ExceptionHandlerMixin,
         return SourceOfFunds.get_by_user(self.request.user)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        parameters=[
+            OpenApiParameter(required=True, name='lang', type=str, description='Language code.', default='en'),
+        ]
+    )
+)
 @api_view(['POST'])
 def save_user_language(request):
     lang = request.data.get('lang', 'en')
@@ -430,6 +804,22 @@ def sitemap(request):
 class CaptchaCheck(views.APIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value={
+                    'Status': True,
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def post(self, request):
         data = request.data
         captcher = CaptchaProcessor(
@@ -442,18 +832,88 @@ class CaptchaCheck(views.APIView):
         return Response({'Status': True}, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response base',
+                value="<str>",
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+            OpenApiExample(
+                'Example ON',
+                summary='response ON',
+                value="ON",
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+            OpenApiExample(
+                'Example OFF',
+                summary='response OFF',
+                value="OFF",
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def check_user_2fa_is_on(request):
     return Response('ON' if TwoFactorSecretTokens.is_enabled_for_user(
         request.user) else 'OFF', status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        parameters=[
+            OpenApiParameter(required=True, name='secretcode', type=str),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value={'2fa_enabled': True},
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def set_user_2fa(request):
     TwoFactorSecretTokens.set_code(request.user, request.data['secretcode'])
     return Response({'2fa_enabled': True}, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        parameters=[
+          OpenApiParameter(required=True, name='secretcode', type=str),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value={
+                    '2fa_enabled': '<bool>'
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def remove_user_2fa(request):
     try:
@@ -463,6 +923,37 @@ def remove_user_2fa(request):
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        parameters=[
+          OpenApiParameter(required=True, name='code', type=str),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value={
+                    'Status': '<bool>'
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+            OpenApiExample(
+                'Example Expire',
+                summary='response Expire',
+                value={
+                    'Status': '<bool>',
+                    'code': 'expire',
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def check_otp(request):
     cache_key = get_2fa_cache_key(request.user)
@@ -474,6 +965,22 @@ def check_otp(request):
     return Response({'Status': result}, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value="<str>",
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 def generate_secret(request):
     secret = TwoFactorSecretTokens.generate_secret()
@@ -482,6 +989,28 @@ def generate_secret(request):
     return Response(secret, status=status.HTTP_200_OK)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        parameters=[
+          OpenApiParameter(required=True, name='token', type=str),
+          OpenApiParameter(required=False, name='lang', type=str, default='en',),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example base',
+                summary='response',
+                value={
+                    'Status': '<bool>'
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
+)
 @api_view(['POST'])
 @permission_classes((AllowAny, ))
 def resend_email_confirmation_mail(request):

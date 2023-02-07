@@ -1,4 +1,6 @@
 from django.conf import settings
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -258,5 +260,6 @@ class AllOrdersSimpleSerializer(serializers.ModelSerializer):
         model = Order
         fields = ('id', 'price', 'quantity_left', 'operation', 'is_bot')
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_bot(self, obj):
         return is_bot_user(obj.user.username)

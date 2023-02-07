@@ -1,5 +1,6 @@
 from django.db.models import CharField
 from django.db.models.functions import Cast, Concat
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, viewsets
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -18,6 +19,13 @@ class CreateUserWallet(GenericAPIView):
     # TODO: review and rewrite!
     TIMEOUT = 30
 
+    @extend_schema(
+        description='Perform data',
+        request=UserCurrencySerializer,
+        responses={
+            200: UserWalletSerializer
+        },
+    )
     def post(self, request):
         serializer = UserCurrencySerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -39,7 +47,15 @@ class CreateUserWallet(GenericAPIView):
 
 
 class UserWallets(GenericAPIView):
+    pagination_class = None
 
+    @extend_schema(
+        description="Perform data",
+        request=UserCurrencySerializer,
+        responses={
+            200: UserWalletSerializer(many=True),
+        }
+    )
     def post(self, request):
         serializer = UserCurrencySerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)

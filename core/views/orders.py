@@ -8,6 +8,8 @@ from itertools import chain
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import get_language
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiParameter
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework import viewsets
@@ -111,6 +113,10 @@ class StopLimitView(ExceptionHandlerMixin, GenericAPIView):
         data = request.data
         return prepare_market_data(request.user, data, self.SERIALIZER)
 
+    @extend_schema(
+        request=StopLimitOrderSerializer,
+        responses=OrderSerializer
+    )
     def post(self, request):
 
         stop = request.data.get('stop', 0)
@@ -144,6 +150,10 @@ class MarketView(ExceptionHandlerMixin, GenericAPIView):
         data = request.data
         return prepare_market_data(request.user, data, self.SERIALIZER)
 
+    @extend_schema(
+        request=OrderSerializer,
+        responses=OrderSerializer
+    )
     def post(self, request):
 
         cost, price = self.get_cost_and_price(request)
@@ -162,6 +172,24 @@ class MarketView(ExceptionHandlerMixin, GenericAPIView):
             raise APIException(detail=str(e), code='server_error')
         return Response(result)
 
+    @extend_schema(
+        request=OrderSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    'price': 0,
+                    'cost': 0,
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def put(self, request):
         # just find price
         data = self.data(request)
@@ -220,6 +248,51 @@ class PairsListView(APIView):
     permission_classes = (AllowAny,)
     http_method_names = ['get']
 
+    @extend_schema(
+        request=OrderSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                  "pairs": [
+                    {
+                      "id": 1,
+                      "code": "BTC-USDT",
+                      "base": {
+                        "id": 1,
+                        "code": "BTC",
+                        "is_token": False,
+                        "blockchain_list": []
+                      },
+                      "quote": {
+                        "id": 4,
+                        "code": "USDT",
+                        "is_token": True,
+                        "blockchain_list": [
+                          "ETH",
+                          "BNB",
+                          "TRX"
+                        ]
+                      },
+                      "stack_precisions": [
+                        "100",
+                        "10",
+                        "1",
+                        "0.1",
+                        "0.01"
+                      ]
+                    },
+                  ]
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request, currency=None, format=None):
         r = [i.to_dict() for i in PAIRS if i.code not in PairSettings.get_disabled_pairs()]
         return Response({'pairs': r})
@@ -255,6 +328,58 @@ class StackView(APIView):
             cnt[p] += i['quantity']
         return [{'price': i, 'quantity': cnt[i]} for i in sorted(cnt.keys(), reverse=reverse)]
 
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "sells_w_avg": 0.0,
+                    "buys_w_avg": 0.0,
+                    "sells_volume": 0.0,
+                    "buys_volume": 0.0,
+                    "top_sell": 0.0,
+                    "top_buy": 0.0,
+                    "rate": 0.0,
+                    "sells": [
+                        {
+                            "id": 0,
+                            "price": 0.0,
+                            "quantity": 0.0,
+                            "user_id": 0,
+                            "timestamp": 1000000000.000000,
+                            "depth": 0.0
+                        },
+                    ],
+                    "buys": [
+                        {
+                            "id": 0,
+                            "price": 0.0,
+                            "quantity": 0.0,
+                            "user_id": 0,
+                            "timestamp": 1000000000.000000,
+                            "depth": 0.0
+                        },
+                    ],
+                    "ts": 1000000000000.0000,
+                    "last_proceed": 1000000000000,
+                    "last_update": 1000000000000,
+                    "down_multiplier": 1,
+                    "down_send_time": None,
+                    "pair": "BTC-USDT",
+                    "last_price": 0.0
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ],
+        parameters=[
+            OpenApiParameter(required=False, type=int, name='group', )
+        ]
+    )
     def get(self, request, pair, format=None):
         data = self.get_stack_by_name(pair)
         group = to_decimal(request.GET.get('group', 0))
@@ -279,6 +404,56 @@ class StackView(APIView):
 class PairsVolumeView(APIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(
+        responses={
+            200: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Example',
+                summary='response',
+                value={
+                    "pairs": [
+                        {
+                            "volume": 0,
+                            "base_volume": 0,
+                            "price": 0,
+                            "price_24h": 0,
+                            "price_24h_value": 0,
+                            "pair": "BTC-USDT",
+                            "pair_data": {
+                                "id": 1,
+                                "code": "BTC-USDT",
+                                "base": {
+                                    "id": 1,
+                                    "code": "BTC",
+                                    "is_token": False,
+                                    "blockchain_list": []
+                                },
+                                "quote": {
+                                    "id": 4,
+                                    "code": "USDT",
+                                    "is_token": True,
+                                    "blockchain_list": [
+                                        "ETH"
+                                    ]
+                                },
+                                "stack_precisions": [
+                                    "100",
+                                    "10",
+                                    "1",
+                                    "0.1",
+                                    "0.01"
+                                ]
+                            }
+                        },
+                    ]
+                },
+                request_only=False,  # signal that example only applies to requests
+                response_only=True,  # signal that example only applies to responses
+            ),
+        ]
+    )
     def get(self, request, format=None):
         data = get_filtered_pairs_24h_stats()
         return Response(data)
@@ -288,6 +463,12 @@ class OrderUpdateView(ExceptionHandlerMixin,
                       APIView):
     SERIALIZER = UpdateOrderSerializer
 
+    @extend_schema(
+        request=UpdateOrderSerializer,
+        responses={
+            200: OpenApiResponse(description='No body content.')
+        }
+    )
     def post(self, request):
         serializer = self.SERIALIZER(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -333,6 +514,7 @@ class OrderUpdateView(ExceptionHandlerMixin,
 class ExchangeEmailView(APIView):
     http_method_names = ['post']
 
+    @extend_schema(exclude=True)
     def post(self, request, format=None):
         lang = get_language()
         data = request.data
@@ -356,28 +538,28 @@ class ExchangeEmailView(APIView):
         return Response(data)
 
 
-class AllOrdersView(APIView):
+class AllOrdersView(ListAPIView):
     http_method_names = ['get']
     permission_classes = [BotsOnly]
+    serializer_class = AllOrdersSimpleSerializer
+    queryset = Order.objects.all().order_by('price',).prefetch_related('user')
+    pagination_class = None
 
-    def get(self, request):
-        pair = request.query_params['pair']
-        orders = Order.objects.filter(
-            pair=pair,
+    filter_backends = (FilterBackend,)
+    filterset_fields = ('pair',)
+
+    def get_queryset(self):
+        return super(AllOrdersView, self).get_queryset().filter(
             state=Order.STATE_OPENED,
             in_stack=True,
-        ).order_by(
-            'price',
-        ).prefetch_related('user')
-
-        data = AllOrdersSimpleSerializer(orders, many=True).data
-        return Response(data)
+        )
 
 
 class LatestCandleView(APIView):
     http_method_names = ['get']
     permission_classes = [BotsOnly]
 
+    @extend_schema(exclude=True)
     def get(self, request):
         pair = request.query_params['pair']
         interval = int(request.query_params.get('interval', 1))  # minutes

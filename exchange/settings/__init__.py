@@ -17,5 +17,6 @@ from .redis import *
 from .rest import *
 from .sci import *
 from .sentry import *
+from .spectacular import *
 from .twilio import *
 from .scoring import *
