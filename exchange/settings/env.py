@@ -4,7 +4,9 @@ import os
 
 env = environ.Env(
     # set casting, default value
-    DEBUG=(bool, False)
+    DEBUG=(bool, False),
+    EMAIL_CONFIRMATION_EXPIRE_DAYS=None,
+    EMAIL_CONFIRMATION_COOLDOWN=None,
 )
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
