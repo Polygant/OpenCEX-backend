@@ -19,6 +19,7 @@ from .rest import *
 from .rest_auth import *
 from .sci import *
 from .sentry import *
+from .simplejwt import *
 from .spectacular import *
 from .twilio import *
 from .scoring import *
