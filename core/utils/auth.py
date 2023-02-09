@@ -1,49 +1,20 @@
 import json
-from datetime import timedelta, datetime
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.utils.translation import ugettext_lazy as _
 from fuzzywuzzy import fuzz
-from rest_framework import exceptions
 
-import jwt
-from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 User = get_user_model()
 
 
-def our_jwt_payload_handler(user):
-    from rest_framework_jwt.utils import jwt_payload_handler
-    payload = jwt_payload_handler(user)
-
-    # replace expire token from user settings
-    user_timeout = user.profile.auto_logout_timeout
-    payload['exp'] = datetime.utcnow() + timedelta(minutes=user_timeout)
-    return payload
-
-
 def get_user_from_token(jwt_value):
-    from rest_framework_jwt.settings import api_settings
-    jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
-    auth = JSONWebTokenAuthentication()
-
-    # TODO error_format
-    try:
-        payload = jwt_decode_handler(jwt_value)
-    except jwt.ExpiredSignature:
-        msg = _('Signature has expired.')
-        raise exceptions.AuthenticationFailed(msg)
-    except jwt.DecodeError:
-        msg = _('Error decoding signature.')
-        raise exceptions.AuthenticationFailed(msg)
-    except jwt.InvalidTokenError:
-        raise exceptions.AuthenticationFailed()
-
-    user = auth.authenticate_credentials(payload)
-
-    return (user, jwt_value)
+    auth = JWTAuthentication()
+    payload = auth.get_validated_token(jwt_value)
+    user = auth.get_user(payload)
+    return user, payload
 
 
 class RegisterUserCheck:

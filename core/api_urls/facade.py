@@ -19,8 +19,8 @@ from core.views.facade import save_user_language
 from core.views.facade import set_user_2fa
 
 urlpatterns = [
-    path(r'auth/registration/', include('rest_auth.registration.urls')),
-    path(r'auth/', include('rest_auth.urls')),
+    path(r'auth/registration/', include('dj_rest_auth.registration.urls')),
+    path(r'auth/', include('dj_rest_auth.urls')),
     path(r'check2fa/', check_user_2fa_is_on),
     path(r'check_captcha/', CaptchaCheck.as_view()),
     path(r'gen_secret/', generate_secret),

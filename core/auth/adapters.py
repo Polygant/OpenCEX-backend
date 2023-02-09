@@ -6,23 +6,6 @@ from rest_framework.exceptions import ValidationError
 
 class AccountAdapter(DefaultAccountAdapter):
 
-    _tmp = {}
-
-    def set_tmp(self, key, val):
-        self._tmp[key] = val
-        return self._tmp
-
-    def get_tmp(self, key, default=None):
-        res = self._tmp.get(key, default)
-        return res
-
-    def clear_tmp(self, key=None):
-        if key and key in self._tmp:
-            del self._tmp[key]
-
-        if key is None:
-            self._tmp = {}
-
     def validate_unique_email(self, email):
         if email_address_exists(email):
             raise ValidationError({
