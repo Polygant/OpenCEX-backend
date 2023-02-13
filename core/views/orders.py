@@ -25,7 +25,7 @@ from core.consts.orders import BUY
 from core.consts.orders import ORDER_CLOSED
 from core.consts.orders import ORDER_OPENED
 from core.exceptions.orders import OrderNotFoundError, OrderNotOpenedError, OrderMinQuantityError
-from core.filters.orders import OrdersFilter
+from core.filters.orders import OrdersFilter, ExchangeFilter
 from core.utils.stats.daily import get_filtered_pairs_24h_stats, get_pair_last_price
 from core.orderbook.helpers import get_stack_by_pair
 from core.models import PairSettings
@@ -207,7 +207,8 @@ class ExchangeView(ListAPIView, MarketView):
     queryset = Exchange.objects.all().select_related('order').order_by('-id')
 
     filter_backends = (FilterBackend,)
-    filterset_fields = ('operation', 'base_currency', 'quote_currency')
+    filterset_class = ExchangeFilter
+    # filterset_fields = ('operation', 'base_currency', 'quote_currency', 'order__state')
 
     def get_queryset(self):
         qs = super(ExchangeView, self).get_queryset()
