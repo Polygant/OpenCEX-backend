@@ -453,8 +453,8 @@ class PasswordResetConfirmSerializer(BasePasswordResetConfirmSerializer):
 class UserProfileSerializer(ModelSerializer):
     auto_logout_timeout = serializers.IntegerField(min_value=60, required=False)
     user = UserSerializer(many=False, read_only=True)
-    country = CountryField(country_dict=True, read_only=True, required=False)
-    birthday = serializers.DateTimeField(source='birth_day', read_only=True, required=False)
+    country = CountryField(country_dict=True, required=False)
+    birthday = serializers.DateTimeField(source='birth_day', required=False)
     kyc_status = serializers.SerializerMethodField()
     kyc_enabled = serializers.SerializerMethodField()
     kyt_enabled = serializers.SerializerMethodField()

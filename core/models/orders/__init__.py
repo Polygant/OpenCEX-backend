@@ -1068,9 +1068,12 @@ class OrderRevert(UserMixinModel, BaseModel):
 
 
 class Exchange(UserMixinModel, BaseModel):
+
+    OPERATION_LIST = list(OPERATIONS.items())
+
     order = models.ForeignKey(Order, on_delete=models.CASCADE,
                               related_name='+', db_constraint=False)
-    operation = models.PositiveSmallIntegerField(choices=list(OPERATIONS.items()))
+    operation = models.PositiveSmallIntegerField(choices=OPERATION_LIST)
     base_currency = CurrencyModelField()
     quote_currency = CurrencyModelField()
     quantity = MoneyField()
