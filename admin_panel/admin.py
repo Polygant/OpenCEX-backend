@@ -30,7 +30,7 @@ from rangefilter.filters import DateRangeFilter
 from rest_framework.exceptions import ValidationError
 
 from admin_panel.filters import CurrencyFilter, CurrencyFieldFilter, WalletTransactionStateFilter, \
-    WalletTransactionStatusFilter
+    WalletTransactionStatusFilter, OrderTypeFilter
 from admin_panel.filters import FeeRateFilter
 from admin_panel.filters import GateFilter
 from admin_panel.filters import PairsFilter
@@ -890,6 +890,7 @@ class ExchangeUserAdmin(ImmutableMixIn, BaseModelAdmin):
         BalancesInline,
         OrderInline,
     ]
+    no_save = False
 
     def get_readonly_fields(self, request, obj=None):
         fields = super(ExchangeUserAdmin, self).get_readonly_fields(request, obj=obj)
@@ -1107,7 +1108,7 @@ class AllOrderAdmin(ReadOnlyMixin, ImmutableMixIn, BaseModelAdmin):
                     'state_colored', 'executed', 'state_changed_at']
     fields = ['id', 'user', 'pair', 'state', 'stop', 'in_stack', ]
     ordering = ('-created',)
-    list_filter = [PairsFilter, 'operation', 'state', 'executed', 'in_stack', ('created', DateRangeFilter), ]
+    list_filter = [PairsFilter, 'operation', 'state', 'executed', 'in_stack', OrderTypeFilter, ('created', DateRangeFilter), ]
     actions = [
         'cancel_order',
         # 'revert_orders',
