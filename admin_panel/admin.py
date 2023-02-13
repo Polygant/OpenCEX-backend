@@ -249,7 +249,7 @@ class BalancesInline(ReadOnlyMixin, admin.TabularInline):
 
 class HistoryInline(admin.TabularInline):
     model = OrderChangeHistory
-    fields = ('created', 'quantity', 'price', 'otc_percent', 'otc_limit')
+    fields = ('created', 'quantity', 'price', 'otc_percent', 'otc_limit', 'stop', )
     readonly_fields = (
         'created',
         'order',
@@ -257,6 +257,7 @@ class HistoryInline(admin.TabularInline):
         'price',
         'otc_percent',
         'otc_limit',
+        'stop',
     )
     ordering = ('-created',)
 
@@ -1102,11 +1103,11 @@ class BalanceAdmin(ImmutableMixIn, BaseModelAdmin):
 @admin.register(AllOrder)
 class AllOrderAdmin(ReadOnlyMixin, ImmutableMixIn, BaseModelAdmin):
     list_display = ['id', 'user', 'created', 'pair', 'order_operation', 'type', 'quantity',
-                    'quantity_left', 'price', 'amount', 'fee', 'state_colored', 'executed',
-                    'state_changed_at']
-    fields = ['id', 'user', 'pair', 'state']
+                    'quantity_left', 'price', 'amount', 'fee', 'stop', 'in_stack',
+                    'state_colored', 'executed', 'state_changed_at']
+    fields = ['id', 'user', 'pair', 'state', 'stop', 'in_stack', ]
     ordering = ('-created',)
-    list_filter = [PairsFilter, 'operation', 'state', 'executed', ('created', DateRangeFilter), ]
+    list_filter = [PairsFilter, 'operation', 'state', 'executed', 'in_stack', ('created', DateRangeFilter), ]
     actions = [
         'cancel_order',
         # 'revert_orders',
