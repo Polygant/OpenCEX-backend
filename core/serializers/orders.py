@@ -13,7 +13,8 @@ from core.otcupdater import OtcOrdersUpdater
 from core.consts.orders import EXTERNAL, STOP_LIMIT
 from core.consts.orders import BUY
 from core.consts.orders import LIMIT
-from core.exceptions.orders import OrderPriceInvalidError, OrderQuantityInvalidError, OrderStopInvalidError
+from core.exceptions.orders import OrderPriceInvalidError, OrderQuantityInvalidError, OrderStopInvalidError, \
+    OrderStopPriceInvalidError
 from core.models.orders import Exchange, ExecutionResult
 from core.models.orders import MARKET
 from core.models.orders import EXCHANGE
@@ -218,7 +219,7 @@ class UpdateOrderSerializer(serializers.Serializer):
         if 'price' in data and data['price'] <= 0:
             raise OrderPriceInvalidError('price <= 0')
         if 'stop' in data and data['stop'] <= 0:
-            raise ValidationError('stop <= 0')
+            raise OrderStopPriceInvalidError('stop <= 0')
 
         if 'otc_limit' in data and 'otc_percent' in data:
             OTCSerializer(data=data).is_valid(raise_exception=True)

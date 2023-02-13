@@ -119,12 +119,6 @@ class StopLimitView(ExceptionHandlerMixin, GenericAPIView):
     )
     def post(self, request):
 
-        stop = request.data.get('stop', 0)
-        price = request.data.get('price', 0)
-
-        if stop <= 0 or price <= 0:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
         serializer_item = self.SERIALIZER(data=request.data, context={"request": request})
         serializer_item.is_valid(raise_exception=True)
         data = serializer_item.data

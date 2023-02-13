@@ -51,6 +51,7 @@ class WrappedTaskManager:
 
     @classmethod
     def unpack_result_or_raise(cls, result: dict):
+        print(result)
         if result['status'] == WrappedTaskResultStatus.OK:
             return result['data']
 
