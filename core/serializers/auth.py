@@ -415,11 +415,6 @@ class PasswdChangeSerializer(GCodeMixIn, BasePasswordChangeSerializer):
 
         return value
 
-    def validate(self, attrs):
-        attrs = BasePasswordChangeSerializer.validate(self, attrs)
-        self.check_2fa_for_user(self.user.username, attrs.get('googlecode', None))
-        return attrs
-
 
 class PasswordResetSerializer(GCodeMixIn, BasePasswordResetSerializer):
     lang = LANG_FIELD
