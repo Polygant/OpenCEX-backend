@@ -15,7 +15,7 @@ from core.models.cryptocoins import UserWallet
 from core.models.inouts.fees_and_limits import FeesAndLimits
 from core.models.inouts.wallet import WalletTransactions
 from core.models.inouts.withdrawal import WithdrawalRequest
-from core.utils.inouts import get_min_accumulation_balance
+from core.utils.inouts import get_min_accumulation_balance, get_keeper_accumulation_balance_limit
 from core.utils.inouts import get_withdrawal_fee
 from cryptocoins.exceptions import CoinServiceError
 from cryptocoins.models.keeper import Keeper
@@ -49,6 +49,10 @@ class CoinServiceBase:
     @property
     def min_accumulation_balance(self):
         return get_min_accumulation_balance(self.currency)
+
+    @property
+    def keeper_accumulation_balance_limit(self):
+        return get_keeper_accumulation_balance_limit(self.currency)
 
     def get_current_block_id(self):
         raise NotImplementedError
@@ -390,8 +394,10 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         ))
         private_keys = [AESCoderDecoder(settings.CRYPTO_KEY).decrypt(i) for i in private_keys]
 
+        accumulation_address = self.get_accumulation_address(accumulation_amount)
+
         outputs = {
-            self.cold_wallet_address: accumulation_amount,
+            accumulation_address: accumulation_amount,
         }
 
         self.transfer(checked_inputs, outputs, private_keys)
@@ -605,3 +611,14 @@ class BitCoreCoinServiceBase(CoinServiceBase):
     @staticmethod
     def get_balance_from_unspent(unspent):
         return sum([to_decimal(i['amount']) for i in unspent])
+
+    def get_accumulation_address(self, accumulation_amount):
+        keeper_wallet = self.get_keeper_wallet()
+        keeper_balance = self.get_wallet_balance(keeper_wallet.address)
+
+        accumulation_address = self.cold_wallet_address
+
+        if keeper_balance + accumulation_amount < self.keeper_accumulation_balance_limit:
+            accumulation_address = keeper_wallet.address
+
+        return accumulation_address

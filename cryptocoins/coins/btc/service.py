@@ -225,8 +225,10 @@ class BTCCoinService(BitCoreCoinServiceBase):
             self.log.info('Accumulation balance too low after fee apply: %s', accumulation_amount)
             return
 
+        accumulation_address = self.get_accumulation_address(accumulation_amount)
+
         outputs = {
-            self.cold_wallet_address: accumulation_amount,
+            accumulation_address: accumulation_amount,
         }
 
         txid = self.transfer(checked_inputs, outputs, private_keys)
@@ -236,9 +238,9 @@ class BTCCoinService(BitCoreCoinServiceBase):
                     currency=BTC_CURRENCY,
                     txid=txid,
                     from_address=item['address'],
-                    to_address=self.cold_wallet_address,
+                    to_address=accumulation_address,
                 )
-            self.log.info('Accumulation to %s succeeded', self.cold_wallet_address)
+            self.log.info(f'Accumulation to {accumulation_address} succeeded')
         accumulation_ready_addresses_qs.update(accumulation_made=True)
 
 

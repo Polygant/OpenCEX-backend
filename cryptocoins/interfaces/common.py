@@ -46,11 +46,12 @@ class Token:
     DEFAULT_TRANSFER_GAS_MULTIPLIER: int = None
     CHAIN_ID: int = None
 
-    def __init__(self, client, token_params: TokenParams):
+    def __init__(self, client, token_params: TokenParams, manager):
         self.client = client
         self.params = token_params
         self.currency = Currency.get(self.params.symbol)
         self.contract = self.get_contract()
+        self.manager = manager
         log.info(f'Token registered: {self.params.symbol} {self.params.contract_address}')
 
     def decode_function_input(self, data: Union[str, bytes]):
@@ -95,6 +96,14 @@ class Token:
             FeesAndLimits.MIN_VALUE
         )
 
+    @property
+    def keeper_accumulation_balance_limit(self):
+        return FeesAndLimits.get_limit(
+            self.currency.code,
+            FeesAndLimits.ACCUMULATION,
+            FeesAndLimits.KEEPER
+        )
+
     def get_base_denomination_balance(self, address: str) -> int:
         return self.contract.functions.balanceOf(address).call()
 
@@ -122,6 +131,17 @@ class Token:
             else:
                 time.sleep(sleep_for)
         return 0
+
+    def get_accumulation_address(self, accumulation_amount):
+        keeper_wallet = self.manager.get_keeper_wallet()
+        keeper_balance = self.get_balance(keeper_wallet.address)
+
+        accumulation_address = self.manager.COLD_WALLET_ADDRESS
+
+        if keeper_balance + accumulation_amount < self.keeper_accumulation_balance_limit:
+            accumulation_address = keeper_wallet.address
+
+        return accumulation_address
 
     def __str__(self):
         return f'{self.params.symbol}'
@@ -171,6 +191,7 @@ class BlockchainManager:
     TOKEN_CLASS: Type[Token] = None
     BASE_DENOMINATION_DECIMALS: int = None
     MIN_BALANCE_TO_ACCUMULATE_DUST: Decimal = None
+    COLD_WALLET_ADDRESS: str
 
     def __init__(self, client):
         log.info(f'Init {self.CURRENCY} manager')
@@ -198,7 +219,7 @@ class BlockchainManager:
         """
         log.info('Registering tokens')
         for currency, token_data in self.TOKEN_CURRENCIES.items():
-            token = self.TOKEN_CLASS(self.client, token_data)
+            token = self.TOKEN_CLASS(self.client, token_data, self)
             self._tokens.append(token)
             self._token_by_address_dict[token.params.contract_address] = token
             self._token_by_symbol_dict[token.params.symbol] = token
@@ -210,6 +231,10 @@ class BlockchainManager:
     @property
     def deposit_min_amount(self):
         return FeesAndLimits.get_limit(self.CURRENCY.code, FeesAndLimits.DEPOSIT, FeesAndLimits.MIN_VALUE)
+
+    @property
+    def keeper_accumulation_balance_limit(self):
+        return FeesAndLimits.get_limit(self.CURRENCY.code, FeesAndLimits.ACCUMULATION, FeesAndLimits.KEEPER)
 
     @property
     def registered_token_addresses(self):
@@ -274,4 +299,15 @@ class BlockchainManager:
     @classmethod
     def get_base_denomination_from_amount(cls, amount) -> int:
         return get_base_denomination_from_amount(amount, cls.BASE_DENOMINATION_DECIMALS)
+
+    def get_accumulation_address(self, accumulation_amount):
+        keeper_wallet = self.get_keeper_wallet()
+        keeper_balance = self.get_balance(keeper_wallet.address)
+
+        accumulation_address = self.COLD_WALLET_ADDRESS
+
+        if keeper_balance + accumulation_amount < self.keeper_accumulation_balance_limit:
+            accumulation_address = keeper_wallet.address
+
+        return accumulation_address
 
