@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from django.conf import settings
 from eth_abi.codec import ABICodec
+from eth_abi.exceptions import NonEmptyPaddingBytes
 from eth_abi.registry import registry
 from web3 import Web3
 from web3._utils.threads import Timeout
@@ -57,6 +58,8 @@ class Web3Transaction(BlockchainTransaction):
 
             try:
                 token_to_address, amount = abi_codec.decode_abi(['address', 'uint256'], data_bytes[4:])
+            except NonEmptyPaddingBytes:
+                return
             except Exception as e:
                 log.exception('Cant parse transaction')
                 return
