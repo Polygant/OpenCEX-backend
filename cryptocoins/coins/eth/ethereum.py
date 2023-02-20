@@ -49,6 +49,7 @@ class EthereumManager(Web3Manager):
     GAS_PRICE_CACHE_CLASS: Type[GasPriceCache] = EthGasPriceCache
     CHAIN_ID = settings.ETH_CHAIN_ID
     MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.002')
+    COLD_WALLET_ADDRESS = settings.ETH_SAFE_ADDR
 
 
 ethereum_manager = EthereumManager(client=w3)

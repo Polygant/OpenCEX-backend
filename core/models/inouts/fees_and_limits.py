@@ -21,6 +21,7 @@ class FeesAndLimits(models.Model):
     VALUE = 'value'
     LIMIT_ORDER = 'limit'
     MARKET_ORDER = 'market'
+    KEEPER = 'keeper'
 
     currency = CurrencyModelField(unique=True)
     limits_deposit_min = models.DecimalField(
@@ -38,6 +39,8 @@ class FeesAndLimits(models.Model):
     limits_code_max = models.DecimalField(
         max_digits=32, decimal_places=8, default=0)
     limits_accumulation_min = models.DecimalField(
+        max_digits=32, decimal_places=8, default=0)
+    limits_keeper_accumulation_balance = models.DecimalField(
         max_digits=32, decimal_places=8, default=0)
     fee_deposit_address = models.DecimalField(
         max_digits=32, decimal_places=8, default=0)
@@ -79,7 +82,8 @@ class FeesAndLimits(models.Model):
                             cls.MAX_VALUE: entry.limits_code_max
                         },
                         cls.ACCUMULATION: {
-                            cls.MIN_VALUE: entry.limits_accumulation_min
+                            cls.MIN_VALUE: entry.limits_accumulation_min,
+                            cls.KEEPER: entry.limits_keeper_accumulation_balance,
                         }
                     },
                     'fee': {

@@ -775,6 +775,8 @@ def accumulate_eth(accumulation_state_id, instant=False):
         accumulation_manager.set_need_check(accumulation_state.wallet)
         return
 
+    accumulation_address = ethereum_manager.get_accumulation_address(amount)
+
     # we want to process our tx faster
     gas_price = ethereum_manager.gas_price_cache.get_increased_price()
     gas_amount = gas_price * settings.ETH_TX_GAS
@@ -794,7 +796,7 @@ def accumulate_eth(accumulation_state_id, instant=False):
 
     tx_hash = ethereum_manager.send_tx(
         private_key=wallet.private_key,
-        to_address=ETH_SAFE_ADDR,
+        to_address=accumulation_address,
         amount=withdrawal_amount,
         nonce=nonce,
         gasPrice=gas_price,
@@ -819,10 +821,10 @@ def accumulate_eth(accumulation_state_id, instant=False):
         currency=ETH_CURRENCY,
         txid=tx_hash.hex(),
         from_address=address,
-        to_address=ETH_SAFE_ADDR
+        to_address=accumulation_address
     )
 
-    log.info('Accumulation TX %s sent from %s to %s', tx_hash.hex(), wallet.address, ETH_SAFE_ADDR)
+    log.info('Accumulation TX %s sent from %s to %s', tx_hash.hex(), wallet.address, accumulation_address)
 
 
 @shared_task
@@ -850,6 +852,8 @@ def accumulate_erc20(accumulation_state_id, instant=False):
                     currency, address, token_amount)
         return
 
+    accumulation_address = token.get_accumulation_address(token_amount)
+
     # we keep amount not as wei, it's more easy, so we need to convert it
     # checked_amount_wei = token.get_wei_from_amount(accumulation_state.current_balance)
 
@@ -870,7 +874,7 @@ def accumulate_erc20(accumulation_state_id, instant=False):
         return
 
     accumulation_gas_required_amount = token.get_transfer_gas_amount(
-        ETH_SAFE_ADDR,
+        accumulation_address,
         token_amount_wei,
     )
 
@@ -882,7 +886,7 @@ def accumulate_erc20(accumulation_state_id, instant=False):
 
     tx_hash = token.send_token(
         wallet.private_key,
-        ETH_SAFE_ADDR,
+        accumulation_address,
         token_amount_wei,
         gas=accumulation_gas_required_amount,
         gasPrice=gas_price,
@@ -908,11 +912,11 @@ def accumulate_erc20(accumulation_state_id, instant=False):
         token_currency=currency,
         txid=tx_hash.hex(),
         from_address=address,
-        to_address=ETH_SAFE_ADDR
+        to_address=accumulation_address,
     )
 
     log.info('Token accumulation TX %s sent from %s to: %s',
-             tx_hash.hex(), wallet.address, ETH_SAFE_ADDR)
+             tx_hash.hex(), wallet.address, accumulation_address)
 
 
 @shared_task
