@@ -607,6 +607,7 @@ class Order(UserMixinModel, BaseModel):
         special_data = {
             'percent': self.otc_percent,
             'limit': self.otc_limit,
+            'stop': self.stop,
         }
 
         if price <= 0:
@@ -892,6 +893,7 @@ class Order(UserMixinModel, BaseModel):
             data['otc_percent'] = special_data.get(
                 'percent') and to_decimal(special_data.get('percent'))
             data['otc_limit'] = special_data.get('limit') and to_decimal(special_data.get('limit'))
+            data['stop'] = special_data.get('stop') and to_decimal(special_data.get('stop'))
         OrderChangeHistory(**data).save()
 
     def get_executed_amount(self, quantity, price):
@@ -1041,6 +1043,7 @@ class OrderChangeHistory(models.Model):
     price = MoneyField(null=True, blank=True)
     otc_percent = MoneyField(null=True, blank=True)
     otc_limit = MoneyField(null=True, blank=True)
+    stop = MoneyField(null=True, blank=True)
 
 
 class OrderStateChangeHistory(models.Model):
