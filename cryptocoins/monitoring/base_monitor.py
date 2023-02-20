@@ -4,9 +4,10 @@ from typing import List, Union
 
 from django.utils import timezone
 
-from core.consts.currencies import ERC20_CURRENCIES
+from core.consts.currencies import ERC20_CURRENCIES, ALL_TOKEN_CURRENCIES
 from core.currency import Currency
 from core.models.inouts.wallet import WalletTransactions
+from cryptocoins.models import Keeper
 from cryptocoins.models.accumulation_details import AccumulationDetails
 from cryptocoins.models.accumulation_transaction import AccumulationTransaction
 
@@ -20,6 +21,12 @@ class BaseMonitor:
     ACCUMULATION_TIMEOUT = 60 * 60
     DELTA_AMOUNT = 0
     OFFSET_SECONDS = 0
+
+    def __init__(self):
+        self.addresses_to_check = [self.SAFE_ADDRESS.lower()]
+        keeper = Keeper.objects.filter(currency=self.BLOCKCHAIN_CURRENCY).first()
+        if keeper:
+            self.addresses_to_check.append(keeper.user_wallet.address.lower())
 
     def get_wallet_transactions(self) -> List[WalletTransactions]:
         """
@@ -48,7 +55,7 @@ class BaseMonitor:
         """
         Get alert reason
         """
-        if self.CURRENCY in ERC20_CURRENCIES:
+        if self.CURRENCY in ALL_TOKEN_CURRENCIES:
             accumulation_transaction = AccumulationTransaction.objects.filter(
                 accumulation_state__wallet__address=address,
                 accumulation_state__wallet__currency=self.CURRENCY,
@@ -108,7 +115,7 @@ class BaseMonitor:
         # погрешность
         for i, tx in filtered_txs:
             # Accumulate to safe address
-            if tx['to'].lower() == self.SAFE_ADDRESS.lower():
+            if tx['to'].lower() in self.addresses_to_check:
                 if tx['value'] + self.DELTA_AMOUNT >= wallet_tx.amount:
                     wallet_tx.state = WalletTransactions.STATE_ACCUMULATED
                 else:
