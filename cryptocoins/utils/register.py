@@ -3,6 +3,7 @@ from typing import Dict, Optional, Callable
 
 from core.consts.currencies import ALL_CURRENCIES, CRYPTO_COINS_PARAMS
 from core.consts.currencies import ALL_TOKEN_CURRENCIES
+from core.consts.currencies import BEP20_CURRENCIES
 from core.consts.currencies import CRYPTO_ADDRESS_VALIDATORS
 from core.consts.currencies import CRYPTO_WALLET_CREATORS
 from core.consts.currencies import CURRENCIES_LIST
@@ -68,6 +69,17 @@ def register_token(currency_id, currency_code, blockchains: Optional[Dict[str, T
             address_validators['ETH'] = is_valid_eth_address
 
             log.debug(f'Token {currency} registered as ERC20')
+
+        if 'BNB' in blockchains:
+            from cryptocoins.coins.bnb.wallet import bep20_wallet_creation_wrapper, is_valid_bnb_address
+
+            BEP20_CURRENCIES.update({
+                currency: blockchains['BNB']
+            })
+            wallet_creators['BNB'] = bep20_wallet_creation_wrapper
+            address_validators['BNB'] = is_valid_bnb_address
+
+            log.debug(f'Token {currency} registered as BEP20')
 
         CRYPTO_WALLET_CREATORS[currency] = wallet_creators
         CRYPTO_ADDRESS_VALIDATORS[currency] = address_validators

@@ -8,6 +8,8 @@ from django.utils import timezone
 from core.models.inouts.sci import PayGateTopup
 from core.models.inouts.wallet import WalletTransactions
 from core.models.inouts.withdrawal import WithdrawalRequest
+from cryptocoins.cold_wallet_stats.bep20_stats_handler import UsdtBnbStatsHandler
+from cryptocoins.cold_wallet_stats.bnb_stats_handler import BnbStatsHandler
 from cryptocoins.cold_wallet_stats.btc_stats_handler import BtcStatsHandler
 from cryptocoins.cold_wallet_stats.erc20_stats_handler import UsdtEthStatsHandler
 from cryptocoins.cold_wallet_stats.eth_stats_handler import EthStatsHandler
@@ -19,7 +21,9 @@ log = logging.getLogger(__name__)
 CRYPTO_STATS_HANDLERS = [
     BtcStatsHandler,
     EthStatsHandler,
+    BnbStatsHandler,
     UsdtEthStatsHandler,
+    UsdtBnbStatsHandler,
 ]
 
 FIAT_STATS_HANDLERS = [

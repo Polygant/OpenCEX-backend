@@ -94,6 +94,17 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='BNBWithdrawalApprove',
+            fields=[
+            ],
+            options={
+                'proxy': True,
+                'indexes': [],
+                'constraints': [],
+            },
+            bases=('core.withdrawalrequest',),
+        ),
+        migrations.CreateModel(
             name='BTCWithdrawalApprove',
             fields=[
             ],

@@ -5,6 +5,7 @@ from typing import List, Union
 from django.conf import settings
 from django.db.models import Q
 
+from core.consts.currencies import BEP20_CURRENCIES
 from core.consts.currencies import ERC20_CURRENCIES
 from core.currency import Currency
 from core.models.cryptocoins import UserWallet
@@ -120,7 +121,7 @@ def get_withdrawal_requests_to_process(currencies: list, blockchain_currency='')
     tokens = []
     coins = []
     for cur in currencies:
-        if cur in ERC20_CURRENCIES:
+        if cur in ERC20_CURRENCIES or cur in BEP20_CURRENCIES:
             tokens.append(cur)
         else:
             coins.append(cur)
@@ -148,7 +149,7 @@ def get_withdrawal_requests_pending(currencies: list, blockchain_currency=''):
     not_common_currencies = []
     common_qs = None
     for cur in currencies:
-        if cur in ERC20_CURRENCIES:
+        if cur in ERC20_CURRENCIES or cur in BEP20_CURRENCIES:
             common_currencies.append(cur)
         else:
             not_common_currencies.append(cur)

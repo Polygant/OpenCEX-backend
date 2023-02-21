@@ -1,6 +1,7 @@
 from cryptocoins.tasks.btc import sat_per_byte_cache
 from cryptocoins.tasks.commons import *
 from cryptocoins.tasks.eth import *
+from cryptocoins.tasks.bnb import *
 from cryptocoins.tasks.stats import *
 from cryptocoins.tasks.scoring import *
 
@@ -20,5 +21,13 @@ __all__ = (
     'send_gas',
     'sat_per_byte_cache',
     'check_accumulations',
+    'bnb_process_new_blocks',
+    'bnb_process_block',
+    'bnb_process_bnb_deposit',
+    'bnb_process_bep20_deposit',
+    'withdraw_bnb',
+    'withdraw_bep20',
+    'accumulate_bnb',
+    'accumulate_bep20',
     'process_deffered_deposit',
 )

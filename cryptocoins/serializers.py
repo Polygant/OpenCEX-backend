@@ -2,6 +2,7 @@ from cryptos import Bitcoin
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from cryptocoins.tasks.bnb import bnb_manager
 from cryptocoins.tasks.eth import ethereum_manager
 from lib.cipher import AESCoderDecoder
 
@@ -48,3 +49,8 @@ class BTCKeySerializer(BaseKeySerializer):
 class ETHKeySerializer(BaseKeySerializer):
     def get_encrypted_string(self):
         return ethereum_manager.get_keeper_wallet().private_key
+
+
+class BNBKeySerializer(BaseKeySerializer):
+    def get_encrypted_string(self):
+        return bnb_manager.get_keeper_wallet().private_key
