@@ -100,7 +100,6 @@ class InoutsStats(models.Model):
 
     @classmethod
     def refresh(cls):
-        from core.models.stats import InoutsStats
         from core.models.inouts.wallet import WalletTransactions
         from core.models.inouts.sci import PayGateTopup
         from core.models.inouts.withdrawal import WithdrawalRequest

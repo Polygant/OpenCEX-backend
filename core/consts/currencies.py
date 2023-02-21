@@ -1,4 +1,5 @@
-from typing import List, Tuple, Union, Dict
+from dataclasses import dataclass
+from typing import List, Tuple, Union, Dict, Optional
 from collections.abc import Callable
 
 from core.currency import Currency, TokenParams, CoinParams
@@ -21,3 +22,12 @@ CRYPTO_ADDRESS_VALIDATORS: Union[Dict[Currency, Callable], Dict[Currency, Dict[s
 CRYPTO_WALLET_CREATORS: Union[Dict[Currency, Callable], Dict[Currency, Dict[str, Callable]]] = {}
 
 CRYPTO_COINS_PARAMS: Dict[Currency, CoinParams] = {}
+
+CRYPTO_WALLET_ACCOUNT_CREATORS = {}
+
+
+@dataclass
+class WalletAccount:
+    address: str
+    private_key: str
+    redeem_script: Optional[str] = None

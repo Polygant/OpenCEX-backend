@@ -11,13 +11,14 @@ django.setup()
 
 from django.db.transaction import atomic
 from bots.models import BotConfig
-from cryptocoins.models import AccumulationState, AccumulationTransaction
+from cryptocoins.models import AccumulationTransaction
 
 from core.models import Balance, UserWallet, UserFee, UserExchangeFee
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 
+# todo needs to repair
 def main():
     with atomic():
         users = get_user_model().objects.filter(~Q(is_staff=True) & ~Q(username__iregex="^bot[0-9]+@bot.com$")).all()

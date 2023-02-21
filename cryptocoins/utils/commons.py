@@ -7,8 +7,10 @@ from django.db.models import Q
 
 from core.consts.currencies import ERC20_CURRENCIES
 from core.currency import Currency
-from core.models.cryptocoins import UserWallet
 from core.models.inouts.withdrawal import WithdrawalRequest, CREATED, PENDING
+from cryptocoins.coins.btc import BTC_CURRENCY
+from cryptocoins.coins.eth import ETH_CURRENCY
+from cryptocoins.coins.eth.wallet import create_new_wallet
 from cryptocoins.exceptions import KeeperNotFound
 from cryptocoins.exceptions import WalletNotFound
 from cryptocoins.models import GasKeeper
@@ -80,6 +82,8 @@ def get_keeper_wallet(symbol: Union[str, Currency], gas_keeper=False) -> WalletA
 
 
 def get_user_wallet(symbol: Union[str, Currency], address: str) -> WalletAccount:
+    from core.models.cryptocoins import UserWallet
+
     currency = ensure_currency(symbol)
 
     result = UserWallet.objects.filter(
@@ -109,6 +113,7 @@ def get_user_addresses(currency: Union[Currency, str]) -> List[str]:
     Get all user registered wallet addresses.
     note: cache may be required due users count increase
     """
+    from core.models.cryptocoins import UserWallet
     currency = ensure_currency(currency)
     qs = UserWallet.objects.filter(
         currency=currency,
@@ -203,3 +208,26 @@ def create_keeper(user_wallet, KeeperModel=Keeper, extra=None):
     log.info('New keeper successfully created')
     log.info(f'Address: {user_wallet.address}, Currency: {user_wallet.currency}')
     return keeper
+
+
+def get_latest_block_id(currency):
+    if currency == BTC_CURRENCY:
+        from cryptocoins.coins.btc.service import BTCCoinService
+        service = BTCCoinService()
+    else:
+        raise Exception(f'Currency {currency} not found')
+    block_id = service.get_current_block_id()
+    return block_id
+
+
+def generate_new_wallet_account(currency) -> WalletAccount:
+    if currency == BTC_CURRENCY:
+        from cryptocoins.coins.btc.service import BTCCoinService
+        service = BTCCoinService()
+        wallet_account = service.create_new_wallet()
+    elif currency == ETH_CURRENCY:
+        wallet_account = create_new_wallet()
+    else:
+        raise Exception(f'Currency {currency} not found')
+
+    return wallet_account

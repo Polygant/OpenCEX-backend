@@ -1,31 +1,32 @@
 import logging
 from collections import defaultdict, namedtuple
 from decimal import Decimal
+from typing import List
 
 import cachetools.func
 import pywallet
-import requests
 from bitcoinrpc.authproxy import AuthServiceProxy
 from django.conf import settings
 from django.db import transaction
 from pywallet.utils.keys import PublicKey
 
+from core.consts.currencies import WalletAccount
 from core.currency import Currency
 from core.models.cryptocoins import UserWallet
-from core.models.inouts.fees_and_limits import FeesAndLimits
 from core.models.inouts.wallet import WalletTransactions
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_min_accumulation_balance
 from core.utils.inouts import get_withdrawal_fee
+from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.exceptions import CoinServiceError
 from cryptocoins.models.keeper import Keeper
+from cryptocoins.models.scoring import ScoringSettings, TransactionInputScore
 from cryptocoins.utils import commons
 from cryptocoins.utils.btc import pubkey_to_address
 from lib.cipher import AESCoderDecoder
 from lib.helpers import to_decimal
 from lib.utils import memcache_lock
 
-WalletAccount = namedtuple('WalletAccount', ['address', 'private_key', 'redeem_script'])
 TxOutput = namedtuple('TxOutput', ['address', 'amount'])
 
 
@@ -44,7 +45,7 @@ class CoinServiceBase:
 
     @property
     def withdrawal_fee(self):
-        return get_withdrawal_fee(self.currency, self.currency)
+        return get_withdrawal_fee(self.currency)
 
     @property
     def min_accumulation_balance(self):
@@ -59,10 +60,10 @@ class CoinServiceBase:
     def check_tx_for_deposit(self, tx_data):
         raise NotImplementedError
 
-    def get_wallet_balance(self, address):
+    def get_wallet_balance(self, address) -> Decimal:
         raise NotImplementedError
 
-    def get_keeper_balance(self):
+    def get_keeper_balance(self) -> Decimal:
         raise NotImplementedError
 
     def accumulate(self):
@@ -71,7 +72,7 @@ class CoinServiceBase:
     def process_withdrawals(self):
         raise NotImplementedError
 
-    def create_new_wallet(self, label=''):
+    def create_new_wallet(self, label='', is_keeper=False):
         raise NotImplementedError
 
     def create_userwallet(self, user_id, is_new=False):
@@ -79,6 +80,7 @@ class CoinServiceBase:
             user_id=user_id,
             currency=self.currency,
             merchant=False,
+            is_old=False,
         ).first()
 
         if not is_new and wallet is not None:
@@ -86,7 +88,8 @@ class CoinServiceBase:
             return wallet
 
         self.log.info('Create new %s wallet for user %s', self.currency.code, user_id)
-        wallet_account = self.create_new_wallet()
+        is_keeper = user_id is None
+        wallet_account = self.create_new_wallet(is_keeper=is_keeper)
         wallet = UserWallet.objects.create(
             user_id=user_id,
             currency=self.currency,
@@ -122,7 +125,7 @@ class CoinServiceBase:
         )
 
     @cachetools.func.ttl_cache(ttl=5)
-    def get_users_addresses(self, exclude_disabled_accumulations=False):
+    def get_users_addresses(self, exclude_blocked=False):
         qs = UserWallet.objects.filter(
             currency=self.currency,
             keeper=None,
@@ -132,33 +135,22 @@ class CoinServiceBase:
             'address',
             flat=True,
         )
-        if exclude_disabled_accumulations:
+        if exclude_blocked:
             qs = qs.exclude(block_type=UserWallet.BLOCK_TYPE_DEPOSIT_AND_ACCUMULATION)
         return list(qs)
 
-    def get_accumulation_ready_addresses(self):
-        from cryptocoins.models import TransactionInputScore
-        return TransactionInputScore.objects.filter(
-            currency=self.currency,
-            scoring_state__in=[TransactionInputScore.SCORING_STATE_DISABLED,
-                               TransactionInputScore.SCORING_STATE_SMALL_AMOUNT,
-                               TransactionInputScore.SCORING_STATE_OK],
-        )
+    def get_accumulation_ready_wallet_transactions(self)-> List[WalletTransactions]:
+        return WalletTransactions.get_ready_for_accumulation(self.currency)
 
-    def filter_accumulation_ready_addresses(self, addresses: list):
-        addresses = UserWallet.objects.filter(
-            address__in=addresses,
-        ).exclude(
-            block_type=UserWallet.BLOCK_TYPE_DEPOSIT_AND_ACCUMULATION,
-        ).values_list('address', flat=True)
-        return list(addresses)
+    def get_external_accumulation_ready_wallet_transactions(self)-> List[WalletTransactions]:
+        return WalletTransactions.get_ready_for_external_accumulation(self.currency)
 
     @transaction.atomic
     def process_new_blocks(self):
         """
         Process new blocks to check deposits
         """
-        with memcache_lock(f'{self.currency}_lock', f'{self.currency}_lock', 60) as acquired:
+        with memcache_lock(f'{self.currency}_lock') as acquired:
             if acquired:
                 current_block_id = self.get_current_block_id()
                 last_processed_block_id = commons.load_last_processed_block_id(
@@ -175,27 +167,30 @@ class CoinServiceBase:
                     current_block_id + 1,
                 ))
 
-                self.log.info('Need to process %s blocks count: %s',
-                              self.currency.code, blocks_to_process)
+                self.log.info('Need to process %s blocks count: %s', self.currency.code, len(blocks_to_process))
 
                 # usually not many blocks
                 for block_id in blocks_to_process:
                     self.log.info('Processing %s %s block', self.currency.code, block_id)
-                    for tx_data in self.get_block_transactions(block_id):
-                        self.check_tx_for_deposit(tx_data)
+                    self.process_block(block_id)
 
                 commons.store_last_processed_block_id(self.currency, current_block_id)
                 return
         self.log.warning(f'{self.currency} process_new_blocks task already works')
 
+    def process_block(self, block_id):
+        for tx_data in self.get_block_transactions(block_id):
+            self.check_tx_for_deposit(tx_data)
+
     def get_withdrawal_requests(self):
         return WithdrawalRequest.crypto_to_process(currency=self.currency).order_by('created')
 
-    def get_sufficient_withdrawal_requests(self, limit: Decimal):
+    def get_sufficient_withdrawal_requests(self, limit: Decimal, withdrawal_requests: List[WithdrawalRequest] = None):
         """
         Get withdrawal requests which keeper has sufficient balance to process
         """
-        withdrawal_requests = self.get_withdrawal_requests()
+        if not withdrawal_requests:
+            withdrawal_requests = self.get_withdrawal_requests()
         result = []
         total_amount = to_decimal(0)
 
@@ -209,7 +204,7 @@ class CoinServiceBase:
 
         return result
 
-    def process_deposit(self, tx_hash, address, amount, is_scoring_ok=True):
+    def process_deposit(self, tx_hash, address, amount):
         self.log.info('Processing deposit %s %s %s %s', self.currency, amount, address, tx_hash)
         wallet = UserWallet.objects.filter(
             currency=self.currency,
@@ -238,9 +233,13 @@ class CoinServiceBase:
             tx_hash=tx_hash,
             currency=self.currency,
             amount=amount,
-            state=WalletTransactions.STATE_NOT_CHECKED if is_scoring_ok else WalletTransactions.STATE_BAD_DEPOSIT,
         )
         self.log.info('Deposit %s %s for address %s processed', self.currency.code, amount, address)
+
+    def check_for_scoring(self):
+        waiting_for_scoring = AccumulationManager.get_waiting_for_kyt_check(self.currency.code)
+        for wallet_transaction in waiting_for_scoring:
+            wallet_transaction.check_scoring()
 
 
 class BitCoreCoinServiceBase(CoinServiceBase):
@@ -261,8 +260,7 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         if self.withdrawal_fee is None:
             raise ValueError('withdrawal_fee attribute must be set')
 
-        self.rpc_url = 'http://{username}:{password}@{host}:{port}'.format(
-            **self.node_config, timeout=60)
+        self.rpc_url = 'http://{username}:{password}@{host}:{port}'.format(**self.node_config, timeout=60)
 
     def get_transfer_fee(self, size):
         raise NotImplementedError
@@ -292,10 +290,10 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         ))
 
     def import_address(self, address: str, label: str = ''):
-        self.rpc.importaddress(address, str(label), False)
+        self.rpc.importaddress(address, label, False)
         self.log.info('Address %s %s imported', self.currency, address)
 
-    def create_new_wallet(self, label: str = '') -> WalletAccount:
+    def create_new_wallet(self, label: str = '', is_keeper=False) -> WalletAccount:
         """
         Create new wallet address and key and import address to node
         """
@@ -323,8 +321,8 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
         return self.rpc.listunspent(1, 9999999, addresses)
 
-    def get_users_unspent(self, exclude_disabled_accumulations=False):
-        addresses = self.get_users_addresses(exclude_disabled_accumulations)
+    def get_users_unspent(self, exclude_blocked=False):
+        addresses = self.get_users_addresses(exclude_blocked)
 
         if not addresses:
             self.log.info('Have no user addresses for %s', self.currency.code)
@@ -410,14 +408,6 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
         return tx_id
 
-    @property
-    def accumulation_min_balance(self):
-        return FeesAndLimits.get_limit(self.currency.code, FeesAndLimits.ACCUMULATION, FeesAndLimits.MIN_VALUE)
-
-    @property
-    def deposit_min_amount(self):
-        return FeesAndLimits.get_limit(self.currency.code, FeesAndLimits.DEPOSIT, FeesAndLimits.MIN_VALUE)
-
     def get_block_transactions(self, block_id):
         block_hash = self.rpc.getblockhash(block_id)
         return self.rpc.getblock(block_hash, 2)['tx']
@@ -435,21 +425,10 @@ class BitCoreCoinServiceBase(CoinServiceBase):
             if addr not in self.get_users_addresses():
                 continue
 
-            if amount < self.deposit_min_amount and amount < self.accumulation_min_balance:
-                self.log.info('Amount %s less than min deposit limit', amount)
-                continue
-
             self.process_deposit(tx_id, addr, amount)
 
     def get_current_block_id(self):
         return self.rpc.getblockcount()
-
-    def get_last_network_block_id(self):
-        response = requests.get('https://blockchain.info/latestblock')
-        response.raise_for_status()
-
-        return response.json().get('height', 0)
-        # return self.rpc.getblockchaininfo().get('headers', 0)
 
     def process_withdrawals(self, *args, **kwargs):
         """
@@ -460,12 +439,14 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         keeper_unspent = self.get_unspent(addresses=[keeper_wallet.address])
         keeper_balance = self.get_balance_from_unspent(keeper_unspent)
         self.log.info('%s keeper balance: %s', self.currency.code, keeper_balance)
-        sufficient_requests = self.get_sufficient_withdrawal_requests(limit=keeper_balance)
+
+        selected_withdrawals = kwargs.get('selected_withdrawals')
+
+        sufficient_requests = self.get_sufficient_withdrawal_requests(keeper_balance, selected_withdrawals)
 
         if not sufficient_requests:
             self.log.debug('Nothing to withdraw or %s keeper balance too low', self.currency.code)
-            raise CoinServiceError(
-                'Nothing to withdraw or %s keeper balance too low' % self.currency.code)
+            raise CoinServiceError('Nothing to withdraw or %s keeper balance too low' % self.currency.code)
 
         self.log.info('Enough balance for requests count: %s', len(sufficient_requests))
 
@@ -498,8 +479,7 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
     def send_from_keeper(self, outputs, *args, **kwargs):
         keeper_wallet = kwargs.get('keeper_wallet') or self.get_keeper_wallet()
-        keeper_unspent = kwargs.get('keeper_unspent') or self.get_unspent(
-            addresses=[keeper_wallet.address])
+        keeper_unspent = kwargs.get('keeper_unspent') or self.get_unspent(addresses=[keeper_wallet.address])
         password = kwargs.get('password')
         keeper_balance = self.get_balance_from_unspent(keeper_unspent)
 
@@ -524,8 +504,7 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
         if chargeback_amount < 0:
             self.log.error('Unable to process withdrawals, chargeback after fee less than 0')
-            raise CoinServiceError(
-                'Unable to process withdrawals, chargeback after fee less than 0')
+            raise CoinServiceError('Unable to process withdrawals, chargeback after fee less than 0')
 
         tx_outputs[keeper_wallet.address] = chargeback_amount
 
@@ -559,19 +538,11 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         outputs = []
 
         for item in tx_data['vout']:
-            address = None
-
-            if 'addresses' in item['scriptPubKey']:
-                address = item['scriptPubKey']['addresses'][0]
-
-            if 'address' in item['scriptPubKey']:
-                address = item['scriptPubKey']['address']
-
-            if not address:
+            if 'addresses' not in item['scriptPubKey']:
                 continue
 
             outputs.append((
-                address,
+                item['scriptPubKey']['addresses'][0],
                 item['value'],
             ))
 
@@ -605,3 +576,19 @@ class BitCoreCoinServiceBase(CoinServiceBase):
     @staticmethod
     def get_balance_from_unspent(unspent):
         return sum([to_decimal(i['amount']) for i in unspent])
+
+    def skip_input(self, tx_hash, tx_amount):
+        qs = TransactionInputScore.objects.filter(hash=tx_hash)
+        if qs.exists():
+            address_score_exists = qs.filter(
+                deposit_made=True,
+                accumulation_made=False
+            ).exists()
+
+            #  if hash exists, but without deposit
+            if not address_score_exists:
+                return True
+
+        else:
+            # if tx still in scoring process
+            return ScoringSettings.need_to_check_score(tx_amount, self.currency.code)
