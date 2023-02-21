@@ -8,6 +8,7 @@ from core.consts.currencies import CRYPTO_ADDRESS_VALIDATORS
 from core.consts.currencies import CRYPTO_WALLET_CREATORS
 from core.consts.currencies import CURRENCIES_LIST
 from core.consts.currencies import ERC20_CURRENCIES
+from core.consts.currencies import TRC20_CURRENCIES
 from core.currency import Currency, TokenParams, CoinParams
 
 log = logging.getLogger(__name__)

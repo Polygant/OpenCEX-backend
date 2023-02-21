@@ -360,6 +360,13 @@ if is_section_enabled('utils'):
                 'queue': 'utils',
             }
         },
+        'cryptocoins.tasks.trx.accumulate_trx_dust': {
+            'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
+            'schedule': crontab(minute='10', hour='0'),
+            'options': {
+                'queue': 'utils',
+            }
+        },
         'cryptocoins.tasks.commons.check_crypto_workers': {
             'task': 'cryptocoins.tasks.commons.check_crypto_workers',
             'schedule': crontab(minute=0),  # every hour
