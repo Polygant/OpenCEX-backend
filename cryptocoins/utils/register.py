@@ -82,6 +82,18 @@ def register_token(currency_id, currency_code, blockchains: Optional[Dict[str, T
 
             log.debug(f'Token {currency} registered as BEP20')
 
+        if 'TRX' in blockchains:
+            from cryptocoins.coins.trx.utils import is_valid_tron_address
+            from cryptocoins.coins.trx.wallet import trx20_wallet_creation_wrapper
+
+            TRC20_CURRENCIES.update({
+                currency: blockchains['TRX']
+            })
+            wallet_creators['TRX'] = trx20_wallet_creation_wrapper
+            address_validators['TRX'] = is_valid_tron_address
+
+            log.debug(f'Token {currency} registered as TRC20')
+
         CRYPTO_WALLET_CREATORS[currency] = wallet_creators
         CRYPTO_ADDRESS_VALIDATORS[currency] = address_validators
         currency.set_blockchain_list(list(blockchains))

@@ -8,6 +8,7 @@ from core.consts.currencies import CURRENCIES_LIST
 from core.currency import Currency
 from core.pairs import PAIRS_LIST
 from cryptocoins.tasks.eth import ethereum_manager
+from cryptocoins.tasks.trx import tron_manager
 from lib.cipher import AESCoderDecoder
 
 CryptoBitcoin = Bitcoin()
@@ -79,3 +80,21 @@ class MakeTopUpForm(forms.Form):
 
 class PairAdminForm(forms.ModelForm):
     pair = forms.ChoiceField(choices=[(p[1], p[1]) for p in PAIRS_LIST])
+
+
+class TrxApproveAdminForm(forms.Form):
+    key = forms.CharField(label='Password', max_length=255, widget=forms.PasswordInput())
+
+    def clean_key(self):
+        key = self.cleaned_data['key']
+        if not key:
+            raise ValidationError("Bad password!")
+
+        try:
+            res = AESCoderDecoder(key).decrypt(tron_manager.get_keeper_wallet().private_key)
+            if not res:
+                raise ValidationError("Bad private key")
+        except Exception as e:
+            raise ValidationError("Bad password!")
+
+        return key

@@ -281,6 +281,78 @@ if is_section_enabled('bnb'):
         Queue('bnb_send_gas'),
     )
 
+if is_section_enabled('tron'):
+    app.conf.beat_schedule.update({
+        'trx_process_new_blocks': {
+            'task': 'cryptocoins.tasks.trx.trx_process_new_blocks',
+            'schedule': settings.TRX_BLOCK_GENERATION_TIME,
+        },
+        'trx_check_balances': {
+            'task': 'cryptocoins.tasks.trx.check_balances',
+            'schedule': settings.TRX_TRC20_ACCUMULATION_PERIOD,
+            'options': {
+                'expires': 20,
+            }
+        },
+    })
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.trx_process_new_blocks': {
+            'queue': 'trx_new_blocks',
+        },
+        'cryptocoins.tasks.trx.trx_process_block': {
+            'queue': 'trx_new_blocks',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.trx_process_trx_deposit': {
+            'queue': 'trx_deposits',
+        },
+        'cryptocoins.tasks.trx.trx_process_trc20_deposit': {
+            'queue': 'trx_deposits',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.process_payouts': {
+            'queue': 'trx_payouts',
+        },
+        'cryptocoins.tasks.trx.withdraw_trx': {
+            'queue': 'trx_payouts',
+        },
+        'cryptocoins.tasks.trx.withdraw_trc20': {
+            'queue': 'trx_payouts',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.check_balances': {
+            'queue': 'trx_check_balances',
+        },
+        'cryptocoins.tasks.trx.check_balance': {
+            'queue': 'trx_check_balances',
+        },
+        'cryptocoins.tasks.trx.check_tx_withdrawal': {
+            'queue': 'trx_check_balances',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.accumulate_trx': {
+            'queue': 'trx_accumulations',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.accumulate_trc20': {
+            'queue': 'trc20_accumulations',
+        },
+    }),
+
+    app.conf.task_queues += (
+        Queue('trx_new_blocks'),
+        Queue('trx_deposits'),
+        Queue('trx_payouts'),
+        Queue('trx_check_balances'),
+        Queue('trx_accumulations'),
+        Queue('trc20_accumulations'),
+    )
+
 if is_section_enabled('notifications'):
     app.conf.task_routes.update({
         'core.tasks.facade.pong': {

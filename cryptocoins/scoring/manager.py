@@ -6,6 +6,7 @@ from cryptocoins.models import ScoringSettings, TransactionInputScore
 from cryptocoins.scoring.scorechain_client.bitcoin import scorechain_bitcoin_client
 from cryptocoins.scoring.scorechain_client.bnb import scorechain_bnb_client
 from cryptocoins.scoring.scorechain_client.ethereum import scorechain_ethereum_client
+from cryptocoins.scoring.scorechain_client.tron import scorechain_tron_client
 from lib.helpers import to_decimal
 from lib.notifications import send_telegram_message
 
@@ -23,6 +24,8 @@ class ScoreManager:
             return scorechain_bitcoin_client
         elif currency in ['ETH']:
             return scorechain_ethereum_client
+        elif currency in ['TRX']:
+            return scorechain_tron_client
         elif currency in ['BNB']:
             return scorechain_bnb_client
         raise Exception(f'Scorechain client for {currency} not found')
