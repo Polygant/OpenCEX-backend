@@ -48,11 +48,11 @@ COMMON_TASKS_CONFIG = {
     },
     # bnb and bep20 tokens
     'bnb': {
-        'enabled': False,
+        'enabled': True,
     },
     # trx and trc20 tokens
     'tron': {
-        'enabled': False,
+        'enabled': True,
     },
     'utils': {
         'enabled': True,
