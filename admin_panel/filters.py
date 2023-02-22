@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.consts.currencies import CURRENCIES_LIST
-from core.models import WalletTransactions
+from core.models import WalletTransactions, Order
 from core.models.inouts.transaction import REASON_TOPUP
 from core.models.inouts.transaction import REASON_WITHDRAWAL
 from core.pairs import pairs_ids_values
@@ -179,3 +179,14 @@ class GateFilter(SimpleListFilter):
         else:
             queryset = queryset.filter(gate_id=self.value())
         return queryset
+
+
+class OrderTypeFilter(SimpleListFilter):
+    title = 'order type'
+    parameter_name = 'order_type'
+
+    def lookups(self, request, model_admin):
+        return Order.ORDER_TYPES
+
+    def queryset(self, request, queryset):
+        return queryset.filter(type=self.value()) if self.value() else queryset

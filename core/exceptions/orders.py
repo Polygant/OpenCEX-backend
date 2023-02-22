@@ -60,8 +60,14 @@ class OrderPriceInvalidError(BaseError):
     default_code = 'order_price_invalid'
 
 
+class OrderStopPriceInvalidError(BaseError):
+    default_detail = _('Invalid stop price.')
+    default_code = 'order_stop_price_invalid'
+
+
 class OrderStopInvalidError(BaseError):
     default_detail = _('Invalid stop.')
+    default_code = 'order_stop_price_invalid'
 
 
 class OrderQuantityInvalidError(BaseError):

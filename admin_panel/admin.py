@@ -30,7 +30,7 @@ from rangefilter.filters import DateRangeFilter
 from rest_framework.exceptions import ValidationError
 
 from admin_panel.filters import CurrencyFilter, CurrencyFieldFilter, WalletTransactionStateFilter, \
-    WalletTransactionStatusFilter
+    WalletTransactionStatusFilter, OrderTypeFilter
 from admin_panel.filters import FeeRateFilter
 from admin_panel.filters import GateFilter
 from admin_panel.filters import PairsFilter
@@ -249,7 +249,7 @@ class BalancesInline(ReadOnlyMixin, admin.TabularInline):
 
 class HistoryInline(admin.TabularInline):
     model = OrderChangeHistory
-    fields = ('created', 'quantity', 'price', 'otc_percent', 'otc_limit')
+    fields = ('created', 'quantity', 'price', 'otc_percent', 'otc_limit', 'stop', )
     readonly_fields = (
         'created',
         'order',
@@ -257,6 +257,7 @@ class HistoryInline(admin.TabularInline):
         'price',
         'otc_percent',
         'otc_limit',
+        'stop',
     )
     ordering = ('-created',)
 
@@ -889,6 +890,7 @@ class ExchangeUserAdmin(ImmutableMixIn, BaseModelAdmin):
         BalancesInline,
         OrderInline,
     ]
+    no_save = False
 
     def get_readonly_fields(self, request, obj=None):
         fields = super(ExchangeUserAdmin, self).get_readonly_fields(request, obj=obj)
@@ -1102,11 +1104,11 @@ class BalanceAdmin(ImmutableMixIn, BaseModelAdmin):
 @admin.register(AllOrder)
 class AllOrderAdmin(ReadOnlyMixin, ImmutableMixIn, BaseModelAdmin):
     list_display = ['id', 'user', 'created', 'pair', 'order_operation', 'type', 'quantity',
-                    'quantity_left', 'price', 'amount', 'fee', 'state_colored', 'executed',
-                    'state_changed_at']
-    fields = ['id', 'user', 'pair', 'state']
+                    'quantity_left', 'price', 'amount', 'fee', 'stop', 'in_stack',
+                    'state_colored', 'executed', 'state_changed_at']
+    fields = ['id', 'user', 'pair', 'state', 'stop', 'in_stack', ]
     ordering = ('-created',)
-    list_filter = [PairsFilter, 'operation', 'state', 'executed', ('created', DateRangeFilter), ]
+    list_filter = [PairsFilter, 'operation', 'state', 'executed', 'in_stack', OrderTypeFilter, ('created', DateRangeFilter), ]
     actions = [
         'cancel_order',
         # 'revert_orders',
