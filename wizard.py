@@ -36,6 +36,9 @@ from core.pairs import Pair
 from cryptocoins.coins.btc import BTC, BTC_CURRENCY
 from cryptocoins.coins.eth import ETH
 from cryptocoins.coins.usdt import USDT
+from cryptocoins.coins.bnb import BNB
+from cryptocoins.coins.trx import TRX
+
 from cryptocoins.utils.btc import generate_btc_multisig_keeper
 
 from exchange.settings import env
@@ -46,12 +49,15 @@ User = get_user_model()
 
 BACKUP_PATH = os.path.join(settings.BASE_DIR, 'backup')
 
+
 def main():
 
     coin_list = [
         ETH,
         BTC,
         USDT,
+        BNB,
+        TRX,
     ]
     coin_info = {
         ETH: {
@@ -193,24 +199,138 @@ def main():
                 'fee_order_market': 0.00200000,
                 'fee_exchange_value': 0.00200000,
             },
+            WithdrawalFee: [
+                {
+                    'blockchain_currency': ETH,
+                    'address_fee': 5.00000000
+                },
+                {
+                    'blockchain_currency': BNB,
+                    'address_fee': 0.00010000
+                },
+                {
+                    'blockchain_currency': TRX,
+                    'address_fee': 1.00000000
+                },
+            ]
+        },
+        TRX: {
+            # DisabledCoin: {
+            #
+            # },
+            CoinInfo: {
+                'name': 'Tron',
+                'decimals': 8,
+                'index': 5,
+                'tx_explorer': 'https://tronscan.org/#/transaction/',
+                'links': {
+                    "bt": {
+                        "href": "",
+                        "title": "BitcoinTalk"
+                    },
+                    "cmc": {
+                        "href": "",
+                        "title": "CoinMarketCap"
+                    },
+                    "exp": {
+                        "href": "",
+                        "title": "Explorer"
+                    },
+                    "official": {
+                        "href": "",
+                        "title": ""
+                    }
+                }
+            },
+            FeesAndLimits: {
+                'limits_deposit_min': 1.00000000,
+                'limits_deposit_max': 100000000.00000000,
+                'limits_withdrawal_min': 1.00000000,
+                'limits_withdrawal_max': 10000000.00000000,
+                'limits_order_min': 1.00000000,
+                'limits_order_max': 1000000.00000000,
+                'limits_code_max': 1000000.00000000,
+                'limits_accumulation_min': 1.00000000,
+                'fee_deposit_address': 0,
+                'fee_deposit_code': 0,
+                'fee_withdrawal_code': 0,
+                'fee_order_limits': 0.00100000,
+                'fee_order_market': 0.00200000,
+                'fee_exchange_value': 0.00200000,
+            },
             WithdrawalFee: {
-                'blockchain_currency': ETH,
-                'address_fee': 5.00000000
+                'blockchain_currency': TRX,
+                'address_fee': 1.00000000
+            },
+        },
+        BNB: {
+            # DisabledCoin: {
+            #
+            # },
+            CoinInfo: {
+                'name': 'Binance Coin',
+                'decimals': 8,
+                'index': 6,
+                'tx_explorer': 'https://bscscan.com/tx/',
+                'links': {
+                    "bt": {
+                        "href": "",
+                        "title": "BitcoinTalk"},
+                    "cmc": {
+                        "href": "",
+                        "title": "CoinMarketCap"
+                    },
+                    "exp": {
+                        "href": "",
+                        "title": "Explorer"
+                    },
+                    "official": {
+                        "href": "",
+                        "title": ""
+                    }
+                }
+            },
+            FeesAndLimits: {
+                'limits_deposit_min': 0.00010000,
+                'limits_deposit_max': 1000000.00000000,
+                'limits_withdrawal_min': 0.00100000,
+                'limits_withdrawal_max': 1000000.00000000,
+                'limits_order_min': 0.01000000,
+                'limits_order_max': 1000000.00000000,
+                'limits_code_max': 1000000.00000000,
+                'limits_accumulation_min': 0.00100000,
+                'fee_deposit_address': 0,
+                'fee_deposit_code': 0,
+                'fee_withdrawal_code': 0,
+                'fee_order_limits': 0.00100000,
+                'fee_order_market': 0.00200000,
+                'fee_exchange_value': 0.00200000,
+            },
+            WithdrawalFee: {
+                'blockchain_currency': BNB,
+                'address_fee': 0.00010000
             },
         },
     }
     with atomic():
         to_write = []
 
+        def get_or_create(model_inst, curr, defaults):
+            model_inst.objects.get_or_create(
+                currency=curr,
+                defaults={
+                    'currency': coin,
+                    **defaults,
+                }
+            )
+
         for coin in coin_list:
             for model, kwargs in coin_info[coin].items():
-                model.objects.get_or_create(
-                    currency=coin,
-                    defaults={
-                        'currency': coin,
-                        **kwargs,
-                    }
-                )
+                if type(kwargs) in [list, tuple]:
+                    for defaults in kwargs:
+                        get_or_create(model, coin, defaults)
+                else:
+                    get_or_create(model, coin, kwargs)
 
         # create user for bot
         name = 'bot1@bot.com'
@@ -236,6 +356,8 @@ def main():
                 BTC: 3,
                 ETH: 100,
                 USDT: 100_000,
+                BNB: 10,
+                TRX: 100_000,
             }
 
             for currency_id, amount in topup_list.items():
@@ -305,6 +427,58 @@ def main():
                     'enabled': True,
                 }
             },
+            Pair.get('TRX-USDT'): {
+                PairSettings: {
+                    'is_enabled': True,
+                    'is_autoorders_enabled': True,
+                    'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
+                    'custom_price': 0,
+                    'deviation': 0.0
+                },
+                BotConfig: {
+                    'name': 'TRX-USDT',
+                    'user': bot,
+                    'strategy': BotConfig.TRADE_STRATEGY_DRAW,
+                    'instant_match': True,
+                    'ohlc_period': 60,
+                    'loop_period_random': False,
+                    'min_period': 60,
+                    'max_period': 180,
+                    'ext_price_delta': 0.001,
+                    'min_order_quantity': 100,
+                    'max_order_quantity': 10_000,
+                    'low_orders_max_match_size': 1,
+                    'low_orders_spread_size': 1,
+                    'low_orders_min_order_size': 1,
+                    'enabled': True,
+                }
+            },
+            Pair.get('BNB-USDT'): {
+                PairSettings: {
+                    'is_enabled': True,
+                    'is_autoorders_enabled': True,
+                    'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
+                    'custom_price': 0,
+                    'deviation': 0.0
+                },
+                BotConfig: {
+                    'name': 'BNB-USDT',
+                    'user': bot,
+                    'strategy': BotConfig.TRADE_STRATEGY_DRAW,
+                    'instant_match': True,
+                    'ohlc_period': 60,
+                    'loop_period_random': False,
+                    'min_period': 60,
+                    'max_period': 180,
+                    'ext_price_delta': 0.001,
+                    'min_order_quantity': 0.01,
+                    'max_order_quantity': 0.5,
+                    'low_orders_max_match_size': 1,
+                    'low_orders_spread_size': 1,
+                    'low_orders_min_order_size': 1,
+                    'enabled': True,
+                }
+            },
         }
 
         for pair, model_list in pair_list.items():
@@ -337,6 +511,7 @@ def main():
 
         to_write.append('Admin Info:')
         to_write.append(f'Email: {name}  Password: {password}')
+        to_write.append(f'Master Pass: {settings.ADMIN_MASTERPASS}')
         print(f"password: {password}")
 
         totp, is_new_totp = TOTPDevice.objects.get_or_create(
