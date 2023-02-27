@@ -47,6 +47,7 @@ class BnbManager(Web3Manager):
     GAS_PRICE_CACHE_CLASS = BnbGasPriceCache
     CHAIN_ID = settings.BNB_CHAIN_ID
     MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.002')
+    COLD_WALLET_ADDRESS = settings.BNB_SAFE_ADDR
 
 
 w3 = get_w3_connection()

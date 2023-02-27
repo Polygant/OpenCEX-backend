@@ -879,6 +879,8 @@ def accumulate_bnb(accumulation_state_id, instant=False):
         accumulation_manager.set_need_check(accumulation_state.wallet)
         return
 
+    accumulation_address = bnb_manager.get_accumulation_address(amount)
+
     # we want to process our tx faster
     gas_price = bnb_manager.gas_price_cache.get_increased_price()
     gas_amount = gas_price * settings.BNB_TX_GAS
@@ -898,7 +900,7 @@ def accumulate_bnb(accumulation_state_id, instant=False):
 
     tx_hash = bnb_manager.send_tx(
         private_key=wallet.private_key,
-        to_address=BNB_SAFE_ADDR,
+        to_address=accumulation_address,
         amount=withdrawal_amount,
         nonce=nonce,
         gasPrice=gas_price,
@@ -924,10 +926,10 @@ def accumulate_bnb(accumulation_state_id, instant=False):
         currency=BNB_CURRENCY,
         txid=tx_hash.hex(),
         from_address=address,
-        to_address=BNB_SAFE_ADDR
+        to_address=accumulation_address
     )
 
-    log.info(f'Accumulation TX {tx_hash.hex()} sent from {wallet.address} to {BNB_SAFE_ADDR}')
+    log.info(f'Accumulation TX {tx_hash.hex()} sent from {wallet.address} to {accumulation_address}')
 
 
 @shared_task
@@ -956,6 +958,8 @@ def accumulate_bep20(accumulation_state_id, instant=False):
                     currency, address, token_amount)
         return
 
+    accumulation_address = token.get_accumulation_address(token_amount)
+
     # we keep amount not as wei, it's more easy, so we need to convert it
     # checked_amount_wei = token.get_wei_from_amount(accumulation_state.current_balance)
 
@@ -978,7 +982,7 @@ def accumulate_bep20(accumulation_state_id, instant=False):
         return
 
     accumulation_gas_required_amount = token.get_transfer_gas_amount(
-        BNB_SAFE_ADDR,
+        accumulation_address,
         token_amount_wei,
     )
 
@@ -990,7 +994,7 @@ def accumulate_bep20(accumulation_state_id, instant=False):
 
     tx_hash = token.send_token(
         wallet.private_key,
-        BNB_SAFE_ADDR,
+        accumulation_address,
         token_amount_wei,
         gas=accumulation_gas_required_amount,
         gasPrice=gas_price,
@@ -1016,10 +1020,10 @@ def accumulate_bep20(accumulation_state_id, instant=False):
         currency=BNB_CURRENCY,
         txid=tx_hash.hex(),
         from_address=address,
-        to_address=BNB_SAFE_ADDR
+        to_address=accumulation_address
     )
 
-    log.info(f'Token accumulation TX {tx_hash.hex()} sent from {wallet.address} to: {BNB_SAFE_ADDR}')
+    log.info(f'Token accumulation TX {tx_hash.hex()} sent from {wallet.address} to: {accumulation_address}')
 
 
 @shared_task

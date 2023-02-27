@@ -633,10 +633,12 @@ def accumulate_trx(accumulation_state_id):
         accumulation_state.save(update_fields=['state', 'updated'])
         return
 
+    accumulation_address = tron_manager.get_accumulation_address(amount)
+
     # prepare tx
     wallet = tron_manager.get_user_wallet('TRX', address)
 
-    res = tron_manager.send_tx(wallet.private_key, TRX_SAFE_ADDR, withdrawal_amount)
+    res = tron_manager.send_tx(wallet.private_key, accumulation_address, withdrawal_amount)
     txid = res.get('txid')
 
     if not res.get('result') or not txid:
@@ -657,12 +659,12 @@ def accumulate_trx(accumulation_state_id):
     #     currency=TRX_CURRENCY,
     #     txid=txid,
     #     from_address=address,
-    #     to_address=TRX_SAFE_ADDR
+    #     to_address=accumulation_address
     # )
 
     reciept = res.wait()
     log.info(reciept)
-    log.info('Accumulation TX %s sent from %s to %s', txid, wallet.address, TRX_SAFE_ADDR)
+    log.info('Accumulation TX %s sent from %s to %s', txid, wallet.address, accumulation_address)
 
 
 @shared_task
@@ -681,6 +683,8 @@ def accumulate_trc20(accumulation_state_id):
         return
 
     log.info(f'Accumulation {currency} from: {address}; Balance: {token_amount};')
+
+    accumulation_address = token.get_accumulation_address(token_amount)
 
     gas_keeper = tron_manager.get_gas_keeper_wallet()
 
@@ -708,7 +712,7 @@ def accumulate_trc20(accumulation_state_id):
     acc_transaction.complete(is_gas=True)
 
     wallet = tron_manager.get_user_wallet(currency, address)
-    res = token.send_token(wallet.private_key, TRX_SAFE_ADDR, token_amount_sun)
+    res = token.send_token(wallet.private_key, accumulation_address, token_amount_sun)
     txid = res.get('txid')
 
     if not res.get('result') or not txid:
@@ -726,7 +730,7 @@ def accumulate_trc20(accumulation_state_id):
 
     receipt = res.wait()
     log.info(receipt)
-    log.info('Token accumulation TX %s sent from %s to: %s', txid, wallet.address, TRX_SAFE_ADDR)
+    log.info('Token accumulation TX %s sent from %s to: %s', txid, wallet.address, accumulation_address)
 
 
 @shared_task
