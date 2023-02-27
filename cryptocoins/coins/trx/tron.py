@@ -115,6 +115,7 @@ class TronManager(BlockchainManager):
     TOKEN_CLASS: Type[Token] = TRC20Token
     BASE_DENOMINATION_DECIMALS: int = 6
     MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('4')
+    COLD_WALLET_ADDRESS = settings.TRX_SAFE_ADDR
 
     def get_block(self, block_id):
         return self.client.get_block(block_id)
