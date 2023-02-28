@@ -433,6 +433,8 @@ def keeper_create(currency, is_gas_keeper=False):
 
     KeeperModel = Keeper
     if is_gas_keeper:
+        # if currency not in [ETH_CURRENCY, TRX_CURRENCY]:
+        #     raise Exception('Only ETH and TRX GasKeeper can be created')
         KeeperModel = GasKeeper
 
     keeper = create_keeper(new_keeper_wallet, KeeperModel)

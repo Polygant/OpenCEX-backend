@@ -46,6 +46,14 @@ COMMON_TASKS_CONFIG = {
     'ethereum': {
         'enabled': True,
     },
+    # bnb and bep20 tokens
+    'bnb': {
+        'enabled': True,
+    },
+    # trx and trc20 tokens
+    'tron': {
+        'enabled': True,
+    },
     'utils': {
         'enabled': True,
     },

@@ -8,10 +8,34 @@ from core.consts.currencies import CURRENCIES_LIST
 from core.currency import Currency
 from core.pairs import PAIRS_LIST
 from cryptocoins.tasks.eth import ethereum_manager
+from cryptocoins.tasks.trx import tron_manager
+from cryptocoins.tasks.bnb import bnb_manager
 from lib.cipher import AESCoderDecoder
 
 CryptoBitcoin = Bitcoin()
 User = get_user_model()
+
+
+class BaseApproveAdminForm(forms.Form):
+    key = forms.CharField(label='Password', max_length=255, widget=forms.PasswordInput())
+
+    def get_encrypted_string(self):
+        raise NotImplementedError
+
+    def clean_key(self):
+        key = self.cleaned_data['key']
+        if not key:
+            raise ValidationError("Bad password!!")
+
+        try:
+            to_check_string = self.get_encrypted_string()
+            res = AESCoderDecoder(key).decrypt(to_check_string)
+            if not res:
+                raise ValidationError("Bad private key")
+        except Exception as e:
+            raise ValidationError("Bad password!")
+
+        return key
 
 
 class BtcApproveAdminForm(forms.Form):
@@ -34,23 +58,10 @@ class BtcApproveAdminForm(forms.Form):
         return key
 
 
-class EthApproveAdminForm(forms.Form):
-    # TODO validate key
-    key = forms.CharField(label='Password', max_length=255, widget=forms.PasswordInput())
+class EthApproveAdminForm(BaseApproveAdminForm):
 
-    def clean_key(self):
-        key = self.cleaned_data['key']
-        if not key:
-            raise ValidationError("Bad password!!")
-
-        try:
-            res = AESCoderDecoder(key).decrypt(ethereum_manager.get_keeper_wallet().private_key)
-            if not res:
-                raise ValidationError("Bad private key")
-        except Exception as e:
-            raise ValidationError("Bad password!")
-
-        return key
+    def get_encrypted_string(self):
+        return ethereum_manager.get_keeper_wallet().private_key
 
 
 class MakeTopUpForm(forms.Form):
@@ -79,3 +90,15 @@ class MakeTopUpForm(forms.Form):
 
 class PairAdminForm(forms.ModelForm):
     pair = forms.ChoiceField(choices=[(p[1], p[1]) for p in PAIRS_LIST])
+
+
+class TrxApproveAdminForm(BaseApproveAdminForm):
+
+    def get_encrypted_string(self):
+        return tron_manager.get_keeper_wallet().private_key
+
+
+class BnbApproveAdminForm(BaseApproveAdminForm):
+
+    def get_encrypted_string(self):
+        return bnb_manager.get_keeper_wallet().private_key
