@@ -2,6 +2,8 @@ import os
 
 from tblib import pickling_support
 
+from exchange.settings import env
+
 pickling_support.install()
 
 import django
@@ -24,7 +26,7 @@ from celery.signals import worker_ready
 
 
 def is_section_enabled(name):
-    return settings.COMMON_TASKS_CONFIG.get(name, {}).get('enabled', True)
+    return env(f'COMMON_TASKS_{name.upper()}', default=True)
 
 backend_url = f"redis://:{settings.REDIS['pwd']}@{settings.REDIS['host']}:{settings.REDIS['port']}" \
     if settings.REDIS['pwd'] else \
