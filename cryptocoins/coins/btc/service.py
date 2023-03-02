@@ -179,7 +179,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
             wallet_transaction.set_balance_too_low()
             return
 
-        accumulation_address = self.get_accumulation_address(accumulation_amount) or self.cold_wallet_address
+        accumulation_address = wallet_transaction.external_accumulation_address or self.get_accumulation_address(accumulation_amount)
 
         outputs = {
             accumulation_address: accumulation_amount,

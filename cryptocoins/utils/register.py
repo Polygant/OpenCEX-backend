@@ -31,13 +31,13 @@ def register_coin(currency_id: int, currency_code: str, *,
         if not latest_block_fn:
             log.warning(f'Latest block FN not specified for {currency}')
 
-        from cryptocoins.utils.commons import generate_new_wallet_account
+        # from cryptocoins.utils.commons import generate_new_wallet_account
 
         ALL_CURRENCIES.append(currency)
         CURRENCIES_LIST.append((currency_id, currency_code,))
         CRYPTO_ADDRESS_VALIDATORS.update({currency: address_validation_fn})
         CRYPTO_WALLET_CREATORS.update({currency: wallet_creation_fn})
-        CRYPTO_WALLET_ACCOUNT_CREATORS.update({currency:  partial(generate_new_wallet_account, currency)})
+        # CRYPTO_WALLET_ACCOUNT_CREATORS.update({currency:  partial(generate_new_wallet_account, currency)})
         CRYPTO_COINS_PARAMS.update({
             currency: CoinParams(
                 latest_block_fn=latest_block_fn,

@@ -11,7 +11,6 @@ from pywallet import wallet as pwallet
 from web3 import Web3
 
 from core.consts.currencies import WalletAccount
-from cryptocoins.coins.eth import ETH_CURRENCY
 from lib.cipher import AESCoderDecoder
 
 log = logging.getLogger(__name__)
@@ -49,8 +48,8 @@ def get_or_create_eth_wallet(user_id, is_new=False):
 
     user_wallet = UserWallet.objects.filter(
         user_id=user_id,
-        currency=ETH_CURRENCY,
-        blockchain_currency=ETH_CURRENCY,
+        currency='ETH',
+        blockchain_currency='ETH',
         is_old=False,
     ).order_by('-id').first()
 
@@ -63,8 +62,8 @@ def get_or_create_eth_wallet(user_id, is_new=False):
         user_id=user_id,
         address=address,
         private_key=encrypted_key,
-        currency=ETH_CURRENCY,
-        blockchain_currency=ETH_CURRENCY
+        currency='ETH',
+        blockchain_currency='ETH'
     )
 
     return user_wallet
@@ -77,7 +76,7 @@ def get_or_create_erc20_wallet(user_id, currency, is_new=False):
     erc20_wallet = UserWallet.objects.filter(
         user_id=user_id,
         currency=currency,
-        blockchain_currency=ETH_CURRENCY,
+        blockchain_currency='ETH',
         is_old=False,
     ).order_by('-id').first()
 
@@ -91,7 +90,7 @@ def get_or_create_erc20_wallet(user_id, currency, is_new=False):
         address=address,
         private_key=encrypted_key,
         currency=currency,
-        blockchain_currency=ETH_CURRENCY,
+        blockchain_currency='ETH',
     )
 
     return erc20_wallet
@@ -111,6 +110,7 @@ def get_wallet_data(user_id, currency, is_new=False):
 
     wallet = get_or_create_eth_wallet(user_id, is_new=is_new)
     return UserWallet.objects.filter(id=wallet.id)
+
 
 def eth_wallet_creation_wrapper(user_id, is_new=False, **kwargs):
     from core.models.cryptocoins import UserWallet

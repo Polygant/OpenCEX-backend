@@ -1,7 +1,5 @@
 import logging
 import time
-from django.utils import timezone
-import datetime
 
 from celery import group, shared_task
 from django.conf import settings
@@ -16,10 +14,8 @@ from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.coins.eth import ETH_CURRENCY
 from cryptocoins.coins.eth.ethereum import EthTransaction, ethereum_manager
 from cryptocoins.exceptions import RetryRequired
-from cryptocoins.models import ScoringSettings
 from cryptocoins.models.accumulation_details import AccumulationDetails
 from cryptocoins.models.accumulation_transaction import AccumulationTransaction
-from cryptocoins.scoring.manager import ScoreManager
 from cryptocoins.utils.commons import (
     load_last_processed_block_id,
     store_last_processed_block_id,
@@ -676,7 +672,6 @@ def check_balance(wallet_transaction_id):
 def accumulate_eth(wallet_transaction_id):
     wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
     address = wallet_transaction.wallet.address
-    to_address = wallet_transaction.external_accumulation_address or ETH_SAFE_ADDR
 
     # recheck balance
     amount = wallet_transaction.amount
@@ -684,7 +679,7 @@ def accumulate_eth(wallet_transaction_id):
 
     log.info('Accumulation ETH from: %s; Balance: %s', address, amount,)
 
-    accumulation_address = ethereum_manager.get_accumulation_address(amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or ethereum_manager.get_accumulation_address(amount)
 
     # we want to process our tx faster
     gas_price = ethereum_manager.gas_price_cache.get_increased_price()
@@ -739,11 +734,6 @@ def accumulate_erc20(wallet_transaction_id):
     address = wallet_transaction.wallet.address
     currency = wallet_transaction.currency
 
-    safe_wallet_address = wallet_transaction.external_accumulation_address or ETH_SAFE_ADDR
-    if not safe_wallet_address:
-        log.error(f'Accumulation ERC-20. Cant found cold wallet for {currency.code}')
-        return
-
     gas_deposit_tx = accumulation_manager.get_last_gas_deposit_tx(wallet_transaction)
     if gas_deposit_tx is None:
         log.warning(f'Gas deposit for {address} not found or in process')
@@ -759,7 +749,7 @@ def accumulate_erc20(wallet_transaction_id):
                     currency, address, token_amount)
         return
 
-    accumulation_address = token.get_accumulation_address(token_amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(token_amount)
 
     # we keep amount not as wei, it's more easy, so we need to convert it
     # checked_amount_wei = token.get_wei_from_amount(accumulation_state.current_balance)
