@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from django.conf import settings
 from eth_abi.codec import ABICodec
+from eth_abi.exceptions import NonEmptyPaddingBytes
 from eth_abi.registry import registry
 from web3 import Web3
 from web3._utils.threads import Timeout
@@ -57,6 +58,8 @@ class Web3Transaction(BlockchainTransaction):
 
             try:
                 token_to_address, amount = abi_codec.decode_abi(['address', 'uint256'], data_bytes[4:])
+            except NonEmptyPaddingBytes:
+                return
             except Exception as e:
                 log.exception('Cant parse transaction')
                 return
@@ -137,6 +140,16 @@ class Web3Manager(BlockchainManager):
         },
             private_key,
         )
+        # has been sent?
+        # withdrawal_tx = bnb_manager.get_transaction(signed_tx.hash)
+        # if withdrawal_tx is not None and withdrawal_tx.transactionIndex:
+        #     if not bnb_manager.is_valid_transaction(signed_tx.hash):
+        #         log.error('TX %s is failed or invalid', withdrawal_tx.hash)
+        #         return
+        #
+        #     else:
+        #         log.warning('Withdrawal %s already sent', withdrawal_tx.hash.hex())
+        #         return
         try:
             tx_hash = self.client.eth.sendRawTransaction(signed_tx.rawTransaction)
         except ValueError:

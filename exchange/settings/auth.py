@@ -4,15 +4,6 @@ import os
 
 from exchange.settings import env
 
-REST_AUTH_REGISTER_SERIALIZERS = {
-    'REGISTER_SERIALIZER': 'core.serializers.auth.RegisterSerializer'
-}
-
-EXPIRING_TOKEN_LIFETIME = 60 * 60
-ACCOUNT_ADAPTER = 'core.auth.adapters.AccountAdapter'
-
-OLD_PASSWORD_FIELD_ENABLED = True
-
 SESSION_COOKIE_AGE = 2 * 24 * 60 * 60  # two days
 
 PASSWORD_MIN_LENGTH = 1
@@ -21,11 +12,6 @@ AUTHENTICATION_BACKENDS = (
     'core.auth.backends.CIUsernameAuthBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
-
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 CAPTCHA_ENABLED = True
 CAPTCHA_TIMEOUT = 60 * 60

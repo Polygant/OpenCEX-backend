@@ -51,3 +51,11 @@ def get_min_accumulation_balance(currency):
         FeesAndLimits.ACCUMULATION,
         FeesAndLimits.MIN_VALUE
     )
+
+
+def get_keeper_accumulation_balance_limit(currency):
+    return FeesAndLimits.get_limit(
+        currency.code,
+        FeesAndLimits.ACCUMULATION,
+        FeesAndLimits.KEEPER,
+    )

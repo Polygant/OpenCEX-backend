@@ -14,12 +14,12 @@ from django_countries import countries
 from django_countries.serializer_fields import CountryField
 from django_user_agents.utils import get_user_agent
 from ipware import get_client_ip
-from rest_auth.registration.serializers import RegisterSerializer as BaseRegisterSerializer
-from rest_auth.serializers import LoginSerializer as BaseLoginSerializer
-from rest_auth.serializers import PasswordChangeSerializer as BasePasswordChangeSerializer
-from rest_auth.serializers import PasswordResetConfirmSerializer as BasePasswordResetConfirmSerializer
-from rest_auth.serializers import PasswordResetSerializer as BasePasswordResetSerializer
-from rest_auth.serializers import UserDetailsSerializer
+from dj_rest_auth.registration.serializers import RegisterSerializer as BaseRegisterSerializer
+from dj_rest_auth.serializers import LoginSerializer as BaseLoginSerializer
+from dj_rest_auth.serializers import PasswordChangeSerializer as BasePasswordChangeSerializer
+from dj_rest_auth.serializers import PasswordResetConfirmSerializer as BasePasswordResetConfirmSerializer
+from dj_rest_auth.serializers import PasswordResetSerializer as BasePasswordResetSerializer
+from dj_rest_auth.serializers import UserDetailsSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 from rest_framework.exceptions import MethodNotAllowed
@@ -258,8 +258,9 @@ class LoginSerializer(GCodeMixIn, BaseLoginSerializer):
                     }
                 )
 
-            email_address = user.emailaddress_set.get(email=user.email)
-            if not email_address.verified:
+            try:
+                self.validate_email_verification_status(user)
+            except serializers.ValidationError:
                 current_token = cache.get(f'{RESEND_VERIFICATION_TOKEN_REVERSED_CACHE_KEY}{user.id}')
                 if not current_token:
                     current_token = generate_random_string(32)
@@ -281,21 +282,10 @@ class LoginSerializer(GCodeMixIn, BaseLoginSerializer):
 
         except Exception as exc_ch:
             captcher.del_captcha_pass()
-            fields['Systemd_unit'] = 'failed_auth'
-            DynamicFieldFilter.set_fields(fields)
-            auth_log.error(
-                '[User auth failed] user: %s,  ip: %s, browser: %s, os: %s, device: %s',
-                username,
-                ip,
-                fields['browser'],
-                fields['os'],
-                fields['device'],
-            )
+            profile = Profile.objects.filter(user__username=username).first()
 
-            user = UserModel.objects.filter(username=username).first()
-
-            if user and user.profile.email_failed_login:
-                notify_failed_login.apply_async([user.id])
+            if profile and profile.email_failed_login:
+                notify_failed_login.apply_async([profile.user_id])
             raise exc_ch
 
         try:
@@ -338,7 +328,6 @@ class RegisterSerializer(BaseRegisterSerializer):
     country = CountryField()
     email = serializers.EmailField(required=False)
     username = serializers.EmailField(required=True)
-    invite_code = serializers.CharField(required=False)
     lang = LANG_FIELD
 
     def validate_username(self, username):
@@ -371,28 +360,23 @@ class RegisterSerializer(BaseRegisterSerializer):
 
         country = data.get('country')
         if not country:
-            # TODO errors
             raise ValidationError({
                     'message': _('Country required!'),
                     'type': 'country_required'
                 })
 
         if country in settings.DISALLOW_COUNTRY:
-            # TODO errors
             raise ValidationError({
                     'message': _('Country not supported!'),
                     'type': 'country_not_support'
                 })
 
         if not countries.countries.get(country):
-            # TODO errors
             raise ValidationError({
                     'message': _('Incorrect country!'),
                     'type': 'country_incorrect'
                 })
 
-        if 'invite_code' in data:
-            del data['invite_code']
         return data
 
     def get_cleaned_data(self):
@@ -404,19 +388,10 @@ class RegisterSerializer(BaseRegisterSerializer):
             'email': self.validated_data.get('email', '')
         }
 
-    def _save(self, request):
-        adapter = get_adapter()
-        user = adapter.new_user(request)
-        self.cleaned_data = self.get_cleaned_data()
-        adapter.save_user(request, user, self)
-        self.custom_signup(request, user)
-        setup_user_email(request, user, [])
-        return user
-
     def save(self, request):
         request._request.lang = self.validated_data.get('lang', 'en')
         with atomic():
-            user = self._save(request)
+            user = super().save(request)
             user.profile.country = request.data.get('country')
             user.profile.birth_day = request.data.get('birth_day')
             user.profile.register_ip = next(iter(get_client_ip(request) or []), None)
@@ -429,46 +404,16 @@ class RegisterSerializer(BaseRegisterSerializer):
 class PasswdChangeSerializer(GCodeMixIn, BasePasswordChangeSerializer):
 
     def validate_old_password(self, value):
-        invalid_password_conditions = (
-            self.old_password_field_enabled,
-            self.user,
-            not self.user.check_password(value)
-        )
-
-        if all(invalid_password_conditions):
+        try:
+            value = super(PasswdChangeSerializer, self).validate_old_password(value)
+        except serializers.ValidationError as e:
+            # change error format
             raise serializers.ValidationError({
                 'msg': 'Invalid password',
                 'type': 'invalid_password',
             })
+
         return value
-
-    def validate(self, attrs):
-        try:
-            attrs = BasePasswordChangeSerializer.validate(self, attrs)
-        except ValidationError as e:
-            fields = {
-                'Systemd_unit': 'password_change_failed',
-                'user': self.user
-            }
-            DynamicFieldFilter.set_fields(fields)
-            auth_log.error(
-                '[password change failed] user: %s',
-                self.user,
-            )
-            raise e
-
-        self.check_2fa_for_user(self.user.username, attrs.get('googlecode', None))
-
-        fields = {
-            'Systemd_unit': 'password_change_success',
-            'user': self.user
-        }
-        DynamicFieldFilter.set_fields(fields)
-        auth_log.info(
-            '[password change success] user: %s',
-            self.user,
-        )
-        return attrs
 
 
 class PasswordResetSerializer(GCodeMixIn, BasePasswordResetSerializer):
@@ -477,9 +422,6 @@ class PasswordResetSerializer(GCodeMixIn, BasePasswordResetSerializer):
 
     def validate(self, attrs):
         attrs = BasePasswordResetSerializer.validate(self, attrs)
-        # self.check_2fa_for_user(attrs['email'], attrs.get('googlecode', None))
-
-        # request = self.context.get('request')
         captcher = CaptchaProcessor(
             attrs.get('email').lower(),
             None,
@@ -487,16 +429,6 @@ class PasswordResetSerializer(GCodeMixIn, BasePasswordResetSerializer):
             skip_extra_checks=True,
         )
         captcher.check()
-
-        fields = {
-            'Systemd_unit': 'password_reset',
-            'email': attrs['email']
-        }
-        DynamicFieldFilter.set_fields(fields)
-        auth_log.info(
-            '[password reset request] email: %s',
-            attrs['email'],
-        )
         return attrs
 
     def get_email_options(self):
@@ -510,24 +442,14 @@ class PasswordResetConfirmSerializer(BasePasswordResetConfirmSerializer):
     def save(self):
         ret = BasePasswordResetConfirmSerializer.save(self)
         self.user.profile.set_payouts_freeze(settings.PAYOUTS_FREEZE_ON_PWD_RESET)
-
-        fields = {
-            'Systemd_unit': 'password_reset_confirm',
-            'user': self.user
-        }
-        DynamicFieldFilter.set_fields(fields)
-        auth_log.info(
-            '[password reset confirm] user: %s',
-            self.user,
-        )
         return ret
 
 
 class UserProfileSerializer(ModelSerializer):
     auto_logout_timeout = serializers.IntegerField(min_value=60, required=False)
     user = UserSerializer(many=False, read_only=True)
-    country = CountryField(country_dict=True, read_only=True, required=False)
-    birthday = serializers.DateTimeField(source='birth_day', read_only=True, required=False)
+    country = CountryField(country_dict=True, required=False)
+    birthday = serializers.DateTimeField(source='birth_day', required=False)
     kyc_status = serializers.SerializerMethodField()
     kyc_enabled = serializers.SerializerMethodField()
     kyt_enabled = serializers.SerializerMethodField()
@@ -578,27 +500,3 @@ class UserProfileSerializer(ModelSerializer):
 
     def get_sms_enabled(self, obj):
         return settings.IS_SMS_ENABLED
-
-
-# class TokenSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = ExpiringToken
-#         fields = ('key',)
-
-
-class OurJWTSerializer(serializers.Serializer):
-    """
-    Serializer for JWT authentication.
-    """
-    key = serializers.SerializerMethodField()
-
-    def get_key(self, obj):
-        from rest_framework_jwt.settings import api_settings
-
-        # @see exchange/settings/rest.py:JWT_AUTH  or rest_framework_jwt.utils.jwt_payload_handler
-        jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
-
-        # @see exchange/settings/rest.py:JWT_AUTH  or rest_framework_jwt.utils.jwt_encode_handler
-        jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
-        payload = jwt_payload_handler(obj['user'])
-        return jwt_encode_handler(payload)

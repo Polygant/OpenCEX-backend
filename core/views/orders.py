@@ -25,7 +25,7 @@ from core.consts.orders import BUY
 from core.consts.orders import ORDER_CLOSED
 from core.consts.orders import ORDER_OPENED
 from core.exceptions.orders import OrderNotFoundError, OrderNotOpenedError, OrderMinQuantityError
-from core.filters.orders import OrdersFilter
+from core.filters.orders import OrdersFilter, ExchangeFilter
 from core.utils.stats.daily import get_filtered_pairs_24h_stats, get_pair_last_price
 from core.orderbook.helpers import get_stack_by_pair
 from core.models import PairSettings
@@ -119,12 +119,6 @@ class StopLimitView(ExceptionHandlerMixin, GenericAPIView):
     )
     def post(self, request):
 
-        stop = request.data.get('stop', 0)
-        price = request.data.get('price', 0)
-
-        if stop <= 0 or price <= 0:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
         serializer_item = self.SERIALIZER(data=request.data, context={"request": request})
         serializer_item.is_valid(raise_exception=True)
         data = serializer_item.data
@@ -213,7 +207,8 @@ class ExchangeView(ListAPIView, MarketView):
     queryset = Exchange.objects.all().select_related('order').order_by('-id')
 
     filter_backends = (FilterBackend,)
-    filterset_fields = ('operation', 'base_currency', 'quote_currency')
+    filterset_class = ExchangeFilter
+    # filterset_fields = ('operation', 'base_currency', 'quote_currency', 'order__state')
 
     def get_queryset(self):
         qs = super(ExchangeView, self).get_queryset()

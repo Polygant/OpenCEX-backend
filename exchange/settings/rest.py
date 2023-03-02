@@ -3,7 +3,8 @@ import datetime
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         # 'core.auth.token_auth.ExpiringTokenAuthentication',
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -25,43 +26,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '5/second',
-        'user': '5/second'
+        'user': '5/second',
+        'dj_rest_auth': '5/second',
     },
     'EXCEPTION_HANDLER': 'lib.utils.exception_handler',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
-
-REST_AUTH_SERIALIZERS = {
-    'USER_DETAILS_SERIALIZER': 'core.serializers.auth.UserSerializer',
-    'PASSWORD_RESET_SERIALIZER': 'core.serializers.auth.PasswordResetSerializer',
-    'LOGIN_SERIALIZER': 'core.serializers.auth.LoginSerializer',
-    'PASSWORD_CHANGE_SERIALIZER': 'core.serializers.auth.PasswdChangeSerializer',
-    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'core.serializers.auth.PasswordResetConfirmSerializer',
-    # 'TOKEN_SERIALIZER': 'core.serializers.auth.TokenSerializer',
-    'JWT_SERIALIZER': 'core.serializers.auth.OurJWTSerializer',
-}
-
-JWT_AUTH = {
-    'JWT_ENCODE_HANDLER':
-    'rest_framework_jwt.utils.jwt_encode_handler',
-
-    'JWT_DECODE_HANDLER':
-    'rest_framework_jwt.utils.jwt_decode_handler',
-
-    'JWT_PAYLOAD_HANDLER':
-    'core.utils.auth.our_jwt_payload_handler',
-
-    'JWT_PAYLOAD_GET_USER_ID_HANDLER':
-    'rest_framework_jwt.utils.jwt_get_user_id_from_payload_handler',
-
-    'JWT_RESPONSE_PAYLOAD_HANDLER':
-    'rest_framework_jwt.utils.jwt_response_payload_handler',
-
-    'JWT_AUTH_HEADER_PREFIX': 'Token',
-    'JWT_ALGORITHM': 'HS512',
-
-}
-
-REST_USE_JWT = True
-JWT_AUTH_COOKIE = 'jwt_auth_token'
-JWT_EXPIRATION_DELTA = datetime.timedelta(minutes=60)

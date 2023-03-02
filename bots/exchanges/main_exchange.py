@@ -27,7 +27,7 @@ class MainExchange(BaseExchange):
         }
         try:
             r = self.session.post('/auth/login/', json=data, verify=False)
-            auth_token = r.json().get('key')
+            auth_token = r.json().get('access_token')
             if auth_token:
                 self.log.info(f'Successfully login to {self.NAME}')
             self.session._session.headers['Authorization'] = "Token {}".format(

@@ -57,11 +57,11 @@ INSTALLED_APPS = [
     'django_filters',
     'django_countries',
     'django_user_agents',
-    'rest_auth',
+    'dj_rest_auth',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',  # needed, cause bug https://github.com/Tivix/django-rest-auth/issues/412
-    'rest_auth.registration',
+    'dj_rest_auth.registration',
     'corsheaders',
     'django_otp',
     'django_otp.plugins.otp_totp',

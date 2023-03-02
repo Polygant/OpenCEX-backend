@@ -2,6 +2,8 @@ import os
 
 from tblib import pickling_support
 
+from exchange.settings import env
+
 pickling_support.install()
 
 import django
@@ -24,7 +26,7 @@ from celery.signals import worker_ready
 
 
 def is_section_enabled(name):
-    return settings.COMMON_TASKS_CONFIG.get(name, {}).get('enabled', True)
+    return env(f'COMMON_TASKS_{name.upper()}', default=True)
 
 backend_url = f"redis://:{settings.REDIS['pwd']}@{settings.REDIS['host']}:{settings.REDIS['port']}" \
     if settings.REDIS['pwd'] else \
@@ -196,6 +198,163 @@ if is_section_enabled('ethereum'):
         Queue('eth_send_gas'),
     )
 
+if is_section_enabled('bnb'):
+    app.conf.beat_schedule.update({
+        'bnb_process_new_blocks': {
+            'task': 'cryptocoins.tasks.bnb.bnb_process_new_blocks',
+            'schedule': settings.BNB_BLOCK_GENERATION_TIME,
+        },
+        'bnb_check_balances': {
+            'task': 'cryptocoins.tasks.bnb.check_balances',
+            'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
+            'options': {
+                'expires': 20,
+            }
+        },
+        # 'process_payouts': {
+        #     'task': 'cryptocoins.tasks.bnb.process_payouts',
+        #     'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
+        #     'options': {
+        #         'expires': 20,
+        #     }
+        # },
+    })
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.bnb.bnb_process_new_blocks': {
+            'queue': 'bnb_new_blocks',
+        },
+        'cryptocoins.tasks.bnb.bnb_process_block': {
+            'queue': 'bnb_new_blocks',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.bnb.bnb_process_bnb_deposit': {
+            'queue': 'bnb_deposits',
+        },
+        'cryptocoins.tasks.bnb.bnb_process_bep20_deposit': {
+            'queue': 'bnb_deposits',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.bnb.process_payouts': {
+            'queue': 'bnb_payouts',
+        },
+        'cryptocoins.tasks.bnb.withdraw_bnb': {
+            'queue': 'bnb_payouts',
+        },
+        'cryptocoins.tasks.bnb.withdraw_bep20': {
+            'queue': 'bnb_payouts',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.bnb.check_balances': {
+            'queue': 'bnb_check_balances',
+        },
+        'cryptocoins.tasks.bnb.check_balance': {
+            'queue': 'bnb_check_balances',
+        },
+        'cryptocoins.tasks.bnb.check_tx_withdrawal': {
+            'queue': 'bnb_check_balances',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.bnb.accumulate_bnb': {
+            'queue': 'bnb_accumulations',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.bnb.accumulate_bep20': {
+            'queue': 'bep20_accumulations',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.bnb.send_gas': {
+            'queue': 'bnb_send_gas',
+        },
+    }),
+
+    app.conf.task_queues += (
+        Queue('bnb_new_blocks'),
+        Queue('bnb_deposits'),
+        Queue('bnb_payouts'),
+        Queue('bnb_check_balances'),
+        Queue('bnb_accumulations'),
+        Queue('bep20_accumulations'),
+        Queue('bnb_send_gas'),
+    )
+
+if is_section_enabled('tron'):
+    app.conf.beat_schedule.update({
+        'trx_process_new_blocks': {
+            'task': 'cryptocoins.tasks.trx.trx_process_new_blocks',
+            'schedule': settings.TRX_BLOCK_GENERATION_TIME,
+        },
+        'trx_check_balances': {
+            'task': 'cryptocoins.tasks.trx.check_balances',
+            'schedule': settings.TRX_TRC20_ACCUMULATION_PERIOD,
+            'options': {
+                'expires': 20,
+            }
+        },
+    })
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.trx_process_new_blocks': {
+            'queue': 'trx_new_blocks',
+        },
+        'cryptocoins.tasks.trx.trx_process_block': {
+            'queue': 'trx_new_blocks',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.trx_process_trx_deposit': {
+            'queue': 'trx_deposits',
+        },
+        'cryptocoins.tasks.trx.trx_process_trc20_deposit': {
+            'queue': 'trx_deposits',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.process_payouts': {
+            'queue': 'trx_payouts',
+        },
+        'cryptocoins.tasks.trx.withdraw_trx': {
+            'queue': 'trx_payouts',
+        },
+        'cryptocoins.tasks.trx.withdraw_trc20': {
+            'queue': 'trx_payouts',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.check_balances': {
+            'queue': 'trx_check_balances',
+        },
+        'cryptocoins.tasks.trx.check_balance': {
+            'queue': 'trx_check_balances',
+        },
+        'cryptocoins.tasks.trx.check_tx_withdrawal': {
+            'queue': 'trx_check_balances',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.accumulate_trx': {
+            'queue': 'trx_accumulations',
+        },
+    }),
+    app.conf.task_routes.update({
+        'cryptocoins.tasks.trx.accumulate_trc20': {
+            'queue': 'trc20_accumulations',
+        },
+    }),
+
+    app.conf.task_queues += (
+        Queue('trx_new_blocks'),
+        Queue('trx_deposits'),
+        Queue('trx_payouts'),
+        Queue('trx_check_balances'),
+        Queue('trx_accumulations'),
+        Queue('trc20_accumulations'),
+    )
+
 if is_section_enabled('notifications'):
     app.conf.task_routes.update({
         'core.tasks.facade.pong': {
@@ -264,6 +423,20 @@ if is_section_enabled('utils'):
         'cryptocoins.tasks.eth.accumulate_eth_dust': {
             'task': 'cryptocoins.tasks.eth.accumulate_eth_dust',
             'schedule': crontab(minute='0', hour='0'),
+            'options': {
+                'queue': 'utils',
+            }
+        },
+        'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
+            'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
+            'schedule': crontab(minute='5', hour='0'),
+            'options': {
+                'queue': 'utils',
+            }
+        },
+        'cryptocoins.tasks.trx.accumulate_trx_dust': {
+            'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
+            'schedule': crontab(minute='10', hour='0'),
             'options': {
                 'queue': 'utils',
             }
