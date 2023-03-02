@@ -2,14 +2,16 @@ import datetime
 import logging
 from typing import List, Union
 
+from django.conf import settings
 from django.utils import timezone
 
-from core.consts.currencies import ERC20_CURRENCIES, ALL_TOKEN_CURRENCIES
+from core.consts.currencies import ALL_TOKEN_CURRENCIES
 from core.currency import Currency
 from core.models.inouts.wallet import WalletTransactions
 from cryptocoins.models import Keeper
 from cryptocoins.models.accumulation_details import AccumulationDetails
 from cryptocoins.models.accumulation_transaction import AccumulationTransaction
+from lib.notifications import send_telegram_message
 
 log = logging.getLogger(__name__)
 
@@ -28,27 +30,32 @@ class BaseMonitor:
         if keeper:
             self.addresses_to_check.append(keeper.user_wallet.address.lower())
 
-    def get_wallet_transactions(self) -> List[WalletTransactions]:
+    def get_accumulation_transactions(self) -> List[AccumulationTransaction]:
         """
         Get wallet transactions queryset
         """
-        wallet_transactions_qs = WalletTransactions.objects.filter(
-            status=WalletTransactions.STATUS_NOT_SET,
-            state=WalletTransactions.STATE_NOT_CHECKED,
-            currency=self.CURRENCY,
-            wallet__blockchain_currency=self.BLOCKCHAIN_CURRENCY
-        ).order_by('created')
+        accumulation_transactions = AccumulationTransaction.objects.filter(
+            tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
+            wallet_transaction__currency=self.CURRENCY,
+            wallet_transaction__wallet__blockchain_currency=self.BLOCKCHAIN_CURRENCY,
+            wallet_transaction__status=WalletTransactions.STATUS_NOT_SET,
+            wallet_transaction__monitoring_state=WalletTransactions.MONITORING_STATE_NOT_CHECKED,
+            wallet_transaction__state=WalletTransactions.STATE_ACCUMULATED,
+        ).order_by('wallet_transaction', '-updated').distinct('wallet_transaction').prefetch_related(
+            'wallet_transaction', 'wallet_transaction__wallet'
+        )
 
-        return wallet_transactions_qs
+        return accumulation_transactions
 
-    def mark_wallet_transactions(self):
+    def mark_wallet_transactions(self, notify=True):
         address_txs = {}
-        wallet_transactions_qs = self.get_wallet_transactions()
-        for wallet_tx in wallet_transactions_qs:
-            if wallet_tx.wallet.address not in address_txs:
-                outs_list = self.get_address_transactions(wallet_tx.wallet.address)
-                address_txs[wallet_tx.wallet.address] = outs_list
-            self.find_similar_accumulation(wallet_tx, address_txs[wallet_tx.wallet.address])
+        accumulation_transactions = self.get_accumulation_transactions()
+        for accumulation_transaction in accumulation_transactions:
+            address = accumulation_transaction.wallet_transaction.wallet.address
+            if address not in address_txs:
+                outs_list = self.get_address_transactions(address)
+                address_txs[address] = outs_list
+            self.find_similar_accumulation(accumulation_transaction, address_txs[address], notify=notify)
 
     def get_alert_reason(self, address) -> str:
         # TODO split
@@ -57,9 +64,9 @@ class BaseMonitor:
         """
         if self.CURRENCY in ALL_TOKEN_CURRENCIES:
             accumulation_transaction = AccumulationTransaction.objects.filter(
-                accumulation_state__wallet__address=address,
-                accumulation_state__wallet__currency=self.CURRENCY,
-                accumulation_state__wallet__blockchain_currency=self.BLOCKCHAIN_CURRENCY,
+                wallet_transaction__wallet__address=address,
+                wallet_transaction__wallet__currency=self.CURRENCY,
+                wallet_transaction__wallet__blockchain_currency=self.BLOCKCHAIN_CURRENCY,
             ).order_by('-updated').first()
 
             if accumulation_transaction.tx_type == AccumulationTransaction.TX_TYPE_GAS_DEPOSIT:
@@ -87,54 +94,52 @@ class BaseMonitor:
         """
         raise NotImplementedError
 
-    def find_similar_accumulation(self, wallet_tx: WalletTransactions, address_txs):
+    def find_similar_accumulation(self, accumulation_transaction: AccumulationTransaction, address_txs, notify):
         """
         Try to find tx with identical amount as wallet transaction(deposit)
         """
+        wallet_tx = accumulation_transaction.wallet_transaction
         timeout_datetime = wallet_tx.created + datetime.timedelta(seconds=self.ACCUMULATION_TIMEOUT)
         now = timezone.now()
 
         # filter txs by time and address
-        filtered_txs = []
+        accumulation_tx = None
         offset_time = wallet_tx.created - datetime.timedelta(seconds=self.OFFSET_SECONDS)
 
         for i, tx in enumerate(address_txs):
             if tx['created'] <= offset_time or timeout_datetime < tx['created']:
                 continue
-            if tx['from'].lower() == wallet_tx.wallet.address.lower():
-                filtered_txs.append((i, tx))
+            if tx['hash'] == accumulation_transaction.tx_hash:
+                accumulation_tx = tx
+                break
 
-        if not filtered_txs:
+        if not accumulation_tx:
             # timeout frame filled
             if now > timeout_datetime:
-                wallet_tx.state = WalletTransactions.STATE_NOT_ACCUMULATED
-                wallet_tx.save()
+                wallet_tx.monitoring_state = WalletTransactions.MONITORING_STATE_NOT_ACCUMULATED
+                wallet_tx.save(update_fields=['monitoring_state', 'updated'])
 
+                if notify:
+                    reason = self.get_alert_reason(wallet_tx.wallet.address)
+                    msg = (f'{wallet_tx.amount} {wallet_tx.currency} was not accumulated!\n'
+                           f'from {wallet_tx.wallet.address}\n'
+                           f'{wallet_tx.tx_hash}\n'
+                           f'{reason}\n')
+                    send_telegram_message(msg, chat_id=settings.TELEGRAM_ALERTS_CHAT_ID)
             return
 
-        # погрешность
-        for i, tx in filtered_txs:
-            # Accumulate to safe address
-            if tx['to'].lower() in self.addresses_to_check:
-                if tx['value'] + self.DELTA_AMOUNT >= wallet_tx.amount:
-                    wallet_tx.state = WalletTransactions.STATE_ACCUMULATED
-                else:
-                    wallet_tx.state = WalletTransactions.STATE_WRONG_AMOUNT
-
-            # Accumulate to wrong address
+        # Accumulation to safe address
+        if accumulation_tx['to'].lower() in self.addresses_to_check:
+            if accumulation_tx['value'] == wallet_tx.amount:
+                wallet_tx.monitoring_state = WalletTransactions.MONITORING_STATE_ACCUMULATED
             else:
-                wallet_tx.state = WalletTransactions.STATE_WRONG_ACCUMULATION
-                wallet_tx.save()
-
-            # delete entry in accumulated
-            address_txs[i]['value'] -= wallet_tx.amount
-            if wallet_tx.state == WalletTransactions.STATE_WRONG_ACCUMULATION:
-
-                if address_txs[i]['value'] < 0:
-                    continue
-
-            if address_txs[i]['value'] <= 0:
-                del address_txs[i]
-
-            wallet_tx.save()
-            return
+                wallet_tx.monitoring_state = WalletTransactions.MONITORING_STATE_WRONG_AMOUNT
+        # Accumulation to wrong address
+        else:
+            wallet_tx.monitoring_state = WalletTransactions.MONITORING_STATE_WRONG_ACCUMULATION
+            msg = (f'{wallet_tx.currency.code} WRONG accumulation!\n'
+                   f'from {accumulation_tx["from"]}\n'
+                   f'to {accumulation_tx["to"]}\n'
+                   f'{accumulation_tx["hash"]}')
+            send_telegram_message(msg, chat_id=settings.TELEGRAM_ALERTS_CHAT_ID)
+        wallet_tx.save(update_fields=['monitoring_state', 'updated'])

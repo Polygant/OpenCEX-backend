@@ -171,6 +171,9 @@ if is_section_enabled('ethereum'):
         'cryptocoins.tasks.eth.check_tx_withdrawal': {
             'queue': 'eth_check_balances',
         },
+        'cryptocoins.tasks.eth.check_deposit_scoring': {
+            'queue': 'eth_check_balances',
+        },
     }),
     app.conf.task_routes.update({
         'cryptocoins.tasks.eth.accumulate_eth': {
@@ -256,6 +259,9 @@ if is_section_enabled('bnb'):
         'cryptocoins.tasks.bnb.check_tx_withdrawal': {
             'queue': 'bnb_check_balances',
         },
+        'cryptocoins.tasks.bnb.check_deposit_scoring': {
+            'queue': 'bnb_check_balances',
+        },
     }),
     app.conf.task_routes.update({
         'cryptocoins.tasks.bnb.accumulate_bnb': {
@@ -332,6 +338,9 @@ if is_section_enabled('tron'):
             'queue': 'trx_check_balances',
         },
         'cryptocoins.tasks.trx.check_tx_withdrawal': {
+            'queue': 'trx_check_balances',
+        },
+        'cryptocoins.tasks.trx.check_deposit_scoring': {
             'queue': 'trx_check_balances',
         },
     }),
@@ -420,27 +429,27 @@ if is_section_enabled('utils'):
 
 
     app.conf.beat_schedule.update({
-        'cryptocoins.tasks.eth.accumulate_eth_dust': {
-            'task': 'cryptocoins.tasks.eth.accumulate_eth_dust',
-            'schedule': crontab(minute='0', hour='0'),
-            'options': {
-                'queue': 'utils',
-            }
-        },
-        'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
-            'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
-            'schedule': crontab(minute='5', hour='0'),
-            'options': {
-                'queue': 'utils',
-            }
-        },
-        'cryptocoins.tasks.trx.accumulate_trx_dust': {
-            'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
-            'schedule': crontab(minute='10', hour='0'),
-            'options': {
-                'queue': 'utils',
-            }
-        },
+        # 'cryptocoins.tasks.eth.accumulate_eth_dust': {
+        #     'task': 'cryptocoins.tasks.eth.accumulate_eth_dust',
+        #     'schedule': crontab(minute='0', hour='0'),
+        #     'options': {
+        #         'queue': 'utils',
+        #     }
+        # },
+        # 'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
+        #     'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
+        #     'schedule': crontab(minute='5', hour='0'),
+        #     'options': {
+        #         'queue': 'utils',
+        #     }
+        # },
+        # 'cryptocoins.tasks.trx.accumulate_trx_dust': {
+        #     'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
+        #     'schedule': crontab(minute='10', hour='0'),
+        #     'options': {
+        #         'queue': 'utils',
+        #     }
+        # },
         'cryptocoins.tasks.commons.check_crypto_workers': {
             'task': 'cryptocoins.tasks.commons.check_crypto_workers',
             'schedule': crontab(minute=0),  # every hour
