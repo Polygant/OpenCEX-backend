@@ -6,9 +6,11 @@ from typing import List
 
 from allauth.account.admin import EmailAddressAdmin
 from allauth.account.models import EmailAddress
+from django import forms
 from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
+from django.contrib.admin.helpers import ActionForm
 from django.contrib.admin.models import LogEntry
 from django.core.exceptions import PermissionDenied
 from django.db import models
@@ -748,8 +750,12 @@ class FeesAndLimitsAdmin(BaseModelAdmin):
 
 @admin.register(WalletTransactions)
 class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
-    fields = ('created', 'currency', 'amount', 'tx_hash', 'status', 'state')
-    list_display = ['created', 'user', 'currency', 'blockchain', 'amount', 'tx_amount', 'tx_hash', 'status', 'state']
+    fields = ('created', 'user', 'currency', 'blockchain', 'amount', 'fee_amount', 'transaction', 'tx_hash', 'status',
+              'state', 'monitoring_state', 'is_old', 'external_accumulation_address',)
+    list_display = ('created', 'user', 'currency', 'blockchain', 'amount', 'fee_amount', 'transaction', 'tx_hash',
+                    'status', 'state', 'monitoring_state', 'is_old', 'external_accumulation_address',)
+    # fields = ('created', 'currency', 'amount', 'tx_hash', 'status', 'state')
+    # list_display = ['created', 'user', 'currency', 'blockchain', 'amount', 'tx_amount', 'tx_hash', 'status', 'state']
     list_filter = [
         WalletTransactionStateFilter,
         CurrencyFilter,
@@ -763,9 +769,16 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
         'id',
         'tx_hash'
     ]
-    actions = (
-        'revert',
-    )
+    actions = {
+        'revert': [],
+        'recheck_kyt': [],
+        'request_approve': [],
+        'force_deposit_and_accumulate': [],
+        'handle_old_wallet_deposit': [],
+        'external_accumulation': [
+            {'name': 'external_address', 'type': forms.CharField(), 'default': ''},
+        ],
+    }
 
     def get_queryset(self, request):
         qs = super(WalletTransactionsAdmin, self).get_queryset(request).annotate(
@@ -785,6 +798,9 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
     def user(self, obj):
         return obj.user
 
+    def is_old(self, obj):
+        return obj.wallet.is_old
+
     # custom actions
     @admin.action(permissions=('change', ))
     def revert(self, request, queryset):
@@ -798,6 +814,14 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
                     wallet_tr.revert()
         except Exception as e:
             messages.error(request, e)
+
+    @admin.action(permissions=('change',))
+    def external_accumulation(self, request, queryset):
+        """
+        :param queryset:
+        :type queryset: list[WalletTransactions]
+        """
+        print(request, queryset)
 
 
 @admin.register(WalletTransactionsRevert)
