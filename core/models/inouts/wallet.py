@@ -239,6 +239,10 @@ class WalletTransactions(BaseModel):
                                   f'{new_transaction.currency}'
                                   )
 
+    def force_deposit(self):
+        self.topup_tx()
+        self.wallet.unblock()
+
     def revert(self):
         if self.status == self.STATUS_REVERTED:
             raise ValidationError(f'the topup {self.id} has already been reverted!')

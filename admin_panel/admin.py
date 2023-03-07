@@ -772,7 +772,6 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
     actions = {
         'revert': [],
         'recheck_kyt': [],
-        'request_approve': [],
         'force_deposit_and_accumulate': [],
         'handle_old_wallet_deposit': [],
         'external_accumulation': [
@@ -822,6 +821,35 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
         :type queryset: list[WalletTransactions]
         """
         print(request, queryset)
+
+    @admin.action(permissions=('change',))
+    def recheck_kyt(self, request, queryset):
+        for entry in queryset:
+            entry.check_scoring()
+    recheck_kyt.short_description = 'Recheck KYT'
+
+    @admin.action(permissions=('change',))
+    def force_deposit_and_accumulate(self, request, queryset: List[WalletTransactions]):
+        for wallet_tr in queryset:
+            wallet_tr.force_deposit()
+
+    force_deposit_and_accumulate.short_description = 'Force deposit and accumulate'
+
+    @admin.action(permissions=('change',))
+    def handle_old_wallet_deposit(self, request, queryset: List[WalletTransactions]):
+        for wallet_tr in queryset:
+            wallet_tr.check_deposit()
+
+    handle_old_wallet_deposit.short_description = 'Handle old wallet deposit'
+
+    @admin.action(permissions=('change',))
+    def external_accumulation(self, request, queryset: List[WalletTransactions]):
+        data = request.POST or request.data
+        address = data.get('external_address')
+        for wallet_tr in queryset:
+            wallet_tr.set_external_accumulation_address(address)
+
+    external_accumulation.short_description = 'External accumulation'
 
 
 @admin.register(WalletTransactionsRevert)
