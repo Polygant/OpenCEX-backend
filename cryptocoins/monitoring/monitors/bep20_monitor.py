@@ -26,4 +26,3 @@ class Bep20BaseMonitor(BaseMonitor):
 
 class UsdtBnbMonitor(Bep20BaseMonitor):
     CURRENCY = 'USDT'
-

@@ -127,7 +127,7 @@ class WalletsNotificator(BaseNotificator):
     def get_data(self, **kwargs):
         user_id = kwargs['user_id']
         currency = kwargs.get('currency')
-        wallets = UserWallet.objects.filter(user_id=user_id, merchant=False)
+        wallets = UserWallet.objects.filter(user_id=user_id, merchant=False, is_old=False)
         if currency:
             wallets = wallets.filter(currency=currency)
         wallet_data = UserWalletSerializer(wallets, many=True).data

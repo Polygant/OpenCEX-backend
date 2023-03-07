@@ -3,23 +3,22 @@ import time
 
 from celery import group, shared_task
 from django.conf import settings
+from tronpy.exceptions import BlockNotFound
 
 from core.models.inouts.wallet import WalletTransactions
 from core.models.inouts.withdrawal import PENDING as WR_PENDING
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_withdrawal_fee
+from core.utils.withdrawal import get_withdrawal_requests_to_process
+from core.utils.withdrawal import get_withdrawal_requests_pending
 from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.coins.trx import TRX_CURRENCY
 from cryptocoins.coins.trx.tron import TrxTransaction, tron_manager
-from cryptocoins.coins.trx.tron import tron_client
-from cryptocoins.models import AccumulationDetails, ScoringSettings
+from cryptocoins.models import AccumulationDetails
 from cryptocoins.models.accumulation_transaction import AccumulationTransaction
-from cryptocoins.scoring.manager import ScoreManager
 from cryptocoins.utils.commons import (
     load_last_processed_block_id,
     store_last_processed_block_id,
-    get_withdrawal_requests_to_process,
-    get_withdrawal_requests_pending,
 )
 from lib.cipher import AESCoderDecoder
 from lib.helpers import to_decimal
@@ -42,7 +41,7 @@ def trx_process_new_blocks():
     lock_id = 'trx_blocks'
     with memcache_lock(lock_id, lock_id) as acquired:
         if acquired:
-            current_block_id = tron_client.get_latest_block_number()
+            current_block_id = tron_manager.get_latest_block_num()
             default_block_id = current_block_id - DEFAULT_BLOCK_ID_DELTA
             last_processed_block_id = load_last_processed_block_id(
                 currency=TRX_CURRENCY, default=default_block_id)
@@ -75,7 +74,10 @@ def trx_process_block(self, block_id):
     log.info('Processing block #%s', block_id)
 
     try:
-        block = tron_client.get_block(block_id)
+        block = tron_manager.get_block(block_id)
+    except BlockNotFound:
+        log.warning(f'Block not found: {block_id}')
+        return
     except Exception as e:
         store_last_processed_block_id(currency=TRX_CURRENCY, block_id=block_id - 1)
         raise e
@@ -101,13 +103,18 @@ def trx_process_block(self, block_id):
     check_trc20_withdrawal_jobs = []
 
     all_valid_transactions = []
+    all_transactions = []
+
     for tx_data in transactions:
         tx: TrxTransaction = TrxTransaction.from_node(tx_data)
-        if tx:
+        if not tx:
+            continue
+        if tx.is_success:
             all_valid_transactions.append(tx)
+        all_transactions.append(tx)
 
     # Withdrawals
-    for tx in all_valid_transactions:
+    for tx in all_transactions:
         # is TRX withdrawal request tx?
         if tx.hash in trx_withdrawal_requests_pending_txs:
             check_trx_withdrawal_jobs.append(check_tx_withdrawal.s(tx.as_dict()))
@@ -205,31 +212,25 @@ def check_tx_withdrawal(tx_data):
         log.warning('Invalid withdrawal request state for TX %s', tx.hash)
         return
 
-    transaction = tron_client.get_transaction(tx.hash)
-    if transaction['ret'][0]['contractRet'] != 'SUCCESS':
-        withdrawal_request.fail()
-    else:
+    if tx.is_success:
         withdrawal_request.complete()
+    else:
+        withdrawal_request.fail()
 
 
 @shared_task
-def trx_process_trx_deposit(tx_data: dict, deffered=False):
+def trx_process_trx_deposit(tx_data: dict):
     """
     Process TRX deposit, excepting inner gas deposits, etc
     """
-    log.info('Processing TRX deposit: %s', tx_data)
+    log.info('Processing trx deposit: %s', tx_data)
     tx = TrxTransaction(tx_data)
     amount = tron_manager.get_amount_from_base_denomination(tx.value)
 
-    # check tx scoring
-    if not deffered and ScoringSettings.need_to_check_score(amount, 'TRX'):
-        log.info(f'Need to check scoring for {tx_data}')
-        defer_time = ScoringSettings.get_deffered_scoring_time('TRX')
-        trx_process_trx_deposit.apply_async([tx_data, True], countdown=defer_time)
-        return
+    trx_keeper = tron_manager.get_keeper_wallet()
 
     # is accumulation tx?
-    if tx.to_addr == TRX_SAFE_ADDR:
+    if tx.to_addr in [TRX_SAFE_ADDR, trx_keeper.address]:
         accumulation_transaction = AccumulationTransaction.objects.filter(
             tx_hash=tx.hash,
         ).first()
@@ -247,7 +248,6 @@ def trx_process_trx_deposit(tx_data: dict, deffered=False):
         log.info(f'Tx {tx.hash} is TRX accumulation')
         return
 
-    trx_keeper = tron_manager.get_keeper_wallet()
     trx_gas_keeper = tron_manager.get_gas_keeper_wallet()
     # is inner gas deposit?
     if tx.from_addr == trx_gas_keeper.address:
@@ -266,7 +266,7 @@ def trx_process_trx_deposit(tx_data: dict, deffered=False):
 
         log.info(f'Tx {tx.hash} is gas deposit')
         accumulation_transaction.complete(is_gas=True)
-        accumulate_trc20.apply_async([accumulation_transaction.accumulation_state.id])
+        accumulate_trc20.apply_async([accumulation_transaction.wallet_transaction_id])
         return
 
     db_wallet = tron_manager.get_wallet_db_instance(TRX_CURRENCY, tx.to_addr)
@@ -295,36 +295,17 @@ def trx_process_trx_deposit(tx_data: dict, deffered=False):
         log.info('TX %s is gas keeper TRX deposit: %s', tx.hash, amount)
         return
 
-    is_scoring_ok = True
-    if deffered:
-        is_scoring_ok = ScoreManager.is_address_scoring_ok(tx.hash, tx.to_addr, amount, TRX_CURRENCY.code)
-
-    if amount < tron_manager.deposit_min_amount and amount < tron_manager.accumulation_min_balance:
-        log.warning('Deposit %s less than min required, skipping', amount)
-        accumulation_manager.set_need_check(db_wallet)
-        # accumulate later when amount >= min_dep_limit
-        return
-
     WalletTransactions.objects.create(
         wallet=db_wallet,
         tx_hash=tx.hash,
         amount=amount,
         currency=TRX_CURRENCY,
-        state=WalletTransactions.STATE_NOT_CHECKED if is_scoring_ok else WalletTransactions.STATE_BAD_DEPOSIT,
     )
-    if is_scoring_ok:
-        # set check state
-        accumulation_state = accumulation_manager.set_need_check(db_wallet)
-        if accumulation_state:
-            check_balance.apply_async([accumulation_state.id])
-
-        log.info('TX %s processed as %s TRX deposit', tx.hash, amount)
-    else:
-        log.warning('TX %s processed as %s TRX BAD deposit', tx.hash, amount)
+    log.info('TX %s processed as %s TRX deposit', tx.hash, amount)
 
 
 @shared_task
-def trx_process_trc20_deposit(tx_data: dict, deffered=False):
+def trx_process_trc20_deposit(tx_data: dict):
     """
     Process TRC20 deposit
     """
@@ -334,16 +315,10 @@ def trx_process_trc20_deposit(tx_data: dict, deffered=False):
     token = tron_manager.get_token_by_address(tx.contract_address)
     token_to_addr = tx.to_addr
     token_amount = token.get_amount_from_base_denomination(tx.value)
+    trx_keeper = tron_manager.get_keeper_wallet()
 
-    # check tx scoring
-    if not deffered and ScoringSettings.need_to_check_score(token_amount, token.currency.code):
-        log.info(f'Need to check scoring for {tx_data}')
-        defer_time = ScoringSettings.get_deffered_scoring_time(token.currency.code)
-        trx_process_trc20_deposit.apply_async([tx_data, True], countdown=defer_time)
-        return
-
-    if token_to_addr == TRX_SAFE_ADDR:
-        log.info('TX %s is %s %s accumulation', tx.hash, token_amount, token.currency)
+    if token_to_addr in [TRX_SAFE_ADDR, trx_keeper.address]:
+        log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
 
         accumulation_transaction = AccumulationTransaction.objects.filter(
             tx_hash=tx.hash,
@@ -358,7 +333,7 @@ def trx_process_trc20_deposit(tx_data: dict, deffered=False):
 
     db_wallet = tron_manager.get_wallet_db_instance(token.currency, token_to_addr)
     if db_wallet is None:
-        log.error(f'Wallet {token.currency} {token_to_addr} not exists or blocked')
+        log.error('Wallet %s %s not exists or blocked', token.currency, token_to_addr)
         return
 
     db_wallet_transaction = WalletTransactions.objects.filter(
@@ -366,36 +341,18 @@ def trx_process_trc20_deposit(tx_data: dict, deffered=False):
         wallet_id=db_wallet.id,
     ).first()
     if db_wallet_transaction is not None:
-        log.warning('TX %s already processed as %s deposit', tx.hash, token.currency)
+        log.warning(f'TX {tx.hash} already processed as {token.currency} deposit')
         return
 
     # check for keeper deposit
-    trx_keeper = tron_manager.get_keeper_wallet()
     if db_wallet.address == trx_keeper.address:
-        log.info('TX %s is keeper %s deposit: %s', tx.hash, token.currency, token_amount)
+        log.info(f'TX {tx.hash} is keeper {token.currency} deposit: {token_amount}')
         return
 
     # check for gas keeper deposit
     trx_gas_keeper = tron_manager.get_gas_keeper_wallet()
     if db_wallet.address == trx_gas_keeper.address:
-        log.info('TX %s is keeper %s deposit: %s', tx.hash, token.currency, token_amount)
-        return
-
-    is_scoring_ok = True
-    if deffered:
-        is_scoring_ok = ScoreManager.is_address_scoring_ok(
-            tx.hash,
-            token_to_addr,
-            token_amount,
-            TRX_CURRENCY.code,
-            token.currency.code
-        )
-
-    # process TRC20 deposit
-    if token_amount < token.deposit_min_amount and token_amount < token.accumulation_min_balance:
-        log.warning('Deposit %s %s less than min required, skipping', token.currency, token_amount)
-        accumulation_manager.set_need_check(db_wallet)
-        # accumulate later when amount >= min_dep_limit
+        log.info(f'TX {tx.hash} is keeper {token.currency} deposit: {token_amount}')
         return
 
     WalletTransactions.objects.create(
@@ -403,18 +360,9 @@ def trx_process_trc20_deposit(tx_data: dict, deffered=False):
         tx_hash=tx.hash,
         amount=token_amount,
         currency=token.currency,
-        state=WalletTransactions.STATE_NOT_CHECKED if is_scoring_ok else WalletTransactions.STATE_BAD_DEPOSIT,
     )
 
-    if is_scoring_ok:
-        # set check state
-        accumulation_state = accumulation_manager.set_need_check(db_wallet)
-        if accumulation_state:
-            check_balance.apply_async([accumulation_state.id])
-
-        log.info('TX %s processed as %s %s deposit', tx.hash, token_amount, token.currency)
-    else:
-        log.warning('TX %s processed as %s %s BAD deposit', tx.hash, token_amount, token.currency.code)
+    log.info(f'TX {tx.hash} processed as {token_amount} {token.currency} deposit')
 
 
 @shared_task
@@ -535,105 +483,81 @@ def withdraw_trc20(withdrawal_request_id, password):
 
 
 @shared_task
+def check_deposit_scoring(wallet_transaction_id):
+    """Check deposit for scoring"""
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    wallet_transaction.check_scoring()
+
+
+@shared_task
 def check_balances():
-    jobs_list = []
+    """Main accumulations scheduler"""
+    kyt_check_jobs = []
+    accumulations_jobs = []
+    external_accumulations_jobs = []
 
-    for item in accumulation_manager.get_waiting_for_check(blockchain_currency=TRX_CURRENCY):
-        if tron_manager.is_valid_address(item.wallet.address):
-            jobs_list.append(check_balance.s(item.id))
+    for item in accumulation_manager.get_waiting_for_kyt_check(TRX_CURRENCY):
+        kyt_check_jobs.append(check_deposit_scoring.s(item.id))
 
-    for item in accumulation_manager.get_stuck(blockchain_currency=TRX_CURRENCY):
-        if tron_manager.is_valid_address(item.wallet.address):
-            jobs_list.append(check_balance.s(item.id))
+    for item in accumulation_manager.get_waiting_for_accumulation(TRX_CURRENCY):
+        accumulations_jobs.append(check_balance.s(item.id))
 
-    if jobs_list:
-        log.info('Need to check count: %s', len(jobs_list))
-        jobs_group = group(jobs_list)
+    for item in accumulation_manager.get_waiting_for_external_accumulation(blockchain_currency=TRX_CURRENCY):
+        external_accumulations_jobs.append(check_balance.s(item.id))
+
+    if kyt_check_jobs:
+        log.info('Need to check for KYT: %s', len(kyt_check_jobs))
+        jobs_group = group(kyt_check_jobs)
+        jobs_group.apply_async()
+
+    if accumulations_jobs:
+        log.info('Need to check accumulations: %s', len(accumulations_jobs))
+        jobs_group = group(accumulations_jobs)
+        jobs_group.apply_async()
+
+    if external_accumulations_jobs:
+        log.info('Need to check external accumulations: %s', len(external_accumulations_jobs))
+        jobs_group = group(external_accumulations_jobs)
         jobs_group.apply_async()
 
 
 @shared_task
-def check_balance(accumulation_state_id):
-    accumulation_state = accumulation_manager.get_by_id(accumulation_state_id)
-    address = accumulation_state.wallet.address
-    currency = accumulation_state.wallet.currency
+def check_balance(wallet_transaction_id):
+    """Splits blockchain currency accumulation and token accumulation"""
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    currency = wallet_transaction.currency
 
     # TRX
     if currency == TRX_CURRENCY:
-        log.info('Checking TRX %s balance', address)
-
-        amb = tron_manager.accumulation_min_balance
-        amount_sun = tron_manager.get_balance_in_base_denomination(address)
-        amount = tron_manager.get_amount_from_base_denomination(amount_sun)
-        accumulation_state.current_balance = amount
-        log.info('Current TRX balance of %s is %s; Min accumulation amount is %s', address, amount, amb)
-
-        if not amount or amount < amb:
-            log.info('Low balance of %s %s (current %s)', currency, address, amb)
-            accumulation_state.state = accumulation_manager.model.STATE_LOW_BALANCE
-            accumulation_state.save(update_fields=['current_balance', 'state', 'updated'])
-            return
-
-        accumulate_trx.apply_async([accumulation_state.id])
-
+        wallet_transaction.set_ready_for_accumulation()
+        accumulate_trx.apply_async([wallet_transaction_id])
     # tokens
     else:
-        log.info('Checking %s %s balance', currency, address)
-        token = tron_manager.get_token_by_symbol(currency)
-        amount = token.get_balance(address)
-        log.info('Balance of %s %s is %s; Min accumulation amount is %s',
-                 currency, address, amount, token.accumulation_min_balance)
-
-        accumulation_state.current_balance = amount
-
-        # check min accumulation amount
-        if not amount or amount < token.accumulation_min_balance:
-            log.info(f'Low balance of {currency} {address}')
-            accumulation_state.state = accumulation_manager.model.STATE_LOW_BALANCE
-            accumulation_state.save(update_fields=['current_balance', 'state', 'updated'])
-            return
-
-        accumulation_state.state = accumulation_manager.model.STATE_READY_FOR_ACCUMULATION
-        accumulation_state.save(update_fields=['current_balance', 'state', 'updated'])
-
-        accumulate_trc20.apply_async([accumulation_state.id])
-
-    log.info(f'{address} balance checked')
+        wallet_transaction.set_ready_for_accumulation()
+        accumulate_trc20.apply_async([wallet_transaction_id])
 
 
 @shared_task
-def accumulate_trx(accumulation_state_id):
-    accumulation_state = accumulation_manager.get_by_id(accumulation_state_id)
-    address = accumulation_state.wallet.address
+def accumulate_trx(wallet_transaction_id):
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    address = wallet_transaction.wallet.address
 
-    amount_sun = tron_manager.get_balance_in_base_denomination(address)
+    amount = wallet_transaction.amount
+    amount_sun = tron_manager.get_base_denomination_from_amount(amount)
 
-    amount = tron_manager.get_amount_from_base_denomination(amount_sun)
     log.info('Accumulation TRX from: %s; Balance: %s; Min acc balance:%s',
              address, amount, tron_manager.accumulation_min_balance)
-
-    if not amount:
-        log.warning('Current balance is 0 TRX. Need to recheck')
-        accumulation_manager.set_need_check(accumulation_state.wallet)
-        return
-
-    if amount < tron_manager.accumulation_min_balance:
-        log.warning('Current balance less than minimum, need to recheck')
-        accumulation_manager.set_need_check(accumulation_state.wallet)
-        return
 
     # minus coins to be burnt
     withdrawal_amount = amount_sun - TRX_NET_FEE
 
     # in debug mode values can be very small
     if withdrawal_amount <= 0:
-        log.error('TRX withdrawal amount invalid: %s',
-                  tron_manager.get_amount_from_base_denomination(withdrawal_amount))
-        accumulation_state.state = accumulation_manager.model.STATE_LOW_BALANCE
-        accumulation_state.save(update_fields=['state', 'updated'])
+        log.error(f'TRX withdrawal amount invalid: {withdrawal_amount}')
+        wallet_transaction.set_balance_too_low()
         return
 
-    accumulation_address = tron_manager.get_accumulation_address(amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or tron_manager.get_accumulation_address(amount)
 
     # prepare tx
     wallet = tron_manager.get_user_wallet('TRX', address)
@@ -645,16 +569,13 @@ def accumulate_trx(accumulation_state_id):
         log.error('Unable to send withdrawal TX')
 
     AccumulationTransaction.objects.create(
-        accumulation_state=accumulation_state,
+        wallet_transaction=wallet_transaction,
         amount=tron_manager.get_amount_from_base_denomination(withdrawal_amount),
         tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=txid,
     )
-
-    accumulation_state.state = accumulation_manager.model.STATE_ACCUMULATION_IN_PROCESS
-    accumulation_state.save(update_fields=['state', 'updated'])
-
+    wallet_transaction.set_accumulation_in_progress()
     # AccumulationDetails.objects.create(
     #     currency=TRX_CURRENCY,
     #     txid=txid,
@@ -664,27 +585,22 @@ def accumulate_trx(accumulation_state_id):
 
     reciept = res.wait()
     log.info(reciept)
-    log.info('Accumulation TX %s sent from %s to %s', txid, wallet.address, accumulation_address)
+    log.info(f'Accumulation TX {txid} sent from {wallet.address} to {accumulation_address}')
 
 
 @shared_task
-def accumulate_trc20(accumulation_state_id):
-    accumulation_state = accumulation_manager.get_by_id(accumulation_state_id)
-    address = accumulation_state.wallet.address
-    currency = accumulation_state.wallet.currency
+def accumulate_trc20(wallet_transaction_id):
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    address = wallet_transaction.wallet.address
+    currency = wallet_transaction.currency
 
     token = tron_manager.get_token_by_symbol(currency)
-    token_amount_sun = token.get_base_denomination_balance(address)
-    token_amount = token.get_amount_from_base_denomination(token_amount_sun)
-
-    if token_amount <= to_decimal(0):
-        log.warning('Cant accumulate %s from: %s; Balance too low: %s;',
-                    currency, address, token_amount)
-        return
+    token_amount = wallet_transaction.amount
+    token_amount_sun = token.get_base_denomination_from_amount(token_amount)
 
     log.info(f'Accumulation {currency} from: {address}; Balance: {token_amount};')
 
-    accumulation_address = token.get_accumulation_address(token_amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(token_amount)
 
     gas_keeper = tron_manager.get_gas_keeper_wallet()
 
@@ -697,14 +613,13 @@ def accumulate_trc20(accumulation_state_id):
         log.error('Unable to send fee TX')
 
     acc_transaction = AccumulationTransaction.objects.create(
-        accumulation_state=accumulation_state,
+        wallet_transaction=wallet_transaction,
         amount=tron_manager.get_amount_from_base_denomination(TRC20_FEE_LIMIT),
         tx_type=AccumulationTransaction.TX_TYPE_GAS_DEPOSIT,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=gas_txid,
     )
-    accumulation_state.state = accumulation_manager.model.STATE_WAITING_FOR_GAS
-    accumulation_state.save(update_fields=['state', 'updated'])
+    wallet_transaction.set_waiting_for_gas()
 
     receipt = res.wait()
     log.info(receipt)
@@ -719,20 +634,19 @@ def accumulate_trc20(accumulation_state_id):
         log.error('Unable to send withdrawal token TX')
 
     AccumulationTransaction.objects.create(
-        accumulation_state=accumulation_state,
+        wallet_transaction=wallet_transaction,
         amount=token.get_amount_from_base_denomination(token_amount_sun),
         tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=txid,
     )
-    accumulation_state.state = accumulation_manager.model.STATE_ACCUMULATION_IN_PROCESS
-    accumulation_state.save(update_fields=['state', 'updated'])
+    wallet_transaction.set_accumulation_in_progress()
 
     receipt = res.wait()
     log.info(receipt)
     log.info('Token accumulation TX %s sent from %s to: %s', txid, wallet.address, accumulation_address)
 
 
-@shared_task
-def accumulate_trx_dust():
-    tron_manager.accumulate_dust()
+# @shared_task
+# def accumulate_trx_dust():
+#     tron_manager.accumulate_dust()

@@ -1,5 +1,4 @@
 from .accumulation_details import AccumulationDetails
-from .accumulation_state import AccumulationState
 from .accumulation_transaction import AccumulationTransaction
 from .keeper import GasKeeper
 from .keeper import Keeper
@@ -10,7 +9,6 @@ __all__ = (
     'Keeper',
     'GasKeeper',
     'LastProcessedBlock',
-    'AccumulationState',
     'AccumulationTransaction',
     'AccumulationDetails',
     'ScoringSettings',

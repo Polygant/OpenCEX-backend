@@ -1,0 +1,50 @@
+{% load i18n %}
+<div class="actions">
+  {% block actions %}
+    {% block actions-form %}
+    {% for field in action_form %}
+        {% if field.label %}<label>{{ field.label }} {% endif %}{{ field }}{% if field.label %}</label>{% endif %}{% endfor %}
+    {% endblock %}
+
+    {% for action_extra_field, action_extra_field_data in extra_actions_fields %}
+        <div id="{{ action_extra_field }}-action" class="extra_actions_fields" style="display: none;">
+            {% for field_label, field_html in action_extra_field_data %}
+                <label>{{ field_label }}</label>: {{ field_html }}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    {% block actions-submit %}
+    <button type="submit" class="button" title="{% translate "Run the selected action" %}" name="index" value="{{ action_index|default:0 }}">{% translate "Go" %}</button>
+    {% endblock %}
+    {% block actions-counter %}
+    {% if actions_selection_counter %}
+        <span class="action-counter" data-actions-icnt="{{ cl.result_list|length }}">{{ selection_note }}</span>
+        {% if cl.result_count != cl.result_list|length %}
+        <span class="all hidden">{{ selection_note_all }}</span>
+        <span class="question hidden">
+            <a href="#" title="{% translate "Click here to select the objects across all pages" %}">{% blocktranslate with cl.result_count as total_count %}Select all {{ total_count }} {{ module_name }}{% endblocktranslate %}</a>
+        </span>
+        <span class="clear hidden"><a href="#">{% translate "Clear selection" %}</a></span>
+        {% endif %}
+    {% endif %}
+    {% endblock %}
+  {% endblock %}
+</div>
+
+<script>
+  var selectActionEl = document.querySelector('select[name="action"]');
+  selectActionEl.onchange = function() {
+      var elements = document.getElementsByClassName("extra_actions_fields");
+
+      for (var i = 0; i < elements.length; i++) {
+        elements[i].style.display = "none";
+      }
+      var newSelection = document.getElementById(selectActionEl.value + '-action');
+      if (newSelection) newSelection.style.display = "inline";
+  };
+</script>
+<style>
+    .extra_actions_fields {
+        margin-left: 10px;
+    }
+</style>
