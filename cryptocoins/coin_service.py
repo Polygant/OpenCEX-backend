@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db import transaction
 from pywallet.utils.keys import PublicKey
 
-from core.consts.currencies import WalletAccount
+from core.consts.currencies import BlockchainAccount
 from core.currency import Currency
 from core.models.cryptocoins import UserWallet
 from core.models.inouts.wallet import WalletTransactions
@@ -107,7 +107,7 @@ class CoinServiceBase:
         return wallet
 
     @cachetools.func.ttl_cache(ttl=5)
-    def get_keeper_wallet(self) -> WalletAccount:
+    def get_keeper_wallet(self) -> BlockchainAccount:
         keeper = Keeper.objects.filter(
             currency=self.currency,
         ).select_related(
@@ -120,7 +120,7 @@ class CoinServiceBase:
         if keeper is None:
             raise ValueError(f'Keeper for {self.currency.code} not found')
 
-        return WalletAccount(
+        return BlockchainAccount(
             address=keeper.user_wallet.address,
             private_key=AESCoderDecoder(settings.CRYPTO_KEY).decrypt(
                 keeper.user_wallet.private_key
@@ -297,7 +297,7 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         self.rpc.importaddress(address, label, False)
         self.log.info('Address %s %s imported', self.currency, address)
 
-    def create_new_wallet(self, label: str = '', is_keeper=False) -> WalletAccount:
+    def create_new_wallet(self, label: str = '', is_keeper=False) -> BlockchainAccount:
         """
         Create new wallet address and key and import address to node
         """
@@ -313,7 +313,7 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
         self.import_address(address, label=label)
 
-        return WalletAccount(
+        return BlockchainAccount(
             address=address,
             private_key=private_key,
             redeem_script=None,

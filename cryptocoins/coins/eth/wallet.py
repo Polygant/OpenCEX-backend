@@ -10,7 +10,7 @@ from eth_utils.curried import to_bytes
 from pywallet import wallet as pwallet
 from web3 import Web3
 
-from core.consts.currencies import WalletAccount
+from core.consts.currencies import BlockchainAccount
 from lib.cipher import AESCoderDecoder
 
 log = logging.getLogger(__name__)
@@ -30,9 +30,9 @@ def create_eth_address():
     return account.address, encrypted_key
 
 
-def create_new_wallet() -> WalletAccount:
+def create_new_blockchain_account() -> BlockchainAccount:
     address, encrypted_pk = create_eth_address()
-    return WalletAccount(
+    return BlockchainAccount(
         address=address,
         private_key=AESCoderDecoder(settings.CRYPTO_KEY).decrypt(encrypted_pk),
     )

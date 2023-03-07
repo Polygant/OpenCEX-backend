@@ -2,7 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.db.transaction import atomic
 
-from core.consts.currencies import WalletAccount, CRYPTO_WALLET_ACCOUNT_CREATORS
+from core.consts.currencies import CRYPTO_WALLET_ACCOUNT_CREATORS
+from core.consts.currencies import BlockchainAccount
 from core.currency import CurrencyModelField
 from lib.cipher import AESCoderDecoder
 
@@ -40,7 +41,7 @@ class UserWallet(models.Model):
 
     def regenerate(self):
         """Marks current wallet as old. Creates new 'clean' wallet."""
-        wallet_account: WalletAccount = CRYPTO_WALLET_ACCOUNT_CREATORS[self.blockchain_currency]()
+        wallet_account: BlockchainAccount = CRYPTO_WALLET_ACCOUNT_CREATORS[self.blockchain_currency]()
         with atomic():
             new_user_wallet = UserWallet.objects.create(
                 user_id=self.user_id,

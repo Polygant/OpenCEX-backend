@@ -10,6 +10,7 @@ from admin_panel.forms import BtcApproveAdminForm, EthApproveAdminForm, MakeTopU
 from core.models import Transaction
 from core.models.inouts.transaction import REASON_MANUAL_TOPUP
 from core.utils.wallet_history import create_or_update_wallet_history_item_from_transaction
+from core.utils.withdrawal import get_withdrawal_requests_to_process
 from cryptocoins.coins.bnb import BNB_CURRENCY
 from cryptocoins.coins.btc.service import BTCCoinService
 from cryptocoins.coins.eth import ETH_CURRENCY
@@ -18,7 +19,6 @@ from cryptocoins.coins.usdt import USDT_CURRENCY
 from cryptocoins.tasks.eth import process_payouts as eth_process_payouts
 from cryptocoins.tasks.trx import process_payouts as trx_process_payouts
 from cryptocoins.tasks.bnb import process_payouts as bnb_process_payouts
-from cryptocoins.utils.commons import get_withdrawal_requests_to_process
 
 
 @staff_member_required

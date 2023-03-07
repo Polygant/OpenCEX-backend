@@ -10,6 +10,8 @@ from core.models.inouts.wallet import WalletTransactions
 from core.models.inouts.withdrawal import PENDING as WR_PENDING
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_withdrawal_fee
+from core.utils.withdrawal import get_withdrawal_requests_to_process
+from core.utils.withdrawal import get_withdrawal_requests_pending
 from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.coins.eth import ETH_CURRENCY
 from cryptocoins.coins.eth.ethereum import EthTransaction, ethereum_manager
@@ -19,8 +21,6 @@ from cryptocoins.models.accumulation_transaction import AccumulationTransaction
 from cryptocoins.utils.commons import (
     load_last_processed_block_id,
     store_last_processed_block_id,
-    get_withdrawal_requests_to_process,
-    get_withdrawal_requests_pending,
 )
 from cryptocoins.utils.infura import w3
 from lib.cipher import AESCoderDecoder
