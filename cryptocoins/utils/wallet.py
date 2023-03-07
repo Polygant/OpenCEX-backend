@@ -7,8 +7,6 @@ from eth_utils.curried import text_if_str
 from eth_utils.curried import to_bytes
 
 from core.consts.currencies import BlockchainAccount
-from cryptocoins.coins.eth.wallet import create_new_blockchain_account as create_eth_wallet
-from cryptocoins.coins.trx.wallet import create_new_blockchain_account as create_trx_wallet
 from lib.cryptointegrator.tasks import create_wallet
 
 log = logging.getLogger(__name__)
@@ -49,6 +47,8 @@ def generate_new_wallet_account(currency) -> BlockchainAccount:
     from cryptocoins.coins.eth import ETH_CURRENCY
     from cryptocoins.coins.trx import TRX_CURRENCY
     from cryptocoins.coins.bnb import BNB_CURRENCY
+    from cryptocoins.coins.eth.wallet import create_new_blockchain_account as create_eth_wallet
+    from cryptocoins.coins.trx.wallet import create_new_blockchain_account as create_trx_wallet
 
     if currency == BTC_CURRENCY:
         from cryptocoins.coins.btc.service import BTCCoinService
