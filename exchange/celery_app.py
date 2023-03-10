@@ -211,6 +211,13 @@ if is_section_enabled('bnb'):
                 'expires': 20,
             }
         },
+        'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
+            'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
+            'schedule': crontab(minute='5', hour='0'),
+            'options': {
+                'queue': 'bnb_accumulations',
+            }
+        },
         # 'process_payouts': {
         #     'task': 'cryptocoins.tasks.bnb.process_payouts',
         #     'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
@@ -294,6 +301,13 @@ if is_section_enabled('tron'):
             'schedule': settings.TRX_TRC20_ACCUMULATION_PERIOD,
             'options': {
                 'expires': 20,
+            }
+        },
+        'cryptocoins.tasks.trx.accumulate_trx_dust': {
+            'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
+            'schedule': crontab(minute='10', hour='0'),
+            'options': {
+                'queue': 'trx_accumulations',
             }
         },
     })
@@ -423,20 +437,6 @@ if is_section_enabled('utils'):
         'cryptocoins.tasks.eth.accumulate_eth_dust': {
             'task': 'cryptocoins.tasks.eth.accumulate_eth_dust',
             'schedule': crontab(minute='0', hour='0'),
-            'options': {
-                'queue': 'utils',
-            }
-        },
-        'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
-            'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
-            'schedule': crontab(minute='5', hour='0'),
-            'options': {
-                'queue': 'utils',
-            }
-        },
-        'cryptocoins.tasks.trx.accumulate_trx_dust': {
-            'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
-            'schedule': crontab(minute='10', hour='0'),
             'options': {
                 'queue': 'utils',
             }
