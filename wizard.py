@@ -395,14 +395,19 @@ def main():
     with atomic():
         to_write = []
 
-        def get_or_create(model_inst, curr, get_attrs, set_attrs):
-            model_inst.objects.get_or_create(
+        def get_or_create(model_inst, curr, get_attrs, set_attrs: dict):
+            item, is_created = model_inst.objects.get_or_create(
                 **get_attrs,
                 defaults={
                     'currency': curr,
                     **set_attrs,
                 }
             )
+
+            if not is_created:
+                for key, attr in set_attrs.items():
+                    setattr(item, key, attr)
+                item.save()
 
         for coin, to_create_list in coin_info.items():
             for data in to_create_list:
