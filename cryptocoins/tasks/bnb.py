@@ -34,9 +34,12 @@ accumulation_manager = AccumulationManager()
 
 DEFAULT_BLOCK_ID_DELTA = 1000
 w3 = bnb_manager.client
-BNB_SAFE_ADDR = w3.toChecksumAddress(settings.BNB_SAFE_ADDR)
 BEP20_TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
 BEP20_TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
+try:
+    BNB_SAFE_ADDR = w3.toChecksumAddress(settings.BNB_SAFE_ADDR)
+except BaseException:
+    BNB_SAFE_ADDR = None
 
 
 @shared_task
