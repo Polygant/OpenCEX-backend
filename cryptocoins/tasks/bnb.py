@@ -40,7 +40,7 @@ BEP20_TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
 @shared_task
 def bnb_process_new_blocks():
     try:
-        current_block_id = bnb_manager.get_latest_block_num()
+        current_block_id = w3.eth.blockNumber
     except Exception as e:
         log.exception('Cant get current block')
         w3.change_provider()
@@ -294,9 +294,10 @@ def bnb_process_bnb_deposit(tx_data: dict):
         return
 
     bnb_keeper = bnb_manager.get_keeper_wallet()
+    external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses([BNB_CURRENCY])
 
     # is accumulation tx?
-    if tx.to_addr in [BNB_SAFE_ADDR, bnb_keeper.address]:
+    if tx.to_addr in [BNB_SAFE_ADDR, bnb_keeper.address] + external_accumulation_addresses:
         accumulation_transaction = AccumulationTransaction.objects.filter(
             tx_hash=tx.hash,
         ).first()
@@ -386,8 +387,11 @@ def bnb_process_bep20_deposit(tx_data: dict):
     token_to_addr = tx.to_addr
     token_amount = token.get_amount_from_base_denomination(tx.value)
     bnb_keeper = bnb_manager.get_keeper_wallet()
+    external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses(
+        list(BEP20_TOKEN_CURRENCIES)
+    )
 
-    if token_to_addr in [BNB_SAFE_ADDR, bnb_keeper.address]:
+    if token_to_addr in [BNB_SAFE_ADDR, bnb_keeper.address] + external_accumulation_addresses:
         log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
 
         accumulation_transaction = AccumulationTransaction.objects.filter(

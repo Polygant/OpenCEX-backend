@@ -228,9 +228,10 @@ def trx_process_trx_deposit(tx_data: dict):
     amount = tron_manager.get_amount_from_base_denomination(tx.value)
 
     trx_keeper = tron_manager.get_keeper_wallet()
+    external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses([TRX_CURRENCY])
 
     # is accumulation tx?
-    if tx.to_addr in [TRX_SAFE_ADDR, trx_keeper.address]:
+    if tx.to_addr in [TRX_SAFE_ADDR, trx_keeper.address] + external_accumulation_addresses:
         accumulation_transaction = AccumulationTransaction.objects.filter(
             tx_hash=tx.hash,
         ).first()
@@ -324,8 +325,11 @@ def trx_process_trc20_deposit(tx_data: dict):
     token_to_addr = tx.to_addr
     token_amount = token.get_amount_from_base_denomination(tx.value)
     trx_keeper = tron_manager.get_keeper_wallet()
+    external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses(
+        list(TRC20_TOKEN_CURRENCIES)
+    )
 
-    if token_to_addr in [TRX_SAFE_ADDR, trx_keeper.address]:
+    if token_to_addr in [TRX_SAFE_ADDR, trx_keeper.address] + external_accumulation_addresses:
         log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
 
         accumulation_transaction = AccumulationTransaction.objects.filter(
