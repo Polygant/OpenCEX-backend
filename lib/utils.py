@@ -84,7 +84,8 @@ def notify_on_error(f):
 
 
 @contextmanager
-def memcache_lock(lock_id, oid, expire=None):
+def memcache_lock(lock_id, oid=None, expire=None):
+    oid = oid or lock_id
     expire = expire or LOCK_EXPIRE
     timeout_at = monotonic() + expire - 3
     # cache.add fails if the key already exists

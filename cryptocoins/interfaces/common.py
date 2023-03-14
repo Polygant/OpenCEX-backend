@@ -272,7 +272,7 @@ class BlockchainManager:
 
     @cachetools.func.ttl_cache(ttl=5)
     def get_user_addresses(self) -> List[str]:
-        return get_user_addresses(self.CURRENCY)
+        return get_user_addresses(blockchain_currency=self.CURRENCY)
 
     @cachetools.func.ttl_cache(ttl=60)
     def get_keeper_wallet(self) -> BlockchainAccount:
