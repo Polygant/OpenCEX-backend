@@ -132,6 +132,10 @@ class Transaction(UserMixinModel, BaseModel):
     data = JSONField(default=dict)
     internal = JSONField(default=dict, blank=True)
 
+    @property
+    def is_pending(self):
+        return self.state == TRANSACTION_PENDING
+
     def __str__(self):
         return "<{} {}>[{}] {} {}".format(self.id, self.user.username, str(self.currency), REASONS[self.reason], self.amount)
 

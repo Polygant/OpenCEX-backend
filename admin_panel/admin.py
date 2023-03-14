@@ -750,8 +750,8 @@ class FeesAndLimitsAdmin(BaseModelAdmin):
 
 @admin.register(WalletTransactions)
 class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
-    fields = ('created', 'user', 'currency', 'blockchain', 'amount', 'fee_amount', 'transaction', 'tx_hash', 'status',
-              'state', 'monitoring_state', 'is_old', 'external_accumulation_address',)
+    fields = ('created', 'currency', 'amount', 'fee_amount', 'transaction', 'tx_hash', 'status',
+              'state', 'monitoring_state', 'external_accumulation_address',)
     list_display = ('created', 'user', 'currency', 'blockchain', 'amount', 'fee_amount', 'transaction', 'tx_hash',
                     'status', 'state', 'monitoring_state', 'is_old', 'external_accumulation_address',)
     # fields = ('created', 'currency', 'amount', 'tx_hash', 'status', 'state')
@@ -813,14 +813,6 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
                     wallet_tr.revert()
         except Exception as e:
             messages.error(request, e)
-
-    @admin.action(permissions=('change',))
-    def external_accumulation(self, request, queryset):
-        """
-        :param queryset:
-        :type queryset: list[WalletTransactions]
-        """
-        print(request, queryset)
 
     @admin.action(permissions=('change',))
     def recheck_kyt(self, request, queryset):
