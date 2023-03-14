@@ -86,12 +86,15 @@ def eth_process_block(self, block_id):
     erc20_jobs = []
 
     eth_withdrawal_requests_pending = get_withdrawal_requests_pending([ETH_CURRENCY])
-    erc20_withdrawal_requests_pending = get_withdrawal_requests_pending(ERC20_TOKEN_CURRENCIES, blockchain_currency='ETH')
+    erc20_withdrawal_requests_pending = get_withdrawal_requests_pending(
+        ERC20_TOKEN_CURRENCIES,
+        blockchain_currency='ETH'
+    )
 
     eth_withdrawals_dict = {i.id: i.data.get('txs_attempts', [])
                             for i in eth_withdrawal_requests_pending}
     eth_withdrawal_requests_pending_txs = {v: k for k,
-                                           values in eth_withdrawals_dict.items() for v in values}
+                                                    values in eth_withdrawals_dict.items() for v in values}
 
     erc20_withdrawals_dict = {i.id: i.data.get('txs_attempts', [])
                               for i in erc20_withdrawal_requests_pending}
@@ -262,9 +265,10 @@ def eth_process_eth_deposit(tx_data: dict):
         return
 
     external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses([ETH_CURRENCY])
+    eth_keeper = ethereum_manager.get_keeper_wallet()
 
     # is accumulation tx?
-    if tx.to_addr in [ETH_SAFE_ADDR] + external_accumulation_addresses:
+    if tx.to_addr in [ETH_SAFE_ADDR, eth_keeper.address, ] + external_accumulation_addresses:
         accumulation_transaction = AccumulationTransaction.objects.filter(
             tx_hash=tx.hash,
         ).first()
@@ -282,7 +286,6 @@ def eth_process_eth_deposit(tx_data: dict):
         log.info(f'Tx {tx.hash} is ETH accumulation')
         return
 
-    eth_keeper = ethereum_manager.get_keeper_wallet()
     eth_gas_keeper = ethereum_manager.get_gas_keeper_wallet()
     # is inner gas deposit?
     if tx.from_addr == eth_gas_keeper.address:
@@ -356,8 +359,9 @@ def eth_process_erc20_deposit(tx_data: dict):
     token_amount = token.get_amount_from_base_denomination(tx.value)
 
     external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses(list(ERC20_CURRENCIES))
+    eth_keeper = ethereum_manager.get_keeper_wallet()
 
-    if token_to_addr in [ETH_SAFE_ADDR] + external_accumulation_addresses:
+    if token_to_addr in [ETH_SAFE_ADDR, eth_keeper.address, ] + external_accumulation_addresses:
         log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
 
         accumulation_transaction = AccumulationTransaction.objects.filter(
@@ -385,7 +389,6 @@ def eth_process_erc20_deposit(tx_data: dict):
         return
 
     # check for keeper deposit
-    eth_keeper = ethereum_manager.get_keeper_wallet()
     if db_wallet.address == eth_keeper.address:
         log.info('TX %s is keeper %s deposit: %s', tx.hash, token.currency, token_amount)
         return
@@ -677,9 +680,10 @@ def accumulate_eth(wallet_transaction_id):
     amount = wallet_transaction.amount
     amount_wei = ethereum_manager.get_base_denomination_from_amount(amount)
 
-    log.info('Accumulation ETH from: %s; Balance: %s', address, amount,)
+    log.info('Accumulation ETH from: %s; Balance: %s', address, amount, )
 
-    accumulation_address = wallet_transaction.external_accumulation_address or ethereum_manager.get_accumulation_address(amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or ethereum_manager.get_accumulation_address(
+        amount)
 
     # we want to process our tx faster
     gas_price = ethereum_manager.gas_price_cache.get_increased_price()
@@ -749,7 +753,8 @@ def accumulate_erc20(wallet_transaction_id):
                     currency, address, token_amount)
         return
 
-    accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(token_amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(
+        token_amount)
 
     # we keep amount not as wei, it's more easy, so we need to convert it
     # checked_amount_wei = token.get_wei_from_amount(accumulation_state.current_balance)

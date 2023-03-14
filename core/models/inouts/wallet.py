@@ -152,10 +152,13 @@ class WalletTransactions(BaseModel):
     def get_fee_amount(self):
         return FeesAndLimits.get_fee(self.currency.code, FeesAndLimits.DEPOSIT, FeesAndLimits.ADDRESS)
 
-    def set_external_accumulation_address(self, address):
+    def set_external_accumulation_address(self, address: str):
         is_valid_fn = CRYPTO_ADDRESS_VALIDATORS[self.wallet.blockchain_currency]
         if not is_valid_fn(address):
             raise ValidationError('Incorrect address')
+        if address.lower() == self.wallet.address:
+            raise ValidationError('Incorrect address. Cannot transfer to yourself')
+
         self.state = self.STATE_WAITING_FOR_ACCUMULATION
         self.external_accumulation_address = address
         super(WalletTransactions, self).save()
