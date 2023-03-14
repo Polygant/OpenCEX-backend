@@ -8,7 +8,7 @@ from tronpy.exceptions import BlockNotFound
 from core.models.inouts.wallet import WalletTransactions
 from core.models.inouts.withdrawal import PENDING as WR_PENDING
 from core.models.inouts.withdrawal import WithdrawalRequest
-from core.utils.inouts import get_withdrawal_fee
+from core.utils.inouts import get_withdrawal_fee, get_min_accumulation_balance
 from core.utils.withdrawal import get_withdrawal_requests_to_process
 from core.utils.withdrawal import get_withdrawal_requests_pending
 from cryptocoins.accumulation_manager import AccumulationManager
@@ -295,6 +295,14 @@ def trx_process_trx_deposit(tx_data: dict):
         log.info('TX %s is gas keeper TRX deposit: %s', tx.hash, amount)
         return
 
+    # check for accumulation min limit
+    if amount < tron_manager.accumulation_min_balance:
+        log.info(
+            'TX %s amount: %s less accumulation min limit: %s',
+            tx.hash, amount, tron_manager.accumulation_min_balance
+        )
+        return
+
     WalletTransactions.objects.create(
         wallet=db_wallet,
         tx_hash=tx.hash,
@@ -353,6 +361,14 @@ def trx_process_trc20_deposit(tx_data: dict):
     trx_gas_keeper = tron_manager.get_gas_keeper_wallet()
     if db_wallet.address == trx_gas_keeper.address:
         log.info(f'TX {tx.hash} is keeper {token.currency} deposit: {token_amount}')
+        return
+
+    # check for accumulation min limit
+    if token_amount < get_min_accumulation_balance(db_wallet.currency):
+        log.info(
+            'TX %s amount: %s less accumulation min limit: %s',
+            tx.hash, token_amount, tron_manager.accumulation_min_balance
+        )
         return
 
     WalletTransactions.objects.create(
