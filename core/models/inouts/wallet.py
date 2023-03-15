@@ -63,6 +63,7 @@ class WalletTransactions(BaseModel):
     STATE_MANUAL_DEPOSIT = 14
     STATE_OLD_WALLET_DEPOSIT = 15
     STATE_EXTERNAL_ACCUMULATED = 16
+    STATE_GAS_PRICE_TOO_HIGH = 17
 
     STATES = (
         (STATE_CREATED, 'Created'),
@@ -81,6 +82,7 @@ class WalletTransactions(BaseModel):
         (STATE_MANUAL_DEPOSIT, 'Manual deposit'),
         (STATE_OLD_WALLET_DEPOSIT, 'Old wallet deposit'),
         (STATE_EXTERNAL_ACCUMULATED, 'External accumulated'),
+        (STATE_GAS_PRICE_TOO_HIGH, 'Gas price too high'),
     )
 
     ACCUMULATION_READY_STATES = [
@@ -88,6 +90,7 @@ class WalletTransactions(BaseModel):
         STATE_GAS_REQUIRED,
         STATE_WAITING_FOR_GAS,
         STATE_READY_FOR_ACCUMULATION,
+        STATE_GAS_PRICE_TOO_HIGH,
     ]
 
     currency = CurrencyModelField()
