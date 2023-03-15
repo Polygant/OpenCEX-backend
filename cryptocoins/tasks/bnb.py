@@ -234,7 +234,7 @@ def bnb_process_block(self, block_id):
             else:
                 log.info(f'Unexpected accumulation {token.currency} from {tx.from_addr} to {tx.to_addr}')
 
-                # check BNB accumulations
+        # check BNB accumulations
         else:
             accumulation_details, created = AccumulationDetails.objects.get_or_create(
                 txid=tx.hash,

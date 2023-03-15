@@ -709,7 +709,7 @@ def accumulate_eth(wallet_transaction_id):
     tx_hash = ethereum_manager.send_tx(
         private_key=wallet.private_key,
         to_address=accumulation_address,
-        amount=withdrawal_amount,
+        amount=withdrawal_amount_wei,
         nonce=nonce,
         gasPrice=gas_price,
     )
