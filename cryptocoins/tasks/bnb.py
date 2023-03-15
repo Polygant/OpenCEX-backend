@@ -443,16 +443,17 @@ def bnb_process_bep20_deposit(tx_data: dict):
 
 
 @shared_task
-def process_payouts(password):
+def process_payouts(password, withdrawals_ids=None):
     bnb_withdrawal_requests = get_withdrawal_requests_to_process(currencies=[
         BNB_CURRENCY])
-
-    jobs_list = []
 
     if bnb_withdrawal_requests:
         log.info(f'Need to process {len(bnb_withdrawal_requests)} BNB withdrawals')
 
         for item in bnb_withdrawal_requests:
+            if withdrawals_ids and item.id not in withdrawals_ids:
+                continue
+
             # skip freezed withdrawals
             if item.user.profile.is_payouts_freezed():
                 continue
@@ -466,6 +467,8 @@ def process_payouts(password):
     if bep20_withdrawal_requests:
         log.info(f'Need to process {len(bep20_withdrawal_requests)} BEP20 withdrawals')
         for item in bep20_withdrawal_requests:
+            if withdrawals_ids and item.id not in withdrawals_ids:
+                continue
             # skip freezed withdrawals
             if item.user.profile.is_payouts_freezed():
                 continue
@@ -674,7 +677,7 @@ def check_balances():
     for item in accumulation_manager.get_waiting_for_kyt_check(BNB_CURRENCY):
         kyt_check_jobs.append(check_deposit_scoring.s(item.id))
 
-    for item in accumulation_manager.get_waiting_for_accumulation(BNB_CURRENCY):
+    for item in accumulation_manager.get_waiting_for_accumulation(blockchain_currency=BNB_CURRENCY):
         accumulations_jobs.append(check_balance.s(item.id))
 
     for item in accumulation_manager.get_waiting_for_external_accumulation(blockchain_currency=BNB_CURRENCY):
@@ -732,6 +735,7 @@ def accumulate_bnb(wallet_transaction_id):
     wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
     address = wallet_transaction.wallet.address
 
+    # recheck balance
     amount = wallet_transaction.amount
     amount_wei = bnb_manager.get_base_denomination_from_amount(amount)
 
@@ -748,6 +752,7 @@ def accumulate_bnb(wallet_transaction_id):
 
     if bnb_manager.is_gas_price_reach_max_limit(gas_price):
         log.warning(f'Gas price too high: {gas_price}')
+        bnb_manager.set_gas_price_too_high(wallet_transaction)
         return
 
     # in debug mode values can be very small
@@ -803,6 +808,7 @@ def accumulate_bep20(wallet_transaction_id):
         return
 
     token = bnb_manager.get_token_by_symbol(currency)
+    # amount checks
     token_amount = wallet_transaction.amount
     token_amount_wei = token.get_base_denomination_from_amount(token_amount)
 
@@ -811,6 +817,9 @@ def accumulate_bep20(wallet_transaction_id):
         return
 
     accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(token_amount)
+
+    # we keep amount not as wei, it's more easy, so we need to convert it
+    # checked_amount_wei = token.get_wei_from_amount(accumulation_state.current_balance)
 
     log.info(f'Accumulation {currency} from: {address}; Balance: {token_amount};')
 
@@ -894,6 +903,7 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
 
     if bnb_manager.is_gas_price_reach_max_limit(gas_price):
         log.warning(f'Gas price too high: {gas_price}')
+        bnb_manager.set_gas_price_too_high(wallet_transaction)
         return
 
     accumulation_gas_total_amount = accumulation_gas_amount * gas_price
@@ -956,6 +966,7 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
         # retry with higher gas price
         send_gas(wallet_transaction_id, old_tx_data=tx_data, old_tx_hash=tx_hash)
 
+# todo fix
 # @shared_task
 # def accumulate_bnb_dust():
 #     bnb_manager.accumulate_dust()
