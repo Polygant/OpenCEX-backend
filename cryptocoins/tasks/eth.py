@@ -893,7 +893,7 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
 
     acc_transaction = AccumulationTransaction.objects.create(
         wallet_transaction=wallet_transaction,
-        amount=ethereum_manager.get_eth_amount_from_wei(accumulation_gas_total_amount),
+        amount=ethereum_manager.get_amount_from_base_denomination(accumulation_gas_total_amount),
         tx_type=AccumulationTransaction.TX_TYPE_GAS_DEPOSIT,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=tx_hash.hex(),
