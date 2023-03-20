@@ -122,7 +122,7 @@ def eth_wallet_creation_wrapper(user_id, is_new=False, **kwargs):
 def erc20_wallet_creation_wrapper(user_id, currency, is_new=False, **kwargs):
     from core.models.cryptocoins import UserWallet
 
-    wallet = get_or_create_erc20_wallet(user_id, token_currency=currency, is_new=is_new)
+    wallet = get_or_create_erc20_wallet(user_id, currency=currency, is_new=is_new)
     return UserWallet.objects.filter(id=wallet.id)
 
 def is_valid_eth_address(address):
