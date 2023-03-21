@@ -828,13 +828,6 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
     force_deposit_and_accumulate.short_description = 'Force deposit and accumulate'
 
     @admin.action(permissions=('change',))
-    def handle_old_wallet_deposit(self, request, queryset: List[WalletTransactions]):
-        for wallet_tr in queryset:
-            wallet_tr.check_deposit()
-
-    handle_old_wallet_deposit.short_description = 'Handle old wallet deposit'
-
-    @admin.action(permissions=('change',))
     def external_accumulation(self, request, queryset: List[WalletTransactions]):
         data = request.POST or request.data
         address = data.get('external_address')
