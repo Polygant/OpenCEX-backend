@@ -18,7 +18,7 @@ from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_min_accumulation_balance, get_keeper_accumulation_balance_limit
 from core.utils.inouts import get_withdrawal_fee
 from cryptocoins.accumulation_manager import AccumulationManager
-from cryptocoins.exceptions import CoinServiceError
+from cryptocoins.exceptions import CoinServiceError, TransferAmountLowError, SignTxError
 from cryptocoins.models.keeper import Keeper
 from cryptocoins.models.scoring import ScoringSettings, TransactionInputScore
 from cryptocoins.utils import commons
@@ -372,17 +372,6 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
         self.log.info('Total accumulation balance: %s %s', self.currency.code, total_amount)
 
-        estimated_tx_size = self.estimate_tx_size(len(checked_inputs), 1)
-        transfer_fee = self.get_transfer_fee(estimated_tx_size)
-        self.log.info('Estimated transfer fee: %s %s', self.currency.code, transfer_fee)
-        accumulation_amount = total_amount - transfer_fee
-
-        if accumulation_amount <= 0:
-            self.log.info('Accumulation balance too low after fee apply: %s', accumulation_amount)
-            return
-
-        # todo: get only needed keys
-        # private_keys = self.get_users_private_keys()
         private_keys = list(UserWallet.objects.filter(
             currency=self.currency,
             address__in=list(i['address'] for i in checked_inputs)
@@ -392,13 +381,21 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         ))
         private_keys = [AESCoderDecoder(settings.CRYPTO_KEY).decrypt(i) for i in private_keys]
 
-        accumulation_address = self.get_accumulation_address(accumulation_amount)
+        accumulation_address = self.get_accumulation_address(total_amount)
 
-        outputs = {
-            accumulation_address: accumulation_amount,
-        }
+        self.transfer_to(checked_inputs, accumulation_address, total_amount,  private_keys)
 
-        self.transfer(checked_inputs, outputs, private_keys)
+    def get_tx_size(self, inputs: list, outputs: dict, private_keys: list):
+
+        tx_hex = self.rpc.createrawtransaction(inputs, outputs)
+        signed_tx_without_fee = self._sign_transaction(tx_hex, private_keys)
+
+        if not signed_tx_without_fee['complete']:
+            self.log.error('Unable to sign TX')
+            raise SignTxError
+
+        tx_decode = self.rpc.decoderawtransaction(signed_tx_without_fee['hex'])
+        return tx_decode.get('size')
 
     def transfer(self, inputs: list, outputs: dict, private_keys: list):
         self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
@@ -409,6 +406,37 @@ class BitCoreCoinServiceBase(CoinServiceBase):
             self.log.error('Unable to sign TX')
             return
 
+        tx_id = self.rpc.sendrawtransaction(signed_tx['hex'])
+        self.log.info('Sent TX: %s', tx_id)
+
+        return tx_id
+
+    def transfer_to(self, inputs: list, address: str, amount: Decimal, private_keys: list):
+
+        pre_outputs = {
+            address: amount,
+        }
+        tx_size = self.get_tx_size(inputs, pre_outputs, private_keys)
+        transfer_fee = self.get_transfer_fee(tx_size)
+
+        transfer_amount = amount - transfer_fee
+
+        if transfer_amount <= 0:
+            self.log.info('Transfer amount too low after fee apply: %s', transfer_amount)
+            raise TransferAmountLowError
+
+        outputs = {
+            address: transfer_amount
+        }
+
+        tx_hex = self.rpc.createrawtransaction(inputs, pre_outputs)
+        signed_tx = self._sign_transaction(tx_hex, private_keys)
+
+        if not signed_tx['complete']:
+            self.log.error('Unable to sign TX')
+            return
+
+        self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
         tx_id = self.rpc.sendrawtransaction(signed_tx['hex'])
         self.log.info('Sent TX: %s', tx_id)
 
@@ -489,6 +517,10 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         password = kwargs.get('password')
         keeper_balance = self.get_balance_from_unspent(keeper_unspent)
 
+        private_key = keeper_wallet.private_key
+        if password:
+            private_key = AESCoderDecoder(password).decrypt(private_key)
+
         tx_outputs = {}
         for item in outputs:
             if item.address in tx_outputs:
@@ -499,7 +531,11 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         # need to fill chargeback amount later
         tx_outputs[keeper_wallet.address] = 0
 
-        estimated_tx_size = self.estimate_tx_size(len(keeper_unspent), len(tx_outputs))
+        estimated_tx_size = self.get_tx_size(
+            keeper_unspent,
+            tx_outputs,
+            [private_key],
+        )
         transfer_fee = self.get_transfer_fee(estimated_tx_size)
 
         outputs_sum = sum(tx_outputs.values())
@@ -513,10 +549,6 @@ class BitCoreCoinServiceBase(CoinServiceBase):
             raise CoinServiceError('Unable to process withdrawals, chargeback after fee less than 0')
 
         tx_outputs[keeper_wallet.address] = chargeback_amount
-
-        private_key = keeper_wallet.private_key
-        if password:
-            private_key = AESCoderDecoder(password).decrypt(private_key)
 
         return self.transfer(
             inputs=keeper_unspent,
