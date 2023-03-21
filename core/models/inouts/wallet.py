@@ -111,9 +111,10 @@ class WalletTransactions(BaseModel):
 
     def save(self, *args, **kwargs):
         assert self.amount > 0
-        if not self.id:
+        is_insert = self._state.adding is True
+        super(WalletTransactions, self).save(*args, **kwargs)
+        if is_insert:
             self.check_deposit()
-        return super(WalletTransactions, self).save(*args, **kwargs)
 
     def check_deposit(self):
         # only for new deposits or with STATE_OLD_WALLET_DEPOSIT state
