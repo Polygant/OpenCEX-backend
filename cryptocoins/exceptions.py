@@ -49,3 +49,11 @@ class UnknownTokenAddress(UnknownToken):
 
 class ScoringClientError(Exception):
     pass
+
+
+class TransferAmountLowError(Exception):
+    pass
+
+
+class SignTxError(Exception):
+    pass
