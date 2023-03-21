@@ -114,13 +114,9 @@ class WalletTransactions(BaseModel):
         is_insert = self._state.adding is True
         super(WalletTransactions, self).save(*args, **kwargs)
         if is_insert:
-            self.check_deposit()
+            self.__check_deposit()
 
-    def check_deposit(self):
-        # only for new deposits or with STATE_OLD_WALLET_DEPOSIT state
-        if self.id and self.state != self.STATE_OLD_WALLET_DEPOSIT:
-            return
-
+    def __check_deposit(self):
         deposit_min_limit = FeesAndLimits.get_limit(self.currency.code, FeesAndLimits.DEPOSIT,
                                                     FeesAndLimits.MIN_VALUE)
         deposit_max_limit = FeesAndLimits.get_limit(self.currency.code, FeesAndLimits.DEPOSIT,
