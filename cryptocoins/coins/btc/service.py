@@ -303,6 +303,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
             address_to: transfer_amount
         }
 
+        inputs = self.prepare_inputs(inputs)
         outputs = self.prepare_outs(outputs)
         tx_hex = self.crypto_coin.mktx(inputs, outputs)
         signed_tx = self.crypto_coin.signall(tx_hex, private_keys)
