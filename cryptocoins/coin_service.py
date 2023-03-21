@@ -574,13 +574,16 @@ class BitCoreCoinServiceBase(CoinServiceBase):
     @staticmethod
     def parse_tx_outputs(tx_data):
         outputs = []
-
         for item in tx_data['vout']:
-            if 'addresses' not in item['scriptPubKey']:
+            address = None
+            if 'addresses' in item['scriptPubKey']:
+                address = item['scriptPubKey']['addresses'][0]
+            if 'address' in item['scriptPubKey']:
+                address = item['scriptPubKey']['address']
+            if not address:
                 continue
-
             outputs.append((
-                item['scriptPubKey']['addresses'][0],
+                address,
                 item['value'],
             ))
 
