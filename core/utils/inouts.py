@@ -37,6 +37,9 @@ def is_coin_disabled(coin_code, disabled_type):
 
 
 def get_withdrawal_fee(currency, blockchain_currency=None):
+    if not blockchain_currency:
+        blockchain_currency = currency
+
     return FeesAndLimits.get_fee(
         currency,
         FeesAndLimits.WITHDRAWAL,
