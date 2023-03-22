@@ -411,7 +411,7 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
         return tx_id
 
-    def transfer_to(self, inputs: list, address: str, amount: Decimal, private_keys: list):
+    def transfer_to(self, inputs: list, address: str, amount: Decimal, private_keys: list) -> [str, Decimal]:
 
         pre_outputs = {
             address: amount,
@@ -440,7 +440,7 @@ class BitCoreCoinServiceBase(CoinServiceBase):
         tx_id = self.rpc.sendrawtransaction(signed_tx['hex'])
         self.log.info('Sent TX: %s', tx_id)
 
-        return tx_id
+        return tx_id, transfer_amount
 
     def get_block_transactions(self, block_id):
         block_hash = self.rpc.getblockhash(block_id)

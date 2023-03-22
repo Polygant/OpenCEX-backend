@@ -10,6 +10,7 @@ from cryptocoins.cache import sat_per_byte_cache
 from cryptocoins.coin_service import BitCoreCoinServiceBase
 from cryptocoins.coins.btc import BTC_CURRENCY
 from cryptocoins.exceptions import CoinServiceError, TransferAmountLowError
+from cryptocoins.models import AccumulationTransaction
 from cryptocoins.models.accumulation_details import AccumulationDetails
 from cryptocoins.models.scoring import ScoringSettings
 from cryptocoins.scoring.manager import ScoreManager
@@ -134,14 +135,14 @@ class BTCCoinService(BitCoreCoinServiceBase):
         for addr, amount in self.parse_tx_outputs(tx_data):
             outputs_amount[addr] += amount
 
-        input_addresses = self.parse_tx_inputs(tx_data)
         output_address = ', '.join(outputs_amount)
+        accumulation_transaction: AccumulationTransaction = AccumulationTransaction.objects.filter(
+            tx_hash=tx_id,
+            tx_state=AccumulationTransaction.STATE_PENDING,
+        ).first()
 
-        #process accumulations
-        for addr in input_addresses:
-            if addr not in self.get_users_addresses():
-                continue
-
+        if accumulation_transaction:
+            addr = accumulation_transaction.wallet_transaction.wallet.address
             self.log.info(f'Found accumulation from {addr} to {output_address}')
             accumulation_details = AccumulationDetails.objects.filter(
                 txid=tx_id,
@@ -157,6 +158,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
             else:
                 accumulation_details.to_address = output_address
                 accumulation_details.complete()
+            accumulation_transaction.complete()
 
         # process only our addresses
         for addr, amount in outputs_amount.items():
@@ -184,9 +186,10 @@ class BTCCoinService(BitCoreCoinServiceBase):
         total_amount = wallet_transaction.amount
 
         accumulation_address = wallet_transaction.external_accumulation_address or self.get_accumulation_address(total_amount)
+        accumulation_amount = 0
 
         try:
-            tx_id = self.transfer_to([item], accumulation_address, total_amount,  private_keys)
+            tx_id, accumulation_amount = self.transfer_to([item], accumulation_address, total_amount,  private_keys)
         except TransferAmountLowError:
             wallet_transaction.set_balance_too_low()
             tx_id = None
@@ -197,6 +200,12 @@ class BTCCoinService(BitCoreCoinServiceBase):
                 txid=tx_id,
                 from_address=item['address'],
                 to_address=accumulation_address,
+            )
+            AccumulationTransaction.objects.create(
+                wallet_transaction=wallet_transaction,
+                amount=accumulation_amount,
+                tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
+                tx_hash=tx_id,
             )
             wallet_transaction.set_accumulation_in_progress()
         self.log.info(f'Accumulation to {accumulation_address} succeeded')
@@ -282,7 +291,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
         tx_decode = self.rpc.decoderawtransaction(signed_tx_without_fee)
         return tx_decode.get('size')
 
-    def transfer_to(self, inputs: list, address_to: str, amount: Decimal, private_keys: dict):
+    def transfer_to(self, inputs: list, address_to: str, amount: Decimal, private_keys: dict) -> [str, Decimal]:
 
         pre_outputs = {
             address_to: amount
@@ -312,4 +321,4 @@ class BTCCoinService(BitCoreCoinServiceBase):
         tx_id = self.rpc.sendrawtransaction(signed_tx)
         self.log.info('Sent TX: %s', tx_id)
 
-        return tx_id
+        return tx_id, transfer_amount
