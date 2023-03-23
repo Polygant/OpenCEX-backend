@@ -22,6 +22,7 @@ class FeesAndLimits(models.Model):
     LIMIT_ORDER = 'limit'
     MARKET_ORDER = 'market'
     KEEPER = 'keeper'
+    MAX_GAS_PRICE = 'max_gas_price'
 
     currency = CurrencyModelField(unique=True)
     limits_deposit_min = models.DecimalField(
@@ -42,6 +43,8 @@ class FeesAndLimits(models.Model):
         max_digits=32, decimal_places=8, default=0)
     limits_keeper_accumulation_balance = models.DecimalField(
         max_digits=32, decimal_places=8, default=0)
+    limits_accumulation_max_gas_price = models.DecimalField(
+        max_digits=32, decimal_places=8, default=0, help_text='Gwei')
     fee_deposit_address = models.DecimalField(
         max_digits=32, decimal_places=8, default=0)
     fee_deposit_code = models.DecimalField(
@@ -84,6 +87,7 @@ class FeesAndLimits(models.Model):
                         cls.ACCUMULATION: {
                             cls.MIN_VALUE: entry.limits_accumulation_min,
                             cls.KEEPER: entry.limits_keeper_accumulation_balance,
+                            cls.MAX_GAS_PRICE: entry.limits_accumulation_max_gas_price,
                         }
                     },
                     'fee': {

@@ -10,20 +10,18 @@ from core.models.inouts.wallet import WalletTransactions
 from core.models.inouts.withdrawal import PENDING as WR_PENDING
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_withdrawal_fee
+from core.utils.withdrawal import get_withdrawal_requests_to_process
+from core.utils.withdrawal import get_withdrawal_requests_pending
 from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.coins.bnb import BNB_CURRENCY
 from cryptocoins.coins.bnb.bnb import BnbTransaction, bnb_manager
 from cryptocoins.coins.bnb.connection import check_bnb_response_time
 from cryptocoins.exceptions import RetryRequired
-from cryptocoins.models import ScoringSettings
 from cryptocoins.models.accumulation_details import AccumulationDetails
 from cryptocoins.models.accumulation_transaction import AccumulationTransaction
-from cryptocoins.scoring.manager import ScoreManager
 from cryptocoins.utils.commons import (
     load_last_processed_block_id,
     store_last_processed_block_id,
-    get_withdrawal_requests_to_process,
-    get_withdrawal_requests_pending,
 )
 from lib.cipher import AESCoderDecoder
 from lib.helpers import to_decimal
@@ -74,15 +72,8 @@ def bnb_process_new_blocks():
     else:
         log.info('Need to process block #%s', last_processed_block_id + 1)
 
-    # make subtask group
-    block_jobs = []
-
     for block_id in blocks_to_process:
-        # block_jobs.append(bnb_process_block.s(block_id))
         bnb_process_block(block_id)
-
-    # jobs_group = group(block_jobs)
-    # jobs_group.apply_async()
 
     store_last_processed_block_id(
         currency=BNB_CURRENCY,
@@ -180,10 +171,10 @@ def bnb_process_block(self, block_id):
             continue
 
         if tx.to_addr in bnb_addresses_deps:
-            # process ETH deposit
+            # process BNB deposit
             if not tx.contract_address:
                 bnb_jobs.append(bnb_process_bnb_deposit.s(tx.as_dict()))
-            # process ERC20 deposit
+            # process BEP20 deposit
             else:
                 bep20_jobs.append(bnb_process_bep20_deposit.s(tx.as_dict()))
 
@@ -221,7 +212,7 @@ def bnb_process_block(self, block_id):
         if tx.to_addr in bnb_addresses:
             continue
 
-        # check ERC20 accumulations
+        # check BEP20 accumulations
         if tx.contract_address:
             token = bnb_manager.get_token_by_address(tx.contract_address)
 
@@ -243,7 +234,7 @@ def bnb_process_block(self, block_id):
             else:
                 log.info(f'Unexpected accumulation {token.currency} from {tx.from_addr} to {tx.to_addr}')
 
-                # check ETH accumulations
+        # check BNB accumulations
         else:
             accumulation_details, created = AccumulationDetails.objects.get_or_create(
                 txid=tx.hash,
@@ -256,12 +247,12 @@ def bnb_process_block(self, block_id):
                 )
             )
             if not created:
-                log.info(f'Found accumulation ETH from {tx.from_addr} to {tx.to_addr}')
+                log.info(f'Found accumulation BNB from {tx.from_addr} to {tx.to_addr}')
                 # Use to_address only from node
                 accumulation_details.to_address = w3.toChecksumAddress(tx.to_addr)
                 accumulation_details.complete()
             else:
-                log.info(f'Unexpected accumulation ETH from {tx.from_addr} to {tx.to_addr}')
+                log.info(f'Unexpected accumulation BNB from {tx.from_addr} to {tx.to_addr}')
 
     execution_time = time.time() - started_at
     log.info('Block #%s processed in %.2f sec. (BNB TX count: %s, BEP20 TX count: %s, WR TX count: %s)',
@@ -292,7 +283,7 @@ def check_tx_withdrawal(withdrawal_id, tx_data):
 
 
 @shared_task(autoretry_for=(RetryRequired,), retry_kwargs={'max_retries': 60})
-def bnb_process_bnb_deposit(tx_data: dict, deffered=False):
+def bnb_process_bnb_deposit(tx_data: dict):
     """
     Process BNB deposit, excepting inner gas deposits, etc
     """
@@ -305,15 +296,11 @@ def bnb_process_bnb_deposit(tx_data: dict, deffered=False):
         log.error(f'BNB deposit transaction {tx.hash} is invalid or failed')
         return
 
-    # check tx scoring
-    if not deffered and ScoringSettings.need_to_check_score(amount, 'BNB'):
-        log.info(f'Need to check scoring for {tx_data}')
-        defer_time = ScoringSettings.get_deffered_scoring_time('BNB')
-        bnb_process_bnb_deposit.apply_async([tx_data, True], countdown=defer_time)
-        return
+    bnb_keeper = bnb_manager.get_keeper_wallet()
+    external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses([BNB_CURRENCY])
 
     # is accumulation tx?
-    if tx.to_addr == BNB_SAFE_ADDR:
+    if tx.to_addr in [BNB_SAFE_ADDR, bnb_keeper.address] + external_accumulation_addresses:
         accumulation_transaction = AccumulationTransaction.objects.filter(
             tx_hash=tx.hash,
         ).first()
@@ -331,7 +318,6 @@ def bnb_process_bnb_deposit(tx_data: dict, deffered=False):
         log.info(f'Tx {tx.hash} is BNB accumulation')
         return
 
-    bnb_keeper = bnb_manager.get_keeper_wallet()
     bnb_gas_keeper = bnb_manager.get_gas_keeper_wallet()
     # is inner gas deposit?
     if tx.from_addr == bnb_gas_keeper.address:
@@ -345,14 +331,12 @@ def bnb_process_bnb_deposit(tx_data: dict, deffered=False):
             return
 
         if accumulation_transaction.tx_state == AccumulationTransaction.STATE_COMPLETED:
-            log.info(
-                f'Accumulation TX {tx.hash} already processed as token gas')
+            log.info(f'Accumulation TX {tx.hash} already processed as token gas')
             return
 
         log.info(f'Tx {tx.hash} is gas deposit')
         accumulation_transaction.complete(is_gas=True)
-        accumulate_bep20.apply_async(
-            [accumulation_transaction.accumulation_state.id, True])
+        accumulate_bep20.apply_async([accumulation_transaction.wallet_transaction_id])
         return
 
     db_wallet = bnb_manager.get_wallet_db_instance(BNB_CURRENCY, tx.to_addr)
@@ -381,36 +365,17 @@ def bnb_process_bnb_deposit(tx_data: dict, deffered=False):
         log.info('TX %s is gas keeper BNB deposit: %s', tx.hash, amount)
         return
 
-    is_scoring_ok = True
-    if deffered:
-        is_scoring_ok = ScoreManager.is_address_scoring_ok(tx.hash, tx.to_addr, amount, BNB_CURRENCY.code)
-
-    if amount < bnb_manager.deposit_min_amount and amount < bnb_manager.accumulation_min_balance:
-        log.warning('Deposit %s less than min required, skipping', amount)
-        accumulation_manager.set_need_check(db_wallet)
-        # accumulate later when amount >= min_dep_limit
-        return
-
     WalletTransactions.objects.create(
         wallet=db_wallet,
         tx_hash=tx.hash,
         amount=amount,
         currency=BNB_CURRENCY,
-        state=WalletTransactions.STATE_NOT_CHECKED if is_scoring_ok else WalletTransactions.STATE_BAD_DEPOSIT,
     )
-    if is_scoring_ok:
-        # set check state
-        accumulation_state = accumulation_manager.set_need_check(db_wallet)
-        if accumulation_state:
-            check_balance.apply_async([accumulation_state.id, True])
-
-        log.info('TX %s processed as %s BNB deposit', tx.hash, amount)
-    else:
-        log.warning('TX %s processed as %s BNB BAD deposit', tx.hash, amount)
+    log.info('TX %s processed as %s BNB deposit', tx.hash, amount)
 
 
 @shared_task(autoretry_for=(RetryRequired,), retry_kwargs={'max_retries': 60})
-def bnb_process_bep20_deposit(tx_data: dict, deffered=False):
+def bnb_process_bep20_deposit(tx_data: dict):
     """
     Process BEP20 deposit
     """
@@ -424,15 +389,12 @@ def bnb_process_bep20_deposit(tx_data: dict, deffered=False):
     token = bnb_manager.get_token_by_address(tx.contract_address)
     token_to_addr = tx.to_addr
     token_amount = token.get_amount_from_base_denomination(tx.value)
+    bnb_keeper = bnb_manager.get_keeper_wallet()
+    external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses(
+        list(BEP20_TOKEN_CURRENCIES)
+    )
 
-    # check tx scoring
-    if not deffered and ScoringSettings.need_to_check_score(token_amount, token.currency.code):
-        log.info(f'Need to check scoring for {tx_data}')
-        defer_time = ScoringSettings.get_deffered_scoring_time(token.currency.code)
-        bnb_process_bep20_deposit.apply_async([tx_data, True], countdown=defer_time)
-        return
-
-    if token_to_addr == BNB_SAFE_ADDR:
+    if token_to_addr in [BNB_SAFE_ADDR, bnb_keeper.address] + external_accumulation_addresses:
         log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
 
         accumulation_transaction = AccumulationTransaction.objects.filter(
@@ -456,50 +418,18 @@ def bnb_process_bep20_deposit(tx_data: dict, deffered=False):
         wallet_id=db_wallet.id,
     ).first()
     if db_wallet_transaction is not None:
-        log.warning(
-            'TX %s already processed as %s deposit',
-            tx.hash,
-            token.currency)
+        log.warning(f'TX {tx.hash} already processed as {token.currency} deposit')
         return
 
     # check for keeper deposit
-    bnb_keeper = bnb_manager.get_keeper_wallet()
     if db_wallet.address == bnb_keeper.address:
-        log.info(
-            'TX %s is keeper %s deposit: %s',
-            tx.hash,
-            token.currency,
-            token_amount)
+        log.info(f'TX {tx.hash} is keeper {token.currency} deposit: {token_amount}')
         return
 
     # check for gas keeper deposit
     bnb_gas_keeper = bnb_manager.get_gas_keeper_wallet()
     if db_wallet.address == bnb_gas_keeper.address:
-        log.info(
-            'TX %s is keeper %s deposit: %s',
-            tx.hash,
-            token.currency,
-            token_amount)
-        return
-
-    is_scoring_ok = True
-    if deffered:
-        is_scoring_ok = ScoreManager.is_address_scoring_ok(
-            tx.hash,
-            token_to_addr,
-            token_amount,
-            BNB_CURRENCY.code,
-            token.currency.code,
-        )
-
-    # process BEP20 deposit
-    if token_amount < token.deposit_min_amount and token_amount < token.accumulation_min_balance:
-        log.warning(
-            'Deposit %s %s less than min required, skipping',
-            token.currency,
-            token_amount)
-        accumulation_manager.set_need_check(db_wallet)
-        # accumulate later when amount >= min_dep_limit
+        log.info(f'TX {tx.hash} is keeper {token.currency} deposit: {token_amount}')
         return
 
     WalletTransactions.objects.create(
@@ -507,34 +437,23 @@ def bnb_process_bep20_deposit(tx_data: dict, deffered=False):
         tx_hash=tx.hash,
         amount=token_amount,
         currency=token.currency,
-        state=WalletTransactions.STATE_NOT_CHECKED if is_scoring_ok else WalletTransactions.STATE_BAD_DEPOSIT,
     )
 
-    if is_scoring_ok:
-        # set check state
-        accumulation_state = accumulation_manager.set_need_check(db_wallet)
-        if accumulation_state:
-            check_balance.apply_async([accumulation_state.id, True])
-
-        log.info('TX %s processed as %s %s deposit',
-                 tx.hash, token_amount, token.currency)
-    else:
-        log.warning('TX %s processed as %s %s BAD deposit', tx.hash, token_amount, token.currency.code)
+    log.info(f'TX {tx.hash} processed as {token_amount} {token.currency} deposit')
 
 
 @shared_task
-def process_payouts(password):
+def process_payouts(password, withdrawals_ids=None):
     bnb_withdrawal_requests = get_withdrawal_requests_to_process(currencies=[
         BNB_CURRENCY])
 
-    jobs_list = []
-
     if bnb_withdrawal_requests:
-        log.info(
-            'Need to process %s BNB withdrawals',
-            len(bnb_withdrawal_requests))
+        log.info(f'Need to process {len(bnb_withdrawal_requests)} BNB withdrawals')
 
         for item in bnb_withdrawal_requests:
+            if withdrawals_ids and item.id not in withdrawals_ids:
+                continue
+
             # skip freezed withdrawals
             if item.user.profile.is_payouts_freezed():
                 continue
@@ -546,10 +465,10 @@ def process_payouts(password):
     )
 
     if bep20_withdrawal_requests:
-        log.info(
-            'Need to process %s BEP20 withdrawals',
-            len(bep20_withdrawal_requests))
+        log.info(f'Need to process {len(bep20_withdrawal_requests)} BEP20 withdrawals')
         for item in bep20_withdrawal_requests:
+            if withdrawals_ids and item.id not in withdrawals_ids:
+                continue
             # skip freezed withdrawals
             if item.user.profile.is_payouts_freezed():
                 continue
@@ -557,8 +476,7 @@ def process_payouts(password):
 
 
 @shared_task
-def withdraw_bnb(withdrawal_request_id, password,
-                 old_tx_data=None, prev_tx_hash=None):
+def withdraw_bnb(withdrawal_request_id, password, old_tx_data=None, prev_tx_hash=None):
     if old_tx_data is None:
         old_tx_data = {}
     withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
@@ -743,158 +661,104 @@ def withdraw_bep20(withdrawal_request_id, password, old_tx_data=None, prev_tx_ha
 
 
 @shared_task
+def check_deposit_scoring(wallet_transaction_id):
+    """Check deposit for scoring"""
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    wallet_transaction.check_scoring()
+
+
+@shared_task
 def check_balances():
-    jobs_list = []
+    """Main accumulations scheduler"""
+    kyt_check_jobs = []
+    accumulations_jobs = []
+    external_accumulations_jobs= []
 
-    for item in accumulation_manager.get_waiting_for_check(blockchain_currency=BNB_CURRENCY):
-        jobs_list.append(check_balance.s(item.id))
+    for item in accumulation_manager.get_waiting_for_kyt_check(BNB_CURRENCY):
+        kyt_check_jobs.append(check_deposit_scoring.s(item.id))
 
-    for item in accumulation_manager.get_stuck(blockchain_currency=BNB_CURRENCY):
-        jobs_list.append(check_balance.s(item.id))
+    for item in accumulation_manager.get_waiting_for_accumulation(blockchain_currency=BNB_CURRENCY):
+        accumulations_jobs.append(check_balance.s(item.id))
 
-    if jobs_list:
-        log.info('Need to check count: %s', len(jobs_list))
-        jobs_group = group(jobs_list)
+    for item in accumulation_manager.get_waiting_for_external_accumulation(blockchain_currency=BNB_CURRENCY):
+        external_accumulations_jobs.append(check_balance.s(item.id))
+
+    if kyt_check_jobs:
+        log.info('Need to check for KYT: %s', len(kyt_check_jobs))
+        jobs_group = group(kyt_check_jobs)
+        jobs_group.apply_async()
+
+    if accumulations_jobs:
+        log.info('Need to check accumulations: %s', len(accumulations_jobs))
+        jobs_group = group(accumulations_jobs)
+        jobs_group.apply_async()
+
+    if external_accumulations_jobs:
+        log.info('Need to check external accumulations: %s', len(external_accumulations_jobs))
+        jobs_group = group(external_accumulations_jobs)
         jobs_group.apply_async()
 
 
-def is_gas_need(accumulation_state_id):
-    acc_tx = accumulation_manager.get_last_gas_deposit_tx(
-        accumulation_state_id)
+def is_gas_need(wallet_transaction):
+    acc_tx = accumulation_manager.get_last_gas_deposit_tx(wallet_transaction)
     return not acc_tx
-    #     is_pending = acc_tx.tx_state == AccumulationTransaction.STATE_PENDING
-    #     is_gas_deposit = acc_tx.tx_type == AccumulationTransaction.TX_TYPE_GAS_DEPOSIT
-    #     is_expired = acc_tx.created + datetime.timedelta(seconds=90) < timezone.now()
-    #     if not is_expired or (is_pending and is_gas_deposit):
-    #         return False
-    # return True
 
 
 @shared_task
-def check_balance(accumulation_state_id, instant=False):
-    accumulation_state = accumulation_manager.get_by_id(accumulation_state_id)
-    address = accumulation_state.wallet.address
-    currency = accumulation_state.wallet.currency
+def check_balance(wallet_transaction_id):
+    """Splits blockchain currency accumulation and token accumulation"""
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    address = wallet_transaction.wallet.address
+    currency = wallet_transaction.currency
 
     # BNB
     if currency == BNB_CURRENCY:
-        log.info('Checking BNB %s balance', address)
-        amb = bnb_manager.accumulation_min_balance
-        if not instant:
-            amount_wei = bnb_manager.get_balance_in_base_denomination(address)
-            amount = bnb_manager.get_amount_from_base_denomination(amount_wei)
-            accumulation_state.current_balance = amount
-            log.info('Current BNB balance of %s is %s; Min accumulation amount is %s',
-                     address, amount, amb)
-
-            if not amount or amount < amb:
-                log.info(
-                    'Low balance of %s %s (current %s)',
-                    currency,
-                    address,
-                    amb)
-                accumulation_state.state = accumulation_manager.model.STATE_LOW_BALANCE
-                accumulation_state.save(
-                    update_fields=[
-                        'current_balance',
-                        'state',
-                        'updated'])
-                return
-
-        else:
-            log.info(f'Try to accumulate BNB instant for {address}')
-            accumulation_state.state = accumulation_manager.model.STATE_READY_FOR_ACCUMULATION
-            accumulation_state.save(
-                update_fields=[
-                    'current_balance',
-                    'state',
-                    'updated'])
-
-        accumulate_bnb.apply_async([accumulation_state.id, instant])
+        wallet_transaction.set_ready_for_accumulation()
+        accumulate_bnb.apply_async([wallet_transaction_id])
 
     # tokens
     else:
-        log.info('Checking %s %s balance', currency, address)
-        token = bnb_manager.get_token_by_symbol(currency)
-        if not instant:
-            amount = token.get_balance(address)
-            log.info('Balance of %s %s is %s; Min accumulation amount is %s',
-                     currency, address, amount, token.accumulation_min_balance)
+        log.info('Checking %s %s', currency, address)
 
-            accumulation_state.current_balance = amount
-
-            # check min accumulation amount
-            if not amount or amount < token.accumulation_min_balance:
-                log.info(f'Low balance of {currency} {address}')
-                accumulation_state.state = accumulation_manager.model.STATE_LOW_BALANCE
-                accumulation_state.save(
-                    update_fields=[
-                        'current_balance',
-                        'state',
-                        'updated'])
-                return
-
-        if not is_gas_need(accumulation_state_id):
+        if not is_gas_need(wallet_transaction):
             log.info(f'Gas not required for {currency} {address}')
-            accumulation_state.state = accumulation_manager.model.STATE_READY_FOR_ACCUMULATION
-            accumulation_state.save(
-                update_fields=[
-                    'current_balance',
-                    'state',
-                    'updated'])
-            accumulate_bep20.apply_async([accumulation_state.id, instant])
-            log.info(f'{address} balance checked')
+            wallet_transaction.set_ready_for_accumulation()
+            accumulate_bep20.apply_async([wallet_transaction_id])
         else:
             log.info(f'Gas required for {currency} {address}')
-            accumulation_state.state = accumulation_manager.model.STATE_GAS_REQUIRED
-            accumulation_state.save(
-                update_fields=[
-                    'current_balance',
-                    'state',
-                    'updated'])
-            send_gas.apply_async([accumulation_state.id])
-
-    log.info(f'{address} balance checked')
+            wallet_transaction.set_gas_required()
+            send_gas.apply_async([wallet_transaction_id])
 
 
 @shared_task
-def accumulate_bnb(accumulation_state_id, instant=False):
-    accumulation_state = accumulation_manager.get_by_id(accumulation_state_id)
-    address = accumulation_state.wallet.address
+def accumulate_bnb(wallet_transaction_id):
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    address = wallet_transaction.wallet.address
 
     # recheck balance
-    if instant:
-        amount_wei = bnb_manager.wait_for_balance_in_base_denomination(address)
-    else:
-        amount_wei = bnb_manager.get_balance_in_base_denomination(address)
+    amount = wallet_transaction.amount
+    amount_wei = bnb_manager.get_base_denomination_from_amount(amount)
 
-    amount = bnb_manager.get_amount_from_base_denomination(amount_wei)
     log.info('Accumulation BNB from: %s; Balance: %s; Min acc balance:%s',
              address, amount, bnb_manager.accumulation_min_balance)
 
-    if not amount:
-        log.warning('Current balance is 0 BNB. Need to recheck')
-        accumulation_manager.set_need_check(accumulation_state.wallet)
-        return
-
-    if amount < bnb_manager.accumulation_min_balance:
-        log.warning('Current balance less than minimum, need to recheck')
-        accumulation_manager.set_need_check(accumulation_state.wallet)
-        return
-
-    accumulation_address = bnb_manager.get_accumulation_address(amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or bnb_manager.get_accumulation_address(amount)
 
     # we want to process our tx faster
     gas_price = bnb_manager.gas_price_cache.get_increased_price()
     gas_amount = gas_price * settings.BNB_TX_GAS
-    withdrawal_amount = amount_wei - gas_amount
+    withdrawal_amount_wei = amount_wei - gas_amount
+    withdrawal_amount = bnb_manager.get_amount_from_base_denomination(withdrawal_amount_wei)
+
+    if bnb_manager.is_gas_price_reach_max_limit(gas_price):
+        log.warning(f'Gas price too high: {gas_price}')
+        bnb_manager.set_gas_price_too_high(wallet_transaction)
+        return
 
     # in debug mode values can be very small
     if withdrawal_amount <= 0:
-        log.error('BNB withdrawal amount invalid: %s',
-                  bnb_manager.get_amount_from_base_denomination(withdrawal_amount))
-        accumulation_state.state = accumulation_manager.model.STATE_LOW_BALANCE
-        accumulation_state.save(update_fields=['state', 'updated'])
+        log.error(f'BNB withdrawal amount invalid: {withdrawal_amount}')
+        wallet_transaction.set_balance_too_low()
         return
 
     # prepare tx
@@ -904,7 +768,7 @@ def accumulate_bnb(accumulation_state_id, instant=False):
     tx_hash = bnb_manager.send_tx(
         private_key=wallet.private_key,
         to_address=accumulation_address,
-        amount=withdrawal_amount,
+        amount=withdrawal_amount_wei,
         nonce=nonce,
         gasPrice=gas_price,
     )
@@ -914,74 +778,57 @@ def accumulate_bnb(accumulation_state_id, instant=False):
         return
 
     AccumulationTransaction.objects.create(
-        accumulation_state=accumulation_state,
-        amount=bnb_manager.get_amount_from_base_denomination(withdrawal_amount),
+        wallet_transaction=wallet_transaction,
+        amount=withdrawal_amount,
         tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=tx_hash.hex(),
     )
+    wallet_transaction.set_accumulation_in_progress()
 
-    accumulation_state.state = accumulation_manager.model.STATE_ACCUMULATION_IN_PROCESS
-    accumulation_state.save(update_fields=['state', 'updated'])
-
-    # create details for alert reason
     AccumulationDetails.objects.create(
         currency=BNB_CURRENCY,
         txid=tx_hash.hex(),
         from_address=address,
-        to_address=accumulation_address
+        to_address=accumulation_address,
     )
 
-    log.info(f'Accumulation TX {tx_hash.hex()} sent from {wallet.address} to {accumulation_address}')
+    log.info('Accumulation TX %s sent from %s to %s', tx_hash.hex(), wallet.address, BNB_SAFE_ADDR)
 
 
 @shared_task
-def accumulate_bep20(accumulation_state_id, instant=False):
-    accumulation_state = accumulation_manager.get_by_id(accumulation_state_id)
-    address = accumulation_state.wallet.address
-    currency = accumulation_state.wallet.currency
+def accumulate_bep20(wallet_transaction_id):
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
+    address = wallet_transaction.wallet.address
+    currency = wallet_transaction.currency
 
-    gas_deposit_tx = accumulation_manager.get_last_gas_deposit_tx(
-        accumulation_state_id)
+    gas_deposit_tx = accumulation_manager.get_last_gas_deposit_tx(wallet_transaction)
     if gas_deposit_tx is None:
         log.warning(f'Gas deposit for {address} not found or in process')
-        accumulation_manager.set_need_check(accumulation_state.wallet)
         return
 
     token = bnb_manager.get_token_by_symbol(currency)
     # amount checks
-    if instant:
-        token_amount_wei = token.wait_for_balance_in_base_denomination(address)
-    else:
-        token_amount_wei = token.get_base_denomination_balance(address)
-    token_amount = token.get_amount_from_base_denomination(token_amount_wei)
+    token_amount = wallet_transaction.amount
+    token_amount_wei = token.get_base_denomination_from_amount(token_amount)
 
     if token_amount <= to_decimal(0):
-        log.warning('Cant accumulate %s from: %s; Balance too low: %s;',
-                    currency, address, token_amount)
+        log.warning('Cant accumulate %s from: %s; Balance too low: %s;', currency, address, token_amount)
         return
 
-    accumulation_address = token.get_accumulation_address(token_amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(token_amount)
 
     # we keep amount not as wei, it's more easy, so we need to convert it
     # checked_amount_wei = token.get_wei_from_amount(accumulation_state.current_balance)
 
-    log.info(
-        f'Accumulation {currency} from: {address}; Balance: {token_amount};')
+    log.info(f'Accumulation {currency} from: {address}; Balance: {token_amount};')
 
-    # if token_amount_wei < checked_amount_wei:
-    #     log.warning('Token amount less than last checked, need to recheck')
-    #     accumulation_manager.set_need_check(accumulation_state.wallet)
-    #     return
-
-    accumulation_gas_amount = bnb_manager.get_base_denomination_from_amount(
-        gas_deposit_tx.amount)
+    accumulation_gas_amount = bnb_manager.get_base_denomination_from_amount(gas_deposit_tx.amount)
     bnb_amount_wei = bnb_manager.get_balance_in_base_denomination(address)
 
     if bnb_amount_wei < accumulation_gas_amount:
         log.warning(f'Wallet BNB amount: {bnb_amount_wei} less than gas needed '
                     f'{accumulation_gas_amount}, need to recheck')
-        accumulation_manager.set_need_check(accumulation_state.wallet)
         return
 
     accumulation_gas_required_amount = token.get_transfer_gas_amount(
@@ -989,7 +836,7 @@ def accumulate_bep20(accumulation_state_id, instant=False):
         token_amount_wei,
     )
 
-    # calculate from existing wallet eth amount
+    # calculate from existing wallet bnb amount
     gas_price = int(accumulation_gas_amount / accumulation_gas_required_amount)
 
     wallet = bnb_manager.get_user_wallet(currency, address)
@@ -1009,37 +856,35 @@ def accumulate_bep20(accumulation_state_id, instant=False):
         return
 
     AccumulationTransaction.objects.create(
-        accumulation_state=accumulation_state,
-        amount=token.get_amount_from_base_denomination(token_amount_wei),
+        wallet_transaction=wallet_transaction,
+        amount=token_amount,
         tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=tx_hash.hex(),
     )
-    accumulation_state.state = accumulation_manager.model.STATE_ACCUMULATION_IN_PROCESS
-    accumulation_state.save(update_fields=['state', 'updated'])
+    wallet_transaction.set_accumulation_in_progress()
 
-    # create details for alert reason
     AccumulationDetails.objects.create(
         currency=BNB_CURRENCY,
+        token_currency=currency,
         txid=tx_hash.hex(),
         from_address=address,
-        to_address=accumulation_address
+        to_address=accumulation_address,
     )
-
     log.info(f'Token accumulation TX {tx_hash.hex()} sent from {wallet.address} to: {accumulation_address}')
 
 
 @shared_task
-def send_gas(accumulation_state_id, old_tx_data=None, old_tx_hash=None):
+def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
+    wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
     old_tx_data = old_tx_data or {}
 
-    if not old_tx_hash and not is_gas_need(accumulation_state_id):
-        check_balance.apply_async([accumulation_state_id])
+    if not old_tx_hash and not is_gas_need(wallet_transaction):
+        check_balance.apply_async([wallet_transaction_id])
         return
 
-    accumulation_state = accumulation_manager.get_by_id(accumulation_state_id)
-    address = accumulation_state.wallet.address
-    currency = accumulation_state.wallet.currency
+    address = wallet_transaction.wallet.address
+    currency = wallet_transaction.currency
     token = bnb_manager.get_token_by_symbol(currency)
 
     token_amount_wei = token.get_base_denomination_balance(address)
@@ -1047,17 +892,20 @@ def send_gas(accumulation_state_id, old_tx_data=None, old_tx_hash=None):
 
     if to_decimal(token_amount) < to_decimal(token.accumulation_min_balance):
         log.warning('Current balance less than minimum, need to recheck')
-        accumulation_manager.set_need_check(accumulation_state.wallet)
         return
 
     # at this point we know amount is enough
     gas_keeper = bnb_manager.get_gas_keeper_wallet()
-    gas_keeper_balance_wei = bnb_manager.get_balance_in_base_denomination(
-        gas_keeper.address)
-    accumulation_gas_amount = token.get_transfer_gas_amount(
-        BNB_SAFE_ADDR, token_amount_wei)
+    gas_keeper_balance_wei = bnb_manager.get_balance_in_base_denomination(gas_keeper.address)
+    accumulation_gas_amount = token.get_transfer_gas_amount(BNB_SAFE_ADDR, token_amount_wei)
     gas_price = bnb_manager.gas_price_cache.get_increased_price(
         old_tx_data.get('gasPrice') or 0)
+
+    if bnb_manager.is_gas_price_reach_max_limit(gas_price):
+        log.warning(f'Gas price too high: {gas_price}')
+        bnb_manager.set_gas_price_too_high(wallet_transaction)
+        return
+
     accumulation_gas_total_amount = accumulation_gas_amount * gas_price
 
     if gas_keeper_balance_wei < accumulation_gas_total_amount:
@@ -1066,7 +914,7 @@ def send_gas(accumulation_state_id, old_tx_data=None, old_tx_hash=None):
 
     # prepare tx
     if old_tx_data:
-        log.info(f'Gas transaction to {address} will be replaced')
+        log.info('Gas transaction to %s will be replaced', w3.toChecksumAddress(address))
         tx_data = old_tx_data.copy()
         tx_data['gasPrice'] = gas_price
         tx_data['value'] = accumulation_gas_total_amount
@@ -1098,30 +946,14 @@ def send_gas(accumulation_state_id, old_tx_data=None, old_tx_hash=None):
         bnb_manager.release_nonce(is_gas=True)
         return
 
-    # TODO uncomment if some txs not appear in etherscan and blockchain
-    # time.sleep(1)
-    # if not bnb_manager.web3.eth.getTransaction(tx_hash.hex()):
-    #     log.info('Gas tx not found. Resend with higher gas price')
-    #     send_gas(accumulation_state_id, old_tx_data=tx_data, old_tx_hash=tx_hash)
-    #     return
-
-    # if old_tx_hash:
-    #     acc_transaction = AccumulationTransaction.objects.filter(tx_hash=old_tx_hash.hex()).first()
-    #     acc_transaction.amount = bnb_manager.get_eth_amount_from_wei(accumulation_gas_total_amount)
-    #     acc_transaction.tx_hash = tx_hash.hex()
-    #     acc_transaction.save()
-    # else:
     acc_transaction = AccumulationTransaction.objects.create(
-        accumulation_state=accumulation_state,
-        amount=bnb_manager.get_amount_from_base_denomination(
-            accumulation_gas_total_amount),
+        wallet_transaction=wallet_transaction,
+        amount=bnb_manager.get_amount_from_base_denomination(accumulation_gas_total_amount),
         tx_type=AccumulationTransaction.TX_TYPE_GAS_DEPOSIT,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=tx_hash.hex(),
     )
-    accumulation_state.state = accumulation_manager.model.STATE_WAITING_FOR_GAS
-    accumulation_state.save(update_fields=['state', 'updated'])
-
+    wallet_transaction.set_waiting_for_gas()
     log.info('Gas deposit TX %s sent', tx_hash.hex())
 
     # wait tx processed
@@ -1129,15 +961,12 @@ def send_gas(accumulation_state_id, old_tx_data=None, old_tx_hash=None):
         bnb_manager.wait_for_transaction_receipt(tx_hash, poll_latency=3)
         acc_transaction.complete(is_gas=True)
         bnb_manager.release_nonce(is_gas=True)
-        accumulate_bep20.apply_async([accumulation_state.id, True])
+        accumulate_bep20.apply_async([wallet_transaction_id])
     except RetryRequired:
         # retry with higher gas price
-        send_gas(
-            accumulation_state_id,
-            old_tx_data=tx_data,
-            old_tx_hash=tx_hash)
+        send_gas(wallet_transaction_id, old_tx_data=tx_data, old_tx_hash=tx_hash)
 
-
-@shared_task
-def accumulate_bnb_dust():
-    bnb_manager.accumulate_dust()
+# todo fix
+# @shared_task
+# def accumulate_bnb_dust():
+#     bnb_manager.accumulate_dust()

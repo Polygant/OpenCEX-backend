@@ -29,12 +29,11 @@ from core.models.orders import Order
 from core.models.orders import OrderChangeHistory
 from core.models.orders import OrderRevert
 from core.models.orders import OrderStateChangeHistory
+from core.models.settings import Settings
 from core.models.stats import ExternalPricesHistory
 from core.models.stats import TradesAggregatedStats
 from core.models.stats import UserPairDailyStat
 from core.models.wallet_history import WalletHistoryItem
-from core.models.settings import Settings
-
 
 __all__ = [
     'UserWallet',

@@ -14,6 +14,7 @@ from web3 import Web3
 from web3._utils.threads import Timeout
 from web3.exceptions import TransactionNotFound
 
+from core.models import FeesAndLimits
 from cryptocoins.exceptions import RetryRequired
 from cryptocoins.interfaces.common import BlockchainManager, GasPriceCache, Token, BlockchainTransaction
 
@@ -116,6 +117,19 @@ class Web3Manager(BlockchainManager):
     def __init__(self, client):
         super(Web3Manager, self).__init__(client)
         self._gas_price_cache = self.GAS_PRICE_CACHE_CLASS(self.client) if self.GAS_PRICE_CACHE_CLASS else None
+
+    def set_gas_price_too_high(self, wallet_transaction):
+        wallet_transaction.state = wallet_transaction.STATE_GAS_PRICE_TOO_HIGH
+        wallet_transaction.save(update_fields=['state', 'updated'])
+
+    @property
+    def accumulation_max_gas_price(self):
+        limit = FeesAndLimits.get_limit(self.CURRENCY.code, FeesAndLimits.ACCUMULATION, FeesAndLimits.MAX_GAS_PRICE)
+        return Web3.toWei(limit, 'gwei')
+
+    def is_gas_price_reach_max_limit(self, price_wei):
+        gas_price_limit = self.accumulation_max_gas_price
+        return gas_price_limit and price_wei >= gas_price_limit
 
     def get_block(self, block_id):
         return self.client.eth.getBlock(block_id, full_transactions=True)

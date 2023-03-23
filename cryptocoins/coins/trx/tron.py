@@ -30,8 +30,6 @@ tron_client = Tron(HTTPProvider(api_key=settings.TRONGRID_API_KEY))
 class TrxTransaction(BlockchainTransaction):
     @classmethod
     def from_node(cls, tx_data):
-        if tx_data['ret'][0]['contractRet'] != 'SUCCESS':
-            return
         hash = tx_data['txID']
         data = tx_data['raw_data']
         contract_address = None
@@ -65,7 +63,8 @@ class TrxTransaction(BlockchainTransaction):
                 'from_addr': from_address,
                 'to_addr': to_address,
                 'value': amount,
-                'contract_address': contract_address
+                'contract_address': contract_address,
+                'is_success': tx_data['ret'][0]['contractRet'] == 'SUCCESS',
             })
 
 
@@ -116,6 +115,9 @@ class TronManager(BlockchainManager):
     BASE_DENOMINATION_DECIMALS: int = 6
     MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('4')
     COLD_WALLET_ADDRESS = settings.TRX_SAFE_ADDR
+
+    def get_latest_block_num(self):
+        return self.client.get_latest_block_number()
 
     def get_block(self, block_id):
         return self.client.get_block(block_id)

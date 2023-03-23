@@ -66,7 +66,8 @@ class UserWallets(GenericAPIView):
         # get only latest wallet for each currency
         wallets = UserWallet.objects.filter(
             user_id=user.id,
-            merchant=False
+            merchant=False,
+            is_old=False,
         ).annotate(
             currency_str=Cast('currency', output_field=CharField()),
             blockchain_currency_str=Cast('blockchain_currency', output_field=CharField()),
@@ -75,7 +76,13 @@ class UserWallets(GenericAPIView):
 
         if currency:
             wallets = wallets.filter(currency=currency)
+
         wallet_data = UserWalletSerializer(wallets, many=True).data
+        for w in wallet_data:
+            w['is_blocked'] = False
+            if w['block_type'] in [UserWallet.BLOCK_TYPE_DEPOSIT, UserWallet.BLOCK_TYPE_DEPOSIT_AND_ACCUMULATION]:
+                w['address'] = 'Your deposit address is blocked'
+                w['is_blocked'] = True
         return Response(status=status.HTTP_200_OK, data=wallet_data)
 
 

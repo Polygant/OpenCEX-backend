@@ -68,6 +68,17 @@ def accumulate():
             pass
 
 
+@shared_task
+def check_for_scoring():
+    service = get_service_instance()
+
+    if service is not None:
+        try:
+            service.check_for_scoring()
+        except CoinServiceError as e:
+            pass
+
+
 def generate_crypto_schedule(conf: List[dict]) -> dict:
     schedule = {}
 
@@ -113,5 +124,14 @@ def generate_crypto_schedule(conf: List[dict]) -> dict:
                     'queue': currency_symbol,
                 }
             }
+        schedule[f'check for scoring {currency_symbol}'] = {
+            'task': 'lib.cryptointegrator.tasks.check_for_scoring',
+            'schedule': 60,
+            'args': (),
+            'options': {
+                'expires': 10,
+                'queue': currency_symbol,
+            }
+        }
 
     return schedule
