@@ -5,6 +5,7 @@ from typing import List
 
 import cachetools.func
 import pywallet
+import requests
 from bitcoinrpc.authproxy import AuthServiceProxy
 from django.conf import settings
 from django.db import transaction
@@ -463,6 +464,13 @@ class BitCoreCoinServiceBase(CoinServiceBase):
 
     def get_current_block_id(self):
         return self.rpc.getblockcount()
+
+    def get_last_network_block_id(self):
+        response = requests.get('https://blockchain.info/latestblock')
+        response.raise_for_status()
+
+        return response.json().get('height', 0)
+        # return self.rpc.getblockchaininfo().get('headers', 0)
 
     def process_withdrawals(self, *args, **kwargs):
         """
