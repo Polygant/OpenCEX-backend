@@ -22,6 +22,7 @@ class PairSettings(models.Model):
     price_source = models.SmallIntegerField(choices=PRICE_SOURCES, default=PRICE_SOURCE_EXTERNAL)
     custom_price = MoneyField(default=0.0)
     deviation = models.DecimalField(default=0.0, max_digits=5, decimal_places=4, help_text='Max order price deviation')
+    enable_alerts = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         super(PairSettings, self).save(*args, **kwargs)
@@ -38,6 +39,7 @@ class PairSettings(models.Model):
                     'price_source': entry.price_source,
                     'custom_price': entry.custom_price,
                     'deviation': entry.deviation,
+                    'enable_alerts': entry.enable_alerts,
                 }
             cache.set(PAIRS_SETTINGS_CACHE_KEY, data)
         return data
@@ -73,6 +75,12 @@ class PairSettings(models.Model):
         if isinstance(pair, Pair):
             pair = pair.code
         return cls._cache_data().get(pair, {}).get('deviation', 0) * 100
+
+    @classmethod
+    def is_alerts_enabled(cls, pair):
+        if isinstance(pair, Pair):
+            pair = pair.code
+        return cls._cache_data().get(pair, {}).get('enable_alerts')
 
     def __str__(self):
         return f'{self.pair}; Enabled: {self.is_enabled}; AutoOrders: {self.is_autoorders_enabled}'
