@@ -1,10 +1,12 @@
 import logging
 
-from django.conf import settings as django_settings
-
-from cryptocoins.models import ScoringSettings, TransactionInputScore
+from core.currency import Currency
+from cryptocoins.exceptions import ScoringClientError
+from cryptocoins.models.scoring import TransactionInputScore, ScoringSettings
 from cryptocoins.scoring.scorechain_client.bitcoin import scorechain_bitcoin_client
+from cryptocoins.scoring.scorechain_client.bnb import scorechain_bnb_client
 from cryptocoins.scoring.scorechain_client.ethereum import scorechain_ethereum_client
+from cryptocoins.scoring.scorechain_client.tron import scorechain_tron_client
 from lib.helpers import to_decimal
 from lib.notifications import send_telegram_message
 
@@ -18,10 +20,15 @@ class ScoreManager:
 
     @classmethod
     def get_client(cls, currency):
+        currency = str(currency)
         if currency in ['BTC']:
             return scorechain_bitcoin_client
         elif currency in ['ETH']:
             return scorechain_ethereum_client
+        elif currency in ['TRX']:
+            return scorechain_tron_client
+        elif currency in ['BNB']:
+            return scorechain_bnb_client
         raise Exception(f'Scorechain client for {currency} not found')
 
     @classmethod
@@ -40,9 +47,15 @@ class ScoreManager:
         from cryptocoins.models.scoring import ScoringSettings
         from core.models import UserWallet
 
+        if isinstance(currency_code, Currency):
+            currency_code = currency_code.code
+
         # check target addresses scoring
         is_address_scoring_ok = True
-        addr_risk_data = ScoreManager.get_address_score_info(address, currency_code, token_currency)
+        try:
+            addr_risk_data = ScoreManager.get_address_score_info(address, currency_code, token_currency)
+        except:
+            raise ScoringClientError()
         addr_score = addr_risk_data.get('riskscore', {}).get('value', 0) or 0
 
         amount = to_decimal(amount)
@@ -91,25 +104,28 @@ class ScoreManager:
     @classmethod
     def need_to_check_score(cls, tx_hash, address, amount, currency_code):
         res = True
-        tis = TransactionInputScore(
+        tis = TransactionInputScore.objects.filter(
             hash=tx_hash,
             address=address,
-            score=0,
             currency=currency_code,
-        )
+        ).first()
 
-        if django_settings.IS_KYT_ENABLED:
-            settings = ScoringSettings.get_settings(currency_code)
+        if not tis:
+            tis = TransactionInputScore(
+                hash=tx_hash,
+                address=address,
+                score=0,
+                currency=currency_code,
+            )
 
-            if not settings:
-                res = False
+        settings = ScoringSettings.get_settings(currency_code)
 
-            if settings and amount < settings['min_tx_amount']:
-                tis.scoring_state = TransactionInputScore.SCORING_STATE_SMALL_AMOUNT
-                res = False
-        else:
+        if not settings:
             res = False
 
+        if settings and amount < settings['min_tx_amount']:
+            tis.scoring_state = TransactionInputScore.SCORING_STATE_SMALL_AMOUNT
+            res = False
         tis.save()
 
         return res

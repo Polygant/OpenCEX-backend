@@ -45,3 +45,15 @@ class UnknownTokenAddress(UnknownToken):
 
     def __init__(self, address: str):
         super().__init__(f'Unknown token address: {address}')
+
+
+class ScoringClientError(Exception):
+    pass
+
+
+class TransferAmountLowError(Exception):
+    pass
+
+
+class SignTxError(Exception):
+    pass

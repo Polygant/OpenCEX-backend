@@ -9,7 +9,7 @@ from web3 import Web3
 from core.currency import TokenParams, Currency
 from core.models import FeesAndLimits, UserWallet
 from cryptocoins.exceptions import UnknownTokenSymbol, UnknownTokenAddress
-from cryptocoins.utils.commons import get_user_addresses, WalletAccount, get_keeper_wallet, get_user_wallet
+from cryptocoins.utils.commons import get_user_addresses, BlockchainAccount, get_keeper_wallet, get_user_wallet
 from cryptocoins.utils.helpers import get_amount_from_base_denomination
 from cryptocoins.utils.helpers import get_base_denomination_from_amount
 
@@ -24,6 +24,7 @@ class BlockchainTransaction:
         self.to_addr = tx_data['to_addr']
         self.value = tx_data['value']
         self.contract_address = tx_data['contract_address']
+        self.is_success = tx_data.get('is_success') or True
 
     def as_dict(self) -> dict:
         return {
@@ -271,17 +272,17 @@ class BlockchainManager:
 
     @cachetools.func.ttl_cache(ttl=5)
     def get_user_addresses(self) -> List[str]:
-        return get_user_addresses(self.CURRENCY)
+        return get_user_addresses(blockchain_currency=self.CURRENCY)
 
     @cachetools.func.ttl_cache(ttl=60)
-    def get_keeper_wallet(self) -> WalletAccount:
+    def get_keeper_wallet(self) -> BlockchainAccount:
         return get_keeper_wallet(self.CURRENCY)
 
     @cachetools.func.ttl_cache(ttl=60)
-    def get_gas_keeper_wallet(self) -> WalletAccount:
+    def get_gas_keeper_wallet(self) -> BlockchainAccount:
         return get_keeper_wallet(self.CURRENCY, gas_keeper=True)
 
-    def get_user_wallet(self, symbol: Union[str, Currency], address: str) -> WalletAccount:
+    def get_user_wallet(self, symbol: Union[str, Currency], address: str) -> BlockchainAccount:
         return get_user_wallet(symbol, address)
 
     def get_wallet_db_instance(self, symbol: Union[str, Currency], to_addr: str) -> Optional[UserWallet]:

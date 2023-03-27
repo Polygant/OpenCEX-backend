@@ -29,45 +29,6 @@ CRYPTO_AUTO_SCHEDULE_CONF = [
 
 ]
 
-COMMON_TASKS_CONFIG = {
-    # otc
-    'otc': {
-        'enabled': True
-    },
-    # bots
-    'bots': {
-        'enabled': True,
-    },
-    # payouts and withdrawals
-    'payout_withdraw': {
-        'enabled': True,
-    },
-    # ethereum and erc20 tokens
-    'ethereum': {
-        'enabled': True,
-    },
-    'utils': {
-        'enabled': True,
-    },
-    'notifications': {
-        'enabled': True,
-    },
-    'kyc': {
-        'enabled': True,
-    },
-    'cleanup': {
-        'enabled': True,
-    },
-    'stats': {
-        'enabled': True
-    },
-    'cryptocoins_commons': {
-        'enabled': True
-    },
-    'stop_limits': {
-        'enabled': True
-    },
-}
 AMQP_USER = env('AMQP_USER', default='guest')
 AMQP_PASS = env('AMQP_PASS', default='guest')
 AMQP_HOST = env('AMQP_HOST', default='localhost')

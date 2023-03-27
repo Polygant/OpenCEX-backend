@@ -31,7 +31,7 @@ class OtcOrdersUpdater:
     PRICE_CACHE_KEY = 'otc-binance'
     # SUPPORTED_PAIRS = ('BTC-USDT', 'ETH-USDT')
     BITSTAMP_PAIRS = ()
-    BINANCE_PAIRS = ('BTC-USDT', 'ETH-USDT', )
+    BINANCE_PAIRS = ('BTC-USDT', 'ETH-USDT', 'TRX-USDT')
 
     @classproperty
     def SUPPORTED_PAIRS(self):

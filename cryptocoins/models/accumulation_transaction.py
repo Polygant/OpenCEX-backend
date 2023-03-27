@@ -1,6 +1,5 @@
 from django.db import models
 
-from cryptocoins.models.accumulation_state import AccumulationState
 from lib.fields import MoneyField
 
 
@@ -27,7 +26,7 @@ class AccumulationTransaction(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    accumulation_state = models.ForeignKey('cryptocoins.AccumulationState', on_delete=models.DO_NOTHING)
+    wallet_transaction = models.ForeignKey('core.WalletTransactions', on_delete=models.DO_NOTHING, null=True)
     amount = MoneyField(decimal_places=18, default=0)
     tx_type = models.PositiveSmallIntegerField(choices=TX_TYPES)
     tx_state = models.PositiveSmallIntegerField(choices=STATES, default=STATE_PENDING)
@@ -45,10 +44,6 @@ class AccumulationTransaction(models.Model):
         self.tx_state = AccumulationTransaction.STATE_COMPLETED
         self.save(update_fields=['tx_state', 'updated'])
         if is_gas:
-            self.accumulation_state.state = AccumulationState.STATE_READY_FOR_ACCUMULATION
-            self.accumulation_state.save(update_fields=['state', 'updated', 'current_balance'])
+            self.wallet_transaction.set_ready_for_accumulation()
         else:
-            self.accumulation_state.state = AccumulationState.STATE_COMPLETED
-            self.accumulation_state.current_balance = 0
-            self.accumulation_state.save(update_fields=['state', 'updated', 'current_balance'])
-
+            self.wallet_transaction.set_accumulated()

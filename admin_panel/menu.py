@@ -138,6 +138,8 @@ class CustomMenu(Menu):
                         children=[
                             items.MenuItem('Approve BTC', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/btc/'),
                             items.MenuItem('Approve ETH', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/eth/'),
+                            items.MenuItem('Approve TRX', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/trx/'),
+                            items.MenuItem('Approve BNB', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/bnb/'),
                         ]
                     ),
                     items.MenuItem('Make Topup', f'/{ADMIN_BASE_URL}/make/top-up/'),

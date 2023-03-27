@@ -1,24 +1,18 @@
 import logging
-from collections import namedtuple
 from typing import List, Union
 
 from django.conf import settings
-from django.db.models import Q
 
-from core.consts.currencies import ERC20_CURRENCIES
+from core.consts.currencies import BlockchainAccount
 from core.currency import Currency
-from core.models.cryptocoins import UserWallet
-from core.models.inouts.withdrawal import WithdrawalRequest, CREATED, PENDING
 from cryptocoins.exceptions import KeeperNotFound
 from cryptocoins.exceptions import WalletNotFound
-from cryptocoins.models import GasKeeper
-from cryptocoins.models import Keeper
-from cryptocoins.models import LastProcessedBlock
+from cryptocoins.models.keeper import GasKeeper
+from cryptocoins.models.keeper import Keeper
+from cryptocoins.models.last_processed_block import LastProcessedBlock
 from lib.cipher import AESCoderDecoder
 
 log = logging.getLogger(__name__)
-
-WalletAccount = namedtuple('WalletAccount', ['address', 'private_key', ])
 
 
 def store_last_processed_block_id(currency: Currency, block_id: int):
@@ -54,7 +48,7 @@ def ensure_currency(currency: [Currency, str]) -> Currency:
     return currency
 
 
-def get_keeper_wallet(symbol: Union[str, Currency], gas_keeper=False) -> WalletAccount:
+def get_keeper_wallet(symbol: Union[str, Currency], gas_keeper=False) -> BlockchainAccount:
     Model = GasKeeper if gas_keeper else Keeper
     currency = ensure_currency(symbol)
 
@@ -71,7 +65,7 @@ def get_keeper_wallet(symbol: Union[str, Currency], gas_keeper=False) -> WalletA
     if result is None:
         raise KeeperNotFound(currency.code)
 
-    return WalletAccount(
+    return BlockchainAccount(
         address=result[0],
         private_key=AESCoderDecoder(settings.CRYPTO_KEY).decrypt(
             result[1]
@@ -79,7 +73,9 @@ def get_keeper_wallet(symbol: Union[str, Currency], gas_keeper=False) -> WalletA
     )
 
 
-def get_user_wallet(symbol: Union[str, Currency], address: str) -> WalletAccount:
+def get_user_wallet(symbol: Union[str, Currency], address: str) -> BlockchainAccount:
+    from core.models.cryptocoins import UserWallet
+
     currency = ensure_currency(symbol)
 
     result = UserWallet.objects.filter(
@@ -96,7 +92,7 @@ def get_user_wallet(symbol: Union[str, Currency], address: str) -> WalletAccount
     if result is None:
         raise WalletNotFound(currency.code)
 
-    return WalletAccount(
+    return BlockchainAccount(
         address=result[0],
         private_key=AESCoderDecoder(settings.CRYPTO_KEY).decrypt(
             result[1]
@@ -104,84 +100,21 @@ def get_user_wallet(symbol: Union[str, Currency], address: str) -> WalletAccount
     )
 
 
-def get_user_addresses(currency: Union[Currency, str]) -> List[str]:
+def get_user_addresses(currency: List[Union[Currency, str]] = None, blockchain_currency: Union[Currency, str] = None) -> List[str]:
     """
     Get all user registered wallet addresses.
     note: cache may be required due users count increase
     """
+    from core.models.cryptocoins import UserWallet
     currency = ensure_currency(currency)
-    qs = UserWallet.objects.filter(
-        currency=currency,
-    ).values_list('address', flat=True)
-    return list(qs)
-
-
-def get_withdrawal_requests_to_process(currencies: list, blockchain_currency=''):
-    tokens = []
-    coins = []
-    for cur in currencies:
-        if cur in ERC20_CURRENCIES:
-            tokens.append(cur)
-        else:
-            coins.append(cur)
-
-    if tokens and not blockchain_currency:
-        raise Exception('Blockchain currency not set')
-
-    qs = WithdrawalRequest.objects.filter(
-        (Q(currency__in=tokens) & Q(data__blockchain_currency=blockchain_currency)) | Q(currency__in=coins),
-        state=CREATED,
-        approved=True,
-        confirmed=True,
-    ).order_by(
-        'created',
-    ).only(
-        'id',
-    )
-
-    return qs
-
-
-def get_withdrawal_requests_pending(currencies: list, blockchain_currency=''):
-    # TODO REFACTOR
-    common_currencies = []
-    not_common_currencies = []
-    common_qs = None
-    for cur in currencies:
-        if cur in ERC20_CURRENCIES:
-            common_currencies.append(cur)
-        else:
-            not_common_currencies.append(cur)
-
-    if common_currencies and not blockchain_currency:
-        raise Exception('Blockchain currency not set')
-
-    if common_currencies:
-        common_qs = WithdrawalRequest.objects.filter(
-            currency__in=common_currencies,
-            state=PENDING,
-            approved=True,
-            confirmed=True,
-            data__blockchain_currency=blockchain_currency
-        ).only(
-            'id',
-            'txid',
+    qs = UserWallet.objects.all()
+    if currency:
+        qs = UserWallet.objects.filter(
+            currency__in=currency,
         )
-
-    qs = WithdrawalRequest.objects.filter(
-        currency__in=not_common_currencies,
-        state=PENDING,
-        approved=True,
-        confirmed=True,
-    ).only(
-        'id',
-        'txid',
-    )
-
-    if common_qs:
-        qs = qs.union(common_qs)
-
-    return qs
+    if blockchain_currency:
+        qs = qs.filter(blockchain_currency=blockchain_currency)
+    return list(qs.values_list('address', flat=True))
 
 
 def create_keeper(user_wallet, KeeperModel=Keeper, extra=None):

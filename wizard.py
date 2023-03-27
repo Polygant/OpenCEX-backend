@@ -25,7 +25,7 @@ from cryptocoins.utils.commons import create_keeper
 from core.consts.currencies import CRYPTO_WALLET_CREATORS
 from core.currency import Currency
 from core.utils.wallet_history import create_or_update_wallet_history_item_from_transaction
-from core.models import UserWallet, UserFee, Profile
+from core.models import UserWallet, UserFee, Profile, DisabledCoin
 from core.models import Transaction
 from core.models import FeesAndLimits
 from core.models import PairSettings
@@ -36,6 +36,9 @@ from core.pairs import Pair
 from cryptocoins.coins.btc import BTC, BTC_CURRENCY
 from cryptocoins.coins.eth import ETH
 from cryptocoins.coins.usdt import USDT
+from cryptocoins.coins.bnb import BNB
+from cryptocoins.coins.trx import TRX
+
 from cryptocoins.utils.btc import generate_btc_multisig_keeper
 
 from exchange.settings import env
@@ -46,171 +49,372 @@ User = get_user_model()
 
 BACKUP_PATH = os.path.join(settings.BASE_DIR, 'backup')
 
+
 def main():
+
+    IS_TRON = True if env('COMMON_TASKS_TRON', default=True) else False
+    IS_BSC = True if env('COMMON_TASKS_BNB', default=True) else False
 
     coin_list = [
         ETH,
         BTC,
         USDT,
+        BNB,
+        TRX,
     ]
     coin_info = {
-        ETH: {
-            # DisabledCoin: {
-            #
-            # },
-            CoinInfo: {
-                'name': 'Ethereum',
-                'decimals': 8,
-                'index': 3,
-                'tx_explorer': 'https://etherscan.io/tx/',
-                'links': {
-                    "bt": {
-                        "href": "https://bitcointalk.org/index.php?topic=428589.0",
-                        "title": "BitcoinTalk"
-                    },
-                    "cmc": {
-                        "href": "https://coinmarketcap.com/currencies/ethereum/",
-                        "title": "CoinMarketCap"
-                    },
-                    "exp": {
-                        "href": "https://etherscan.io/",
-                        "title": "Explorer"
-                    },
-                    "official": {
-                        "href": "http://ethereum.org",
-                        "title": "ethereum.org"
+        ETH: [
+            {
+                'model': CoinInfo,
+                'find': {'currency': ETH},
+                'attributes': {
+                    'name': 'Ethereum',
+                    'decimals': 8,
+                    'index': 3,
+                    'tx_explorer': 'https://etherscan.io/tx/',
+                    'links': {
+                        "bt": {
+                            "href": "https://bitcointalk.org/index.php?topic=428589.0",
+                            "title": "BitcoinTalk"
+                        },
+                        "cmc": {
+                            "href": "https://coinmarketcap.com/currencies/ethereum/",
+                            "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                            "href": "https://etherscan.io/",
+                            "title": "Explorer"
+                        },
+                        "official": {
+                            "href": "http://ethereum.org",
+                            "title": "ethereum.org"
+                        }
                     }
                 }
             },
-            FeesAndLimits: {
-                'limits_deposit_min': 0.00500000,
-                'limits_deposit_max': 1000.00000000,
-                'limits_withdrawal_min': 0.00500000,
-                'limits_withdrawal_max': 15.00000000,
-                'limits_order_min': 0.00100000,
-                'limits_order_max': 15.00000000,
-                'limits_code_max': 100.00000000,
-                'limits_accumulation_min': 0.00500000,
-                'fee_deposit_address': 0.00000010,
-                'fee_deposit_code': 0,
-                'fee_withdrawal_code': 0,
-                'fee_order_limits': 0.00100000,
-                'fee_order_market': 0.00200000,
-                'fee_exchange_value': 0.00200000,
+            {
+                'model': FeesAndLimits,
+                'find': {'currency': ETH},
+                    'attributes': {
+                    'limits_deposit_min': 0.00500000,
+                    'limits_deposit_max': 1000.00000000,
+                    'limits_withdrawal_min': 0.00500000,
+                    'limits_withdrawal_max': 15.00000000,
+                    'limits_order_min': 0.00100000,
+                    'limits_order_max': 15.00000000,
+                    'limits_code_max': 100.00000000,
+                    'limits_accumulation_min': 0.00500000,
+                    'fee_deposit_address': 0.00000010,
+                    'fee_deposit_code': 0,
+                    'fee_withdrawal_code': 0,
+                    'fee_order_limits': 0.00100000,
+                    'fee_order_market': 0.00200000,
+                    'fee_exchange_value': 0.00200000,
 
+                },
             },
-            WithdrawalFee: {
-                'blockchain_currency': ETH,
-                'address_fee': 0.00000010
-            }
-        },
-        BTC: {
-            # DisabledCoin: {
-            #
-            # },
-            CoinInfo: {
-                'name': 'Bitcoin',
-                'decimals': 8,
-                'index': 2,
-                'tx_explorer': 'https://www.blockchain.com/btc/tx/',
-                'links': {
-                    "bt": {
-                        "href": "https://bitcointalk.org/index.php",
-                        "title": "BitcoinTalk"
-                    },
-                    "cmc": {
-                        "href": "https://coinmarketcap.com/currencies/bitcoin/",
-                        "title": "CoinMarketCap"
-                    },
-                    "exp": {
-                        "href": "https://www.blockchain.com/en/explorer",
-                        "title": "Explorer"
-                    },
-                    "official": {
-                        "href": "https://bitcoin.org",
-                        "title": "bitcoin"
-                    }
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': ETH},
+                'attributes': {
+                    'blockchain_currency': ETH,
+                    'address_fee': 0.00000010
                 }
             },
-            FeesAndLimits: {
-                'limits_deposit_min': 0.00020000,
-                'limits_deposit_max': 100,
-                'limits_withdrawal_min': 0.00020000,
-                'limits_withdrawal_max': 5,
-                'limits_order_min': 0.00030000,
-                'limits_order_max': 5.00000000,
-                'limits_code_max': 100.00000000,
-                'limits_accumulation_min': 0.00020000,
-                'fee_deposit_address': 0,
-                'fee_deposit_code': 0,
-                'fee_withdrawal_code': 0,
-                'fee_order_limits': 0.00100000,
-                'fee_order_market': 0.00200000,
-                'fee_exchange_value': 0.00200000,
+        ],
+        BTC: [
+            {
+                'model': CoinInfo,
+                'find': {'currency': BTC},
+                'attributes': {
+                    'name': 'Bitcoin',
+                    'decimals': 8,
+                    'index': 2,
+                    'tx_explorer': 'https://www.blockchain.com/btc/tx/',
+                    'links': {
+                        "bt": {
+                            "href": "https://bitcointalk.org/index.php",
+                            "title": "BitcoinTalk"
+                        },
+                        "cmc": {
+                            "href": "https://coinmarketcap.com/currencies/bitcoin/",
+                            "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                            "href": "https://www.blockchain.com/en/explorer",
+                            "title": "Explorer"
+                        },
+                        "official": {
+                            "href": "https://bitcoin.org",
+                            "title": "bitcoin"
+                        }
+                    }
+                },
+            },
+            {
+                'model': FeesAndLimits,
+                'find': {'currency': BTC},
+                'attributes': {
+                    'limits_deposit_min': 0.00020000,
+                    'limits_deposit_max': 100,
+                    'limits_withdrawal_min': 0.00020000,
+                    'limits_withdrawal_max': 5,
+                    'limits_order_min': 0.00030000,
+                    'limits_order_max': 5.00000000,
+                    'limits_code_max': 100.00000000,
+                    'limits_accumulation_min': 0.00020000,
+                    'fee_deposit_address': 0,
+                    'fee_deposit_code': 0,
+                    'fee_withdrawal_code': 0,
+                    'fee_order_limits': 0.00100000,
+                    'fee_order_market': 0.00200000,
+                    'fee_exchange_value': 0.00200000,
 
+                },
             },
-            WithdrawalFee: {
-                'blockchain_currency': BTC,
-                'address_fee': 0.00000001
-            }
-        },
-        USDT: {
-            # DisabledCoin: {
-            #
-            # },
-            CoinInfo: {
-                'name': 'Tether USDT',
-                'decimals': 2,
-                'index': 1,
-                'links': {
-                    "cmc": {
-                        "href": "https://coinmarketcap.com/currencies/tether/",
-                        "title": "CoinMarketCap"
-                    },
-                    "exp": {
-                        "href": "https://coin-cap.pro/en/contract/tether/",
-                        "title": "Explorer"
-                    },
-                    "official": {
-                        "href": "https://tether.to/",
-                        "title": "tether.to"
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': BTC},
+                'attributes': {
+                    'blockchain_currency': BTC,
+                    'address_fee': 0.00000001
+                },
+            },
+        ],
+        USDT: [
+            {
+                'model': CoinInfo,
+                'find': {'currency': USDT},
+                'attributes': {
+                    'name': 'Tether USDT',
+                    'decimals': 2,
+                    'index': 1,
+                    'links': {
+                        "cmc": {
+                            "href": "https://coinmarketcap.com/currencies/tether/",
+                            "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                            "href": "https://coin-cap.pro/en/contract/tether/",
+                            "title": "Explorer"
+                        },
+                        "official": {
+                            "href": "https://tether.to/",
+                            "title": "tether.to"
+                        }
                     }
-                }
+                },
             },
-            FeesAndLimits: {
-                'limits_deposit_min': 1.00000000,
-                'limits_deposit_max': 1000000.00000000,
-                'limits_withdrawal_min': 2.00000000,
-                'limits_withdrawal_max': 10000.00000000,
-                'limits_order_min': 1.00000000,
-                'limits_order_max': 100000.00000000,
-                'limits_code_max': 100000.00000000,
-                'limits_accumulation_min': 1.00000000,
-                'fee_deposit_address': 0,
-                'fee_deposit_code': 0,
-                'fee_withdrawal_code': 0,
-                'fee_order_limits': 0.00100000,
-                'fee_order_market': 0.00200000,
-                'fee_exchange_value': 0.00200000,
+            {
+                'model': FeesAndLimits,
+                'find': {'currency': USDT},
+                'attributes': {
+                    'limits_deposit_min': 1.00000000,
+                    'limits_deposit_max': 1000000.00000000,
+                    'limits_withdrawal_min': 2.00000000,
+                    'limits_withdrawal_max': 10000.00000000,
+                    'limits_order_min': 1.00000000,
+                    'limits_order_max': 100000.00000000,
+                    'limits_code_max': 100000.00000000,
+                    'limits_accumulation_min': 1.00000000,
+                    'fee_deposit_address': 0,
+                    'fee_deposit_code': 0,
+                    'fee_withdrawal_code': 0,
+                    'fee_order_limits': 0.00100000,
+                    'fee_order_market': 0.00200000,
+                    'fee_exchange_value': 0.00200000,
+                },
             },
-            WithdrawalFee: {
-                'blockchain_currency': ETH,
-                'address_fee': 5.00000000
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': USDT, 'blockchain_currency': ETH},
+                'attributes': {
+                    'blockchain_currency': ETH,
+                    'address_fee': 5.00000000
+                },
             },
-        },
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': USDT, 'blockchain_currency': BNB},
+                'attributes': {
+                    'blockchain_currency': BNB,
+                    'address_fee': 0.00010000
+                },
+            },
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': USDT, 'blockchain_currency': TRX},
+                'attributes': {
+                    'blockchain_currency': TRX,
+                    'address_fee': 1.00000000
+                },
+            },
+        ],
+        TRX: [
+            {
+                'model': CoinInfo,
+                'find': {'currency': TRX},
+                'attributes': {
+                    'name': 'Tron',
+                    'decimals': 8,
+                    'index': 5,
+                    'tx_explorer': 'https://tronscan.org/#/transaction/',
+                    'links': {
+                        "cmc": {
+                            "href": "https://coinmarketcap.com/currencies/tron/",
+                            "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                            "href": "https://coin-cap.pro/en/coin/tron/",
+                            "title": "Explorer"
+                        },
+                        "official": {
+                            "href": "https://tron.network/",
+                            "title": "tron.network"
+                        }
+                    }
+                },
+            },
+            {
+                'model': FeesAndLimits,
+                'find': {'currency': TRX},
+                'attributes': {
+                    'limits_deposit_min': 1.00000000,
+                    'limits_deposit_max': 100000000.00000000,
+                    'limits_withdrawal_min': 1.00000000,
+                    'limits_withdrawal_max': 10000000.00000000,
+                    'limits_order_min': 1.00000000,
+                    'limits_order_max': 1000000.00000000,
+                    'limits_code_max': 1000000.00000000,
+                    'limits_accumulation_min': 1.00000000,
+                    'fee_deposit_address': 0,
+                    'fee_deposit_code': 0,
+                    'fee_withdrawal_code': 0,
+                    'fee_order_limits': 0.00100000,
+                    'fee_order_market': 0.00200000,
+                    'fee_exchange_value': 0.00200000,
+                },
+            },
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': TRX},
+                'attributes': {
+                    'blockchain_currency': TRX,
+                    'address_fee': 1.00000000
+                },
+            },
+        ],
+        BNB: [
+            {
+                'model': CoinInfo,
+                'find': {'currency': BNB},
+                'attributes': {
+                    'name': 'Binance Coin',
+                    'decimals': 8,
+                    'index': 6,
+                    'tx_explorer': 'https://bscscan.com/tx/',
+                    'links': {
+                        "cmc": {
+                            "href": "https://coinmarketcap.com/currencies/bnb/",
+                            "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                            "href": "https://bscscan.com/",
+                            "title": "Explorer"
+                        },
+                        "official": {
+                            "href": "https://www.binance.com/",
+                            "title": "www.binance.com"
+                        }
+                    }
+                },
+            },
+            {
+                'model': FeesAndLimits,
+                'find': {'currency': BNB},
+                'attributes': {
+                    'limits_deposit_min': 0.00010000,
+                    'limits_deposit_max': 1000000.00000000,
+                    'limits_withdrawal_min': 0.00100000,
+                    'limits_withdrawal_max': 1000000.00000000,
+                    'limits_order_min': 0.01000000,
+                    'limits_order_max': 1000000.00000000,
+                    'limits_code_max': 1000000.00000000,
+                    'limits_accumulation_min': 0.00100000,
+                    'fee_deposit_address': 0,
+                    'fee_deposit_code': 0,
+                    'fee_withdrawal_code': 0,
+                    'fee_order_limits': 0.00100000,
+                    'fee_order_market': 0.00200000,
+                    'fee_exchange_value': 0.00200000,
+                },
+            },
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': BNB},
+                'attributes': {
+                    'blockchain_currency': BNB,
+                    'address_fee': 0.00010000
+                },
+            },
+        ],
     }
+
+    if not IS_BSC:
+        coin_info[BNB].append(
+            {
+                'model': DisabledCoin,
+                'find': {'currency': BNB},
+                'attributes': {
+                    'disable_all': True,
+                    'disable_stack': True,
+                    'disable_pairs': True,
+                    'disable_exchange': True,
+                    'disable_withdrawals': True,
+                    'disable_topups': True,
+                },
+            },
+        )
+
+    if not IS_TRON:
+        coin_info[TRX].append(
+            {
+                'model': DisabledCoin,
+                'find': {'currency': TRX},
+                'attributes': {
+                    'disable_all': True,
+                    'disable_stack': True,
+                    'disable_pairs': True,
+                    'disable_exchange': True,
+                    'disable_withdrawals': True,
+                    'disable_topups': True,
+                },
+            },
+        )
+
     with atomic():
         to_write = []
 
-        for coin in coin_list:
-            for model, kwargs in coin_info[coin].items():
-                model.objects.get_or_create(
-                    currency=coin,
-                    defaults={
-                        'currency': coin,
-                        **kwargs,
-                    }
-                )
+        def get_or_create(model_inst, curr, get_attrs, set_attrs: dict):
+            item, is_created = model_inst.objects.get_or_create(
+                **get_attrs,
+                defaults={
+                    'currency': curr,
+                    **set_attrs,
+                }
+            )
+
+            if not is_created:
+                for key, attr in set_attrs.items():
+                    setattr(item, key, attr)
+                item.save()
+
+        for coin, to_create_list in coin_info.items():
+            for data in to_create_list:
+                model = data['model']
+                find = data['find']
+                attributes = data['attributes']
+                get_or_create(model, coin, find,  attributes)
 
         # create user for bot
         name = 'bot1@bot.com'
@@ -236,6 +440,8 @@ def main():
                 BTC: 3,
                 ETH: 100,
                 USDT: 100_000,
+                BNB: 10,
+                TRX: 100_000,
             }
 
             for currency_id, amount in topup_list.items():
@@ -305,6 +511,58 @@ def main():
                     'enabled': True,
                 }
             },
+            Pair.get('TRX-USDT'): {
+                PairSettings: {
+                    'is_enabled': IS_TRON,
+                    'is_autoorders_enabled': True,
+                    'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
+                    'custom_price': 0,
+                    'deviation': 0.0
+                },
+                BotConfig: {
+                    'name': 'TRX-USDT',
+                    'user': bot,
+                    'strategy': BotConfig.TRADE_STRATEGY_DRAW,
+                    'instant_match': True,
+                    'ohlc_period': 60,
+                    'loop_period_random': False,
+                    'min_period': 60,
+                    'max_period': 180,
+                    'ext_price_delta': 0.001,
+                    'min_order_quantity': 100,
+                    'max_order_quantity': 10_000,
+                    'low_orders_max_match_size': 1,
+                    'low_orders_spread_size': 1,
+                    'low_orders_min_order_size': 1,
+                    'enabled': IS_TRON,
+                }
+            },
+            Pair.get('BNB-USDT'): {
+                PairSettings: {
+                    'is_enabled': IS_BSC,
+                    'is_autoorders_enabled': True,
+                    'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
+                    'custom_price': 0,
+                    'deviation': 0.0
+                },
+                BotConfig: {
+                    'name': 'BNB-USDT',
+                    'user': bot,
+                    'strategy': BotConfig.TRADE_STRATEGY_DRAW,
+                    'instant_match': True,
+                    'ohlc_period': 60,
+                    'loop_period_random': False,
+                    'min_period': 60,
+                    'max_period': 180,
+                    'ext_price_delta': 0.001,
+                    'min_order_quantity': 0.01,
+                    'max_order_quantity': 0.5,
+                    'low_orders_max_match_size': 1,
+                    'low_orders_spread_size': 1,
+                    'low_orders_min_order_size': 1,
+                    'enabled': IS_BSC,
+                }
+            },
         }
 
         for pair, model_list in pair_list.items():
@@ -337,6 +595,7 @@ def main():
 
         to_write.append('Admin Info:')
         to_write.append(f'Email: {name}  Password: {password}')
+        to_write.append(f'Master Pass: {settings.ADMIN_MASTERPASS}')
         print(f"password: {password}")
 
         totp, is_new_totp = TOTPDevice.objects.get_or_create(
@@ -433,6 +692,8 @@ def keeper_create(currency, is_gas_keeper=False):
 
     KeeperModel = Keeper
     if is_gas_keeper:
+        # if currency not in [ETH_CURRENCY, TRX_CURRENCY]:
+        #     raise Exception('Only ETH and TRX GasKeeper can be created')
         KeeperModel = GasKeeper
 
     keeper = create_keeper(new_keeper_wallet, KeeperModel)

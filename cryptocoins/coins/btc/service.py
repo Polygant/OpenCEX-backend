@@ -9,9 +9,10 @@ from core.models.inouts.fees_and_limits import FeesAndLimits
 from cryptocoins.cache import sat_per_byte_cache
 from cryptocoins.coin_service import BitCoreCoinServiceBase
 from cryptocoins.coins.btc import BTC_CURRENCY
-from cryptocoins.exceptions import CoinServiceError
-from cryptocoins.models import ScoringSettings
+from cryptocoins.exceptions import CoinServiceError, TransferAmountLowError
+from cryptocoins.models import AccumulationTransaction
 from cryptocoins.models.accumulation_details import AccumulationDetails
+from cryptocoins.models.scoring import ScoringSettings
 from cryptocoins.scoring.manager import ScoreManager
 from cryptocoins.tasks.scoring import process_deffered_deposit
 from cryptocoins.utils.btc import btc2sat
@@ -23,7 +24,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
     currency = BTC_CURRENCY
     node_config = settings.NODES_CONFIG['btc']
     cold_wallet_address = settings.BTC_SAFE_ADDR
-    const_fee = 0.00001
+    const_fee = 0.00005
     crypto_coin = Bitcoin()
 
     def get_transfer_fee(self, size):
@@ -53,9 +54,13 @@ class BTCCoinService(BitCoreCoinServiceBase):
         # need to fill chargeback amount later
         tx_outputs[keeper_wallet.address] = 0
 
-        estimated_tx_size = self.estimate_tx_size(len(keeper_unspent), len(tx_outputs))
-        # 1 because the previous function already calculated the size
-        estimated_tx_size += self.estimate_script_sig_size(1, 3)
+        estimated_tx_size = self.get_multi_tx_size(
+            self.prepare_inputs(keeper_unspent),
+            self.prepare_outs(tx_outputs),
+            keeper_wallet.private_key,
+            private_key,
+            keeper_wallet.redeem_script,
+        )
         transfer_fee = self.get_transfer_fee(estimated_tx_size)
 
         outputs_sum = sum(tx_outputs.values())
@@ -99,18 +104,28 @@ class BTCCoinService(BitCoreCoinServiceBase):
             for item in inputs
         ]
 
-    def multi_transfer(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
-        self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
+    def multi_tx_sign(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
+
         tx = self.crypto_coin.mktx(inputs, outputs)
         for i in range(0, len(tx['ins'])):
             sig1 = self.crypto_coin.multisign(tx, i, redeemScript, private_key_s)
             sig3 = self.crypto_coin.multisign(tx, i, redeemScript, private_key)
             tx = apply_multisignatures(tx, i, redeemScript, sig1, sig3)
 
+        return tx
+
+    def multi_transfer(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
+        self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
+        tx = self.multi_tx_sign(inputs, outputs, private_key, private_key_s, redeemScript)
         tx_id = self.rpc.sendrawtransaction(tx)
         self.log.info('Sent TX: %s', tx_id)
 
         return tx_id
+
+    def get_multi_tx_size(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
+        tx = self.multi_tx_sign(inputs, outputs, private_key, private_key_s, redeemScript)
+        tx_decode = self.rpc.decoderawtransaction(tx)
+        return tx_decode.get('size')
 
     def check_tx_for_deposit(self, tx_data):
         tx_id = tx_data['txid']
@@ -120,14 +135,14 @@ class BTCCoinService(BitCoreCoinServiceBase):
         for addr, amount in self.parse_tx_outputs(tx_data):
             outputs_amount[addr] += amount
 
-        input_addresses = self.parse_tx_inputs(tx_data)
         output_address = ', '.join(outputs_amount)
+        accumulation_transaction: AccumulationTransaction = AccumulationTransaction.objects.filter(
+            tx_hash=tx_id,
+            tx_state=AccumulationTransaction.STATE_PENDING,
+        ).first()
 
-        #process accumulations
-        for addr in input_addresses:
-            if addr not in self.get_users_addresses():
-                continue
-
+        if accumulation_transaction:
+            addr = accumulation_transaction.wallet_transaction.wallet.address
             self.log.info(f'Found accumulation from {addr} to {output_address}')
             accumulation_details = AccumulationDetails.objects.filter(
                 txid=tx_id,
@@ -143,6 +158,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
             else:
                 accumulation_details.to_address = output_address
                 accumulation_details.complete()
+            accumulation_transaction.complete()
 
         # process only our addresses
         for addr, amount in outputs_amount.items():
@@ -161,6 +177,38 @@ class BTCCoinService(BitCoreCoinServiceBase):
                 self.log.info('Tx amount too low for scoring')
                 self.process_deposit(tx_id, addr, amount)
 
+    def accumulate_deposit(self, wallet_transaction, inputs_dict, private_keys_dict):
+        private_keys = {}
+        item = inputs_dict.get(wallet_transaction.tx_hash)
+        if not item:
+            return
+        private_keys[item['txid'] + ':' + str(item['vout'])] = private_keys_dict[item['address']]
+        total_amount = wallet_transaction.amount
+
+        accumulation_address = wallet_transaction.external_accumulation_address or self.get_accumulation_address(total_amount)
+        accumulation_amount = 0
+
+        try:
+            tx_id, accumulation_amount = self.transfer_to([item], accumulation_address, total_amount,  private_keys)
+        except TransferAmountLowError:
+            wallet_transaction.set_balance_too_low()
+            tx_id = None
+
+        if tx_id:
+            AccumulationDetails.objects.create(
+                currency=BTC_CURRENCY,
+                txid=tx_id,
+                from_address=item['address'],
+                to_address=accumulation_address,
+            )
+            AccumulationTransaction.objects.create(
+                wallet_transaction=wallet_transaction,
+                amount=accumulation_amount,
+                tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
+                tx_hash=tx_id,
+            )
+            wallet_transaction.set_accumulation_in_progress()
+        self.log.info(f'Accumulation to {accumulation_address} succeeded')
 
     def accumulate(self):
         """
@@ -168,22 +216,19 @@ class BTCCoinService(BitCoreCoinServiceBase):
         """
         self.log.info('Starting accumulation: %s', self.currency.code)
 
-        accumulation_ready_addresses_qs = self.get_accumulation_ready_addresses()
-        addresses = [a.address for a in accumulation_ready_addresses_qs]
-        to_accumulate_addresses = self.filter_accumulation_ready_addresses(addresses)
-        if not to_accumulate_addresses:
+        to_accumulate = self.get_accumulation_ready_wallet_transactions()
+        to_accumulate_from_addresses = [w.wallet.address for w in to_accumulate]
+
+        if not to_accumulate:
             self.log.warning('There are no addresses to accumulate')
             return
-        inputs = self.get_unspent(addresses=to_accumulate_addresses)
 
-        # check if spendable
-        checked_inputs = []
-        checked_txs_hashes = []
+        inputs = self.get_unspent(addresses=to_accumulate_from_addresses)
+        inputs_dict = {i['txid']: i for i in inputs}
 
-        # todo: get only needed keys
         private_keys_dict = dict(UserWallet.objects.filter(
             currency=self.currency,
-            address__in=list(i['address'] for i in inputs)
+            address__in=to_accumulate_from_addresses,
         ).values_list(
             'address',
             'private_key'
@@ -193,55 +238,34 @@ class BTCCoinService(BitCoreCoinServiceBase):
             address: AESCoderDecoder(settings.CRYPTO_KEY).decrypt(private_key) for address, private_key in private_keys_dict.items()
         }
 
-        private_keys = {}
+        for wallet_transaction in to_accumulate:
+            self.accumulate_deposit(wallet_transaction, inputs_dict, private_keys_dict)
 
-        for item in inputs:
-            result = self.rpc.gettxout(
-                item['txid'],
-                item['vout'],
-            )
-            if not result:
-                continue
 
-            checked_inputs.append(item)
-            checked_txs_hashes.append(item['txid'])
-            private_keys[item['txid'] + ':' + str(item['vout'])] = private_keys_dict[item['address']]
+        to_accumulate = self.get_external_accumulation_ready_wallet_transactions()
+        to_accumulate_from_addresses = [w.wallet.address for w in to_accumulate]
 
-        total_amount = sum([to_decimal(i['amount']) for i in checked_inputs])
-
-        if total_amount < self.min_accumulation_balance or total_amount == 0:
-            self.log.info('Total balance too low for accumulation: %s %s',
-                          self.currency.code, total_amount)
+        if not to_accumulate:
+            self.log.warning('There are no addresses to accumulate')
             return
 
-        self.log.info('Total accumulation balance: %s %s', self.currency.code, total_amount)
+        inputs = self.get_unspent(addresses=to_accumulate_from_addresses)
+        inputs_dict = {i['txid']: i for i in inputs}
 
-        estimated_tx_size = self.estimate_tx_size(len(checked_inputs), 1)
-        transfer_fee = self.get_transfer_fee(estimated_tx_size)
-        self.log.info('Estimated transfer fee: %s %s', self.currency.code, transfer_fee)
-        accumulation_amount = total_amount - transfer_fee
+        private_keys_dict = dict(UserWallet.objects.filter(
+            currency=self.currency,
+            address__in=to_accumulate_from_addresses,
+        ).values_list(
+            'address',
+            'private_key'
+        ))
 
-        if accumulation_amount <= 0:
-            self.log.info('Accumulation balance too low after fee apply: %s', accumulation_amount)
-            return
-
-        accumulation_address = self.get_accumulation_address(accumulation_amount)
-
-        outputs = {
-            accumulation_address: accumulation_amount,
+        private_keys_dict = {
+            address: AESCoderDecoder(settings.CRYPTO_KEY).decrypt(private_key) for address, private_key in private_keys_dict.items()
         }
 
-        txid = self.transfer(checked_inputs, outputs, private_keys)
-        if txid:
-            for item in checked_inputs:
-                AccumulationDetails.objects.create(
-                    currency=BTC_CURRENCY,
-                    txid=txid,
-                    from_address=item['address'],
-                    to_address=accumulation_address,
-                )
-            self.log.info(f'Accumulation to {accumulation_address} succeeded')
-        accumulation_ready_addresses_qs.update(accumulation_made=True)
+        for wallet_transaction in to_accumulate:
+            self.accumulate_deposit(wallet_transaction, inputs_dict, private_keys_dict)
 
 
     def transfer(self, inputs: list, outputs: dict, private_keys: dict):
@@ -252,11 +276,49 @@ class BTCCoinService(BitCoreCoinServiceBase):
         tx_hex = self.crypto_coin.mktx(inputs, outputs)
         signed_tx = self.crypto_coin.signall(tx_hex, private_keys)
 
-        # if not signed_tx['complete']:
-        #     self.log.error('Unable to sign TX')
-        #     return
-
         tx_id = self.rpc.sendrawtransaction(signed_tx)
         self.log.info('Sent TX: %s', tx_id)
 
         return tx_id
+
+    def get_tx_size(self, inputs: list, outputs: dict, private_keys: dict):
+
+        inputs = self.prepare_inputs(inputs)
+        outputs = self.prepare_outs(outputs)
+        tx_hex = self.crypto_coin.mktx(inputs, outputs)
+        signed_tx_without_fee = self.crypto_coin.signall(tx_hex, private_keys)
+
+        tx_decode = self.rpc.decoderawtransaction(signed_tx_without_fee)
+        return tx_decode.get('size')
+
+    def transfer_to(self, inputs: list, address_to: str, amount: Decimal, private_keys: dict) -> [str, Decimal]:
+
+        pre_outputs = {
+            address_to: amount
+        }
+
+        tx_size = self.get_tx_size(inputs, pre_outputs, private_keys)
+        transfer_fee = self.get_transfer_fee(tx_size)
+
+        transfer_amount = amount - transfer_fee
+
+        self.log.info('Estimated transfer fee: %s fee[%s] size[%s]', self.currency.code, transfer_fee, tx_size)
+
+        if transfer_amount <= 0:
+            self.log.info('Transfer amount too low after fee apply: %s', transfer_amount)
+            raise TransferAmountLowError
+
+        outputs = {
+            address_to: transfer_amount
+        }
+
+        inputs = self.prepare_inputs(inputs)
+        outputs = self.prepare_outs(outputs)
+        tx_hex = self.crypto_coin.mktx(inputs, outputs)
+        signed_tx = self.crypto_coin.signall(tx_hex, private_keys)
+
+        self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
+        tx_id = self.rpc.sendrawtransaction(signed_tx)
+        self.log.info('Sent TX: %s', tx_id)
+
+        return tx_id, transfer_amount
