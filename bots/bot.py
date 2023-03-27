@@ -14,7 +14,7 @@ from bots.helpers import get_ranged_random
 from bots.models import BotConfig
 from bots.structs import OrderType, OrderSide, OrderStruct
 from core.cache import external_exchanges_pairs_price_cache
-from core.tasks.stats import update_external_exchanges_pairs_price_cache
+from cryptocoins.tasks import update_crypto_external_prices
 from lib.helpers import pretty_decimal, to_decimal, to_decimal_pretty
 from lib.notifications import send_telegram_message
 
@@ -112,7 +112,7 @@ class Bot:
 
         if external_pair_price is None:
             if update_price:
-                update_external_exchanges_pairs_price_cache()
+                update_crypto_external_prices()
                 external_pair_price = self.get_external_or_custom_price(False)
             else:
                 raise BotExitCondition('%s External price unavailable', self.bot_config.name)
