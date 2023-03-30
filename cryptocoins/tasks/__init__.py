@@ -5,6 +5,7 @@ from cryptocoins.tasks.trx import *
 from cryptocoins.tasks.bnb import *
 from cryptocoins.tasks.stats import *
 from cryptocoins.tasks.scoring import *
+from cryptocoins.tasks.datasources import *
 
 __all__ = (
     'eth_process_new_blocks',
@@ -38,4 +39,5 @@ __all__ = (
     'accumulate_bnb',
     'accumulate_bep20',
     'process_deffered_deposit',
+    'update_crypto_external_prices',
 )
