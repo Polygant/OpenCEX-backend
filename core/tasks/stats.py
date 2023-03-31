@@ -100,34 +100,6 @@ def make_user_stats():
 
 
 @shared_task
-def update_external_exchanges_pairs_price_cache():
-    """
-    Get prices from external exchanges and update cache
-    """
-
-    exchange_session = ExchangeClientSession('')
-    pairs_prices_aggregated = exchange_session.get_pairs_prices()
-    history = []
-
-    for pair_tuple in PAIRS_LIST:
-        pair = Pair.get(pair_tuple[1])
-        custom_price = PairSettings.get_custom_price(pair.code)
-        price = custom_price or pairs_prices_aggregated.get(pair.code, 0)
-
-        if price:
-            previous_price = external_exchanges_pairs_price_cache.get(pair, None)
-            if previous_price:
-                percent_difference = calc_relative_percent_difference(price, previous_price)
-                if percent_difference > 0.3:
-                    run_otc_orders_price_update.apply_async([pair.code], queue=f'orders.{pair.code}')
-            external_exchanges_pairs_price_cache.set(pair, price)
-            pair_code = pair.code
-            if pair_code in ['BTC-USDT', 'ETH-USDT']:
-                history.append(ExternalPricesHistory(pair=pair_code, price=price))
-    ExternalPricesHistory.objects.bulk_create(history)
-
-
-@shared_task
 def update_cryptocompare_pairs_price_cache():
     """
     Get prices from external exchanges and update cache

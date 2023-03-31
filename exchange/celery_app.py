@@ -570,8 +570,8 @@ if is_section_enabled('otc'):
                 'queue': 'otc'
             }
         },
-        'update_external_exchanges_pairs_price_cache': {
-            'task': 'core.tasks.stats.update_external_exchanges_pairs_price_cache',
+        'update_crypto_external_prices': {
+            'task': 'cryptocoins.tasks.datasources.update_crypto_external_prices',
             'schedule': 15.0,
             'options': {
                 'queue': 'otc',
