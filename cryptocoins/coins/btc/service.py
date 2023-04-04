@@ -1,7 +1,7 @@
 from collections import defaultdict
 from decimal import Decimal
 
-from cryptos import Bitcoin, apply_multisignatures
+from cryptos import Bitcoin, apply_multisignatures, serialize
 from django.conf import settings
 
 from core.models.cryptocoins import UserWallet
@@ -98,7 +98,9 @@ class BTCCoinService(BitCoreCoinServiceBase):
         return [
             {
                 'address': item['address'],
-                'output': item['txid']+':'+str(item['vout']),
+                'tx_hash': item['txid'],
+                'tx_pos': item['vout'],
+                'output': item['txid'] + ':' + str(item['vout']),
                 'value': int(btc2sat(to_decimal(item['amount'])))
             }
             for item in inputs
@@ -112,7 +114,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
             sig3 = self.crypto_coin.multisign(tx, i, redeemScript, private_key)
             tx = apply_multisignatures(tx, i, redeemScript, sig1, sig3)
 
-        return tx
+        return serialize(tx)
 
     def multi_transfer(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
         self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
@@ -178,18 +180,19 @@ class BTCCoinService(BitCoreCoinServiceBase):
                 self.process_deposit(tx_id, addr, amount)
 
     def accumulate_deposit(self, wallet_transaction, inputs_dict, private_keys_dict):
-        private_keys = {}
+        #private_keys = {}
         item = inputs_dict.get(wallet_transaction.tx_hash)
         if not item:
             return
-        private_keys[item['txid'] + ':' + str(item['vout'])] = private_keys_dict[item['address']]
+        #private_keys[item['txid'] + ':' + str(item['vout'])] = private_keys_dict[item['address']]
+        private_keys_dict[item['txid'] + ':' + str(item['vout'])] = private_keys_dict[item['address']]
         total_amount = wallet_transaction.amount
 
         accumulation_address = wallet_transaction.external_accumulation_address or self.get_accumulation_address(total_amount)
         accumulation_amount = 0
 
         try:
-            tx_id, accumulation_amount = self.transfer_to([item], accumulation_address, total_amount,  private_keys)
+            tx_id, accumulation_amount = self.transfer_to([item], accumulation_address, total_amount,  private_keys_dict)
         except TransferAmountLowError:
             wallet_transaction.set_balance_too_low()
             tx_id = None
@@ -275,8 +278,8 @@ class BTCCoinService(BitCoreCoinServiceBase):
         outputs = self.prepare_outs(outputs)
         tx_hex = self.crypto_coin.mktx(inputs, outputs)
         signed_tx = self.crypto_coin.signall(tx_hex, private_keys)
-
-        tx_id = self.rpc.sendrawtransaction(signed_tx)
+        signed_tx_s = serialize(signed_tx)
+        tx_id = self.rpc.sendrawtransaction(signed_tx_s)
         self.log.info('Sent TX: %s', tx_id)
 
         return tx_id
@@ -287,8 +290,9 @@ class BTCCoinService(BitCoreCoinServiceBase):
         outputs = self.prepare_outs(outputs)
         tx_hex = self.crypto_coin.mktx(inputs, outputs)
         signed_tx_without_fee = self.crypto_coin.signall(tx_hex, private_keys)
+        signed_tx_without_fee_s = serialize(signed_tx_without_fee)
 
-        tx_decode = self.rpc.decoderawtransaction(signed_tx_without_fee)
+        tx_decode = self.rpc.decoderawtransaction(signed_tx_without_fee_s)
         return tx_decode.get('size')
 
     def transfer_to(self, inputs: list, address_to: str, amount: Decimal, private_keys: dict) -> [str, Decimal]:
@@ -316,9 +320,10 @@ class BTCCoinService(BitCoreCoinServiceBase):
         outputs = self.prepare_outs(outputs)
         tx_hex = self.crypto_coin.mktx(inputs, outputs)
         signed_tx = self.crypto_coin.signall(tx_hex, private_keys)
+        signed_tx_s = serialize(signed_tx)
 
         self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
-        tx_id = self.rpc.sendrawtransaction(signed_tx)
+        tx_id = self.rpc.sendrawtransaction(signed_tx_s)
         self.log.info('Sent TX: %s', tx_id)
 
         return tx_id, transfer_amount
