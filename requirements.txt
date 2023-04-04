@@ -62,7 +62,7 @@ cosmospy==6.0.0
 coverage==5.5
 crypto==1.4.1
 cryptography==39.0.1
-cryptos @ https://github.com/Polygant/pybitcointools/archive/master.zip
+cryptos~=2.0.6
 cssselect2==0.7.0
 cytoolz==0.11.0
 daphne==3.0.2
