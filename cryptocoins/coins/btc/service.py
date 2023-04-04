@@ -320,9 +320,10 @@ class BTCCoinService(BitCoreCoinServiceBase):
         outputs = self.prepare_outs(outputs)
         tx_hex = self.crypto_coin.mktx(inputs, outputs)
         signed_tx = self.crypto_coin.signall(tx_hex, private_keys)
+        signed_tx_s = serialize(signed_tx)
 
         self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
-        tx_id = self.rpc.sendrawtransaction(signed_tx)
+        tx_id = self.rpc.sendrawtransaction(signed_tx_s)
         self.log.info('Sent TX: %s', tx_id)
 
         return tx_id, transfer_amount
