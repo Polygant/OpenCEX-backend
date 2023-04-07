@@ -24,7 +24,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
     CURRENCY = BTC_CURRENCY
     node_config = settings.NODES_CONFIG['btc']
     cold_wallet_address = settings.BTC_SAFE_ADDR
-    const_fee = 0.00005
+    const_fee = 0.00003
     CRYPTO_COIN = Bitcoin()
 
     def get_transfer_fee(self, size):
