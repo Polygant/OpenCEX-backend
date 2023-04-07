@@ -21,11 +21,11 @@ from lib.helpers import to_decimal
 
 
 class BTCCoinService(BitCoreCoinServiceBase):
-    currency = BTC_CURRENCY
+    CURRENCY = BTC_CURRENCY
     node_config = settings.NODES_CONFIG['btc']
     cold_wallet_address = settings.BTC_SAFE_ADDR
     const_fee = 0.00005
-    crypto_coin = Bitcoin()
+    CRYPTO_COIN = Bitcoin()
 
     def get_transfer_fee(self, size):
         # fee = to_decimal(size / 1000) * to_decimal(0.0002)

@@ -1,5 +1,6 @@
 import json
 from collections import OrderedDict
+from typing import Tuple, Any
 
 from cryptos import Bitcoin
 from django.conf import settings
@@ -41,16 +42,23 @@ def sat2btc(sat):
     return to_decimal(sat) / to_decimal(10**8)
 
 
-def generate_btc_multisig_keeper(log=None) -> (dict, Keeper):
+def generate_btc_multisig_keeper(log=None) -> Tuple[OrderedDict, Keeper]:
     from cryptocoins.coins.btc.service import BTCCoinService
+    service = BTCCoinService()
     btc = Bitcoin()
-    ad1 = create_wallet('btc')
-    ad2 = create_wallet('btc')
-    ad3 = create_wallet('btc')
+    ad1 = service.create_new_wallet(addr_import=False)
+    ad2 = service.create_new_wallet(addr_import=False)
+    ad3 = service.create_new_wallet(addr_import=False)
     # save ad# data
 
-    pub_keys = [ad1['public_key'], ad2['public_key'], ad3['public_key']]
-    script, address = btc.mk_multsig_address(pub_keys, 2)
+    is_segwit = not getattr(settings, 'BTC_ADDRESS_LEGACY', False)
+
+    pub_keys = [ad1.public_key, ad2.public_key, ad3.public_key]
+    if is_segwit:
+        script, address = btc.mk_multsig_segwit_address(*pub_keys, num_required=2)
+    else:
+        script, address = btc.mk_multsig_address(*pub_keys, num_required=2)
+
     '''
     create keeper in admin panel and add script to "keeper.extra" {"redeem_script":"script"}
     use ad3 private key in keeper
@@ -65,35 +73,29 @@ def generate_btc_multisig_keeper(log=None) -> (dict, Keeper):
 
     '''
     private_key_encrypt = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
-        ad3["wif"]
+        ad3.private_key
     )
 
     owner = OrderedDict({
-        'coin': ad1["coin"],
-        'seed': ad1["seed"],
-        'address': ad1["address"],
-        'public key': ad1["public_key"],
-        'private key': ad1["wif"].decode()
+        'address': ad1.address,
+        'public key': ad1.public_key,
+        'private key': ad1.private_key
     })
 
     manager = OrderedDict({
-        'coin': ad2["coin"],
-        'seed': ad2["seed"],
-        'address': ad2["address"],
-        'public key': ad2["public_key"],
-        'private key': ad2["wif"].decode()
+        'address': ad2.address,
+        'public key': ad2.public_key,
+        'private key': ad2.private_key
     })
 
     site = OrderedDict({
-        'coin': ad3["coin"],
-        'seed': ad3["seed"],
-        'address': ad3["address"],
-        'public key': ad3["public_key"],
-        'private key': ad3["wif"].decode(),
+        'address': ad3.address,
+        'public key': ad3.public_key,
+        'private key': ad3.private_key,
         'private key encrypted': private_key_encrypt
     })
 
-    keeper = OrderedDict({
+    keeper_data = OrderedDict({
         'address': address,
         'extra: redeem_script': script
     })
@@ -102,13 +104,12 @@ def generate_btc_multisig_keeper(log=None) -> (dict, Keeper):
         'OWNER': owner,
         'MANAGER': manager,
         'SITE': site,
-        'KEEPER': keeper
+        'KEEPER': keeper_data
     })
 
     print(json.dumps(res, indent=4))
 
-    service = BTCCoinService()
-    service.rpc.addmultisigaddress(2,[ad1['public_key'], ad2['public_key'], ad3['public_key']], "keeper", "legacy")
+    service.rpc.addmultisigaddress(2, pub_keys, "keeper", "p2sh-segwit" if is_segwit else "legacy")
     service.rpc.importaddress(address, "keeper", False)
     if log:
         log.info('Keeper address sucessfully imported to node')
@@ -121,6 +122,6 @@ def generate_btc_multisig_keeper(log=None) -> (dict, Keeper):
         private_key=private_key_encrypt,
     )
 
-    keeper = create_keeper(user_wallet, extra={'redeem_script': script})
+    keeper: Keeper = create_keeper(user_wallet, extra={'redeem_script': script})
 
     return res, keeper
