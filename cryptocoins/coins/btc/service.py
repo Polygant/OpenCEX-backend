@@ -80,7 +80,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
             outputs=self.prepare_outs(tx_outputs),
             private_key=keeper_wallet.private_key,
             private_key_s=private_key,
-            redeemScript=keeper_wallet.redeem_script
+            redeem_script=keeper_wallet.redeem_script
         )
 
     @staticmethod
