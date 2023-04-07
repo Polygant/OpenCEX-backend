@@ -21,11 +21,11 @@ from lib.helpers import to_decimal
 
 
 class BTCCoinService(BitCoreCoinServiceBase):
-    currency = BTC_CURRENCY
+    CURRENCY = BTC_CURRENCY
     node_config = settings.NODES_CONFIG['btc']
     cold_wallet_address = settings.BTC_SAFE_ADDR
-    const_fee = 0.00005
-    crypto_coin = Bitcoin()
+    const_fee = 0.00003
+    CRYPTO_COIN = Bitcoin()
 
     def get_transfer_fee(self, size):
         # fee = to_decimal(size / 1000) * to_decimal(0.0002)
@@ -80,7 +80,7 @@ class BTCCoinService(BitCoreCoinServiceBase):
             outputs=self.prepare_outs(tx_outputs),
             private_key=keeper_wallet.private_key,
             private_key_s=private_key,
-            redeemScript=keeper_wallet.redeem_script
+            redeem_script=keeper_wallet.redeem_script
         )
 
     @staticmethod
@@ -106,27 +106,43 @@ class BTCCoinService(BitCoreCoinServiceBase):
             for item in inputs
         ]
 
-    def multi_tx_sign(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
+    def multi_tx_sign(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeem_script: str):
+        """
+        make transaction and sign with two prv key
+        """
+        tx_obj = self.crypto_coin.mktx(inputs, outputs)
 
-        tx = self.crypto_coin.mktx(inputs, outputs)
-        for i in range(0, len(tx['ins'])):
-            sig1 = self.crypto_coin.multisign(tx, i, redeemScript, private_key_s)
-            sig3 = self.crypto_coin.multisign(tx, i, redeemScript, private_key)
-            tx = apply_multisignatures(tx, i, redeemScript, sig1, sig3)
+        for i in range(0, len(tx_obj['ins'])):
+            inp = tx_obj['ins'][i]
+            segwit = False
+            try:
+                if address := inp['address']:
+                    segwit = self.crypto_coin.is_native_segwit(address)
+            except (IndexError, KeyError):
+                pass
+            sig1 = self.crypto_coin.multisign(tx_obj, i, redeem_script, private_key_s)
+            sig3 = self.crypto_coin.multisign(tx_obj, i, redeem_script, private_key)
+            tx_obj = apply_multisignatures(tx_obj, i, redeem_script, sig1, sig3, segwit=segwit)
 
-        return serialize(tx)
+        return serialize(tx_obj)
 
-    def multi_transfer(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
+    def multi_transfer(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeem_script: str):
+        """
+        make transaction,sign with two prv key and send raw_tx
+        """
         self.log.info('Make transfer %s in -> %s out', len(inputs), len(outputs))
-        tx = self.multi_tx_sign(inputs, outputs, private_key, private_key_s, redeemScript)
-        tx_id = self.rpc.sendrawtransaction(tx)
+        raw_tx = self.multi_tx_sign(inputs, outputs, private_key, private_key_s, redeem_script)
+        tx_id = self.rpc.sendrawtransaction(raw_tx)
         self.log.info('Sent TX: %s', tx_id)
 
         return tx_id
 
-    def get_multi_tx_size(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeemScript: str):
-        tx = self.multi_tx_sign(inputs, outputs, private_key, private_key_s, redeemScript)
-        tx_decode = self.rpc.decoderawtransaction(tx)
+    def get_multi_tx_size(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeem_script: str):
+        """
+        get size raw_tx in bytes
+        """
+        raw_tx = self.multi_tx_sign(inputs, outputs, private_key, private_key_s, redeem_script)
+        tx_decode = self.rpc.decoderawtransaction(raw_tx)
         return tx_decode.get('size')
 
     def check_tx_for_deposit(self, tx_data):
