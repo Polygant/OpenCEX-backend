@@ -138,7 +138,6 @@ class CoinServiceBase:
             return wallet
 
         self.log.info('Create new %s wallet for user %s', self.currency.code, user_id)
-        is_keeper = user_id is None
         wallet_account = self.create_new_wallet()
         wallet = UserWallet.objects.create(
             user_id=user_id,
