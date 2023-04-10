@@ -3,7 +3,7 @@ import datetime
 from django.conf import settings
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, QuerySet
 from django.db.transaction import atomic
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
@@ -197,7 +197,7 @@ class WithdrawalRequest(UserMixinModel, BaseModel):
         return cls.objects.exclude(sci_gate_id__isnull=True).filter(state__in=[CREATED, PENDING], created__gte=dt, approved=True, confirmed=True)
 
     @classmethod
-    def crypto_to_process(cls, currency):
+    def crypto_to_process(cls, currency) -> QuerySet:
         return cls.objects.filter(
             currency=currency,
             state=CREATED,

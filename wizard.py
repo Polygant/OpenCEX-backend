@@ -629,7 +629,6 @@ def main():
         # btc
         if not Keeper.objects.filter(currency=BTC_CURRENCY).exists():
             btc_info, btc_keeper = generate_btc_multisig_keeper()
-            btc_keeper: Keeper
             to_write.append('BTC Info')
             to_write.append(f'Keeper address: {btc_keeper.user_wallet.address}')
             to_write.append('private data:')
