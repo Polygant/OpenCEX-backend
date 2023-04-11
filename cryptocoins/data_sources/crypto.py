@@ -33,6 +33,13 @@ class BinanceDataSource(BaseDataSource):
         self._data = pairs_prices
         return pairs_prices
 
+    def is_pair_exists(self, pair_symbol) -> bool:
+        binance_client = BinanceClient()
+        binance_pairs = [bc['symbol'] for bc in binance_client.get_all_tickers()]
+        base, quote = pair_symbol.split('-')
+        return f'{base}{quote}' in binance_pairs
+
+
 
 class CryptocompareDataSource(BaseDataSource):
     """
@@ -78,6 +85,11 @@ class KuCoinDataSource(BaseDataSource):
                 pairs_prices[pair] = to_decimal(kucoin_prices_data[pair_exchange_key])
         self._data = pairs_prices
         return pairs_prices
+
+    def is_pair_exists(self, pair_symbol) -> bool:
+        data = requests.get('https://api.kucoin.com/api/v1/market/allTickers').json()['data']['ticker']
+        kucoin_pairs = [bc['symbol'] for bc in data]
+        return pair_symbol in kucoin_pairs
 
 
 binance_data_source = BinanceDataSource()
