@@ -14,3 +14,6 @@ class BaseDataSource:
 
     def get_latest_prices(self) -> Dict[Pair, Decimal]:
         raise NotImplementedError
+
+    def is_pair_exists(self, pair_symbol) -> bool:
+        raise NotImplementedError

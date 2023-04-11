@@ -29,7 +29,7 @@ from exchange.loggers import DynamicFieldFilter
 from exchange.models import BaseModel
 from exchange.models import UserMixinModel
 from lib.cache import PrefixedRedisCache
-from lib.fields import MoneyField, RichTextField
+from lib.fields import MoneyField, RichTextField, SVGAndImageField
 from lib.utils import hmac_random_string, generate_random_string
 
 EXPIRE_TOKEN_CACHE = PrefixedRedisCache.get_cache(prefix='expire_token')
@@ -590,6 +590,7 @@ class CoinInfo(models.Model):
     index = models.SmallIntegerField()
     tx_explorer = models.CharField(max_length=255, default='')
     links = models.JSONField(default=default_coin_info_links)
+    logo = models.CharField(max_length=255, default='')
 
     def as_dict(self):
         from core.models import DisabledCoin
@@ -606,6 +607,7 @@ class CoinInfo(models.Model):
             'links': self.links,
             'is_token': self.currency.is_token,
             'blockchain_list': blockchain_list,
+            'logo': self.logo
         }
 
     def save(self, *args, **kwargs):
