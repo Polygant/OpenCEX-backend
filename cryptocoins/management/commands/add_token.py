@@ -2,14 +2,16 @@ import json
 
 from django.core.management.base import BaseCommand
 
+from core.consts.currencies import BEP20_CURRENCIES, ERC20_CURRENCIES, TRC20_CURRENCIES, CURRENCIES_LIST, \
+    CRYPTO_ADDRESS_VALIDATORS
+from core.currency import Currency, CurrencyNotFound
 from core.models import PairSettings, FeesAndLimits, WithdrawalFee
-from core.models.stats import InoutsStats
-from cryptocoins.data_sources.crypto import binance_data_source, kucoin_data_source
 from core.models.facade import CoinInfo
-from core.pairs import PAIRS_LIST
-from cryptocoins.tokens_manager import read_tokens_file, write_tokens_file, get_tokens_backup_diffs, restore_backup_file
-from core.consts.currencies import BEP20_CURRENCIES, ERC20_CURRENCIES, TRC20_CURRENCIES, CURRENCIES_LIST
-
+from core.models.stats import InoutsStats
+from core.pairs import PAIRS_LIST, PairNotFound
+from cryptocoins.data_sources.crypto import binance_data_source, kucoin_data_source
+from cryptocoins.tokens_manager import read_tokens_file, write_tokens_file, get_tokens_backup_diffs, \
+    restore_backup_file, register_tokens_and_pairs
 
 TOKENS_BLOCKCHAINS_MAP = {'ETH': ERC20_CURRENCIES, 'BNB': BEP20_CURRENCIES, 'TRX': TRC20_CURRENCIES}
 
@@ -17,9 +19,17 @@ TOKENS_BLOCKCHAINS_MAP = {'ETH': ERC20_CURRENCIES, 'BNB': BEP20_CURRENCIES, 'TRX
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-        pass
+        parser.add_argument('-r', '--revert', action='store_true',
+                            default=False,
+                            help="Restore tokens file backup and deletes previously created DB entries",
+                            )
 
     def handle(self, *args, **options):
+        is_revert = options.get('revert')
+        if is_revert:
+            revert()
+            return
+
         all_tokens_data = read_tokens_file()
 
         # common token data
@@ -30,7 +40,7 @@ class Command(BaseCommand):
             print('[!] Token with this blockchain already added')
             return
 
-        contract = prompt('Enter token contract address')
+        contract = prompt_contract(blockchain_symbol)
         decimals = prompt('Enter token decimals', int)
         token_currency_id = get_available_currency_id()
 
@@ -69,12 +79,13 @@ class Command(BaseCommand):
 
         write_tokens_file(json.dumps(all_tokens_data, indent=2))
         print(f'[+] Token {token_symbol} ({blockchain_symbol}) successfully added to a file')
+        register_tokens_and_pairs()
 
-        print('*****Coin Info*****')
-        if CoinInfo.objects.filter(currency=token_symbol).exists():
+        if is_entry_exists(CoinInfo, {'currency': token_symbol}):
             print(f'[*] CoinInfo already exists for {token_symbol}')
         else:
             token_name = prompt('Enter token name')
+            logo = prompt('Enter token logo link', default='')
             display_decimals = prompt('Enter decimals for rounding', int, default=2)
             index = prompt('Enter token index')
             cmc_link = prompt('Enter CoinMarketCap link', default='')
@@ -101,33 +112,31 @@ class Command(BaseCommand):
                 }
             CoinInfo.objects.create(
                 currency=token_symbol,
-                defaults={
-                    'name': token_name,
-                    'decimals': display_decimals,
-                    'index': index,
-                    'links': links,
-                }
+                logo=logo,
+                name=token_name,
+                decimals=display_decimals,
+                index=index,
+                links=links
             )
             print('[+] CoinInfo successfully created')
 
         ## PairSettings
         print('*****Pair Settings*****')
-
-        if PairSettings.objects.filter(pair=pair_to_usdt).exists():
+        if is_entry_exists(PairSettings, {'pair': pair_to_usdt}):
             print(f'[*] PairSettings already exists for {token_symbol}-USDT')
         else:
             pair_settings = {'pair': pair_to_usdt}
             if binance_data_source.is_pair_exists(pair_to_usdt) or kucoin_data_source.is_pair_exists(pair_to_usdt):
                 pair_settings['price_source'] = PairSettings.PRICE_SOURCE_EXTERNAL
             else:
-                print(f'Pair {pair_to_usdt} is not found in external price sources')
+                print(f'[-] Pair {pair_to_usdt} is not found in external price sources')
                 pair_settings['price_source'] = PairSettings.PRICE_SOURCE_CUSTOM
                 pair_settings['custom_price'] = prompt(f'Enter custom price for {pair_to_usdt}', arg_type=float)
             PairSettings.objects.create(**pair_settings)
             print('[+] PairSettings successfully created')
 
         print('*****Fees and Limits*****')
-        if FeesAndLimits.objects.filter(currency=token_symbol).exists():
+        if is_entry_exists(FeesAndLimits, {'currency': token_symbol}):
             print(f'[*] FeesAndLimits already exists')
         else:
             default_fees_and_limits = {
@@ -151,7 +160,7 @@ class Command(BaseCommand):
             print('[+] FeesAndLimits successfully created')
 
         print('*****Withdrawal Fee*****')
-        if WithdrawalFee.objects.filter(currency=token_symbol, blockchain_currency=blockchain_symbol).exists():
+        if is_entry_exists(WithdrawalFee, {'currency': token_symbol, 'blockchain_currency': blockchain_symbol}):
             print(f'[*] WithdrawalFee already exists')
         else:
             WithdrawalFee.objects.create(
@@ -162,7 +171,7 @@ class Command(BaseCommand):
             print('[+] WithdrawalFee successfully created')
 
         print('*****Inouts Stats*****')
-        if InoutsStats.objects.filter(currency=token_symbol).exists():
+        if is_entry_exists(InoutsStats, {'currency': token_symbol}):
             print(f'[*] InoutsStats already exists')
         else:
             InoutsStats.objects.create(
@@ -170,37 +179,44 @@ class Command(BaseCommand):
             )
             print('[+] InoutsStats successfully created')
 
-
 def revert():
     diff = get_tokens_backup_diffs()
     if not diff:
         print('[-] Revert is impossible')
+        return
     if diff.token and not diff.blockchain:
         print('[*] CoinInfo, FeesAndLimits, WithdrawalFee, InoutsStats, PairSettings entries will be deleted')
-        CoinInfo.objects.filter(currency=diff.token).delete()
-        FeesAndLimits.objects.filter(currency=diff.token).delete()
-        WithdrawalFee.objects.filter(currency=diff.token).delete()
-        InoutsStats.objects.filter(currency=diff.token).delete()
-        PairSettings.objects.filter(pair=f'{diff.token}-USDT').delete()
+        if is_entry_exists(CoinInfo, {'currency': diff.token}):
+            CoinInfo.objects.filter(currency=diff.token).delete()
+
+        if is_entry_exists(FeesAndLimits, {'currency': diff.token}):
+            FeesAndLimits.objects.filter(currency=diff.token).delete()
+
+        if is_entry_exists(WithdrawalFee, {'currency': diff.token}):
+            WithdrawalFee.objects.filter(currency=diff.token).delete()
+
+        if is_entry_exists(InoutsStats, {'currency': diff.token}):
+            InoutsStats.objects.filter(currency=diff.token).delete()
+
+        if is_entry_exists(PairSettings, {'pair': f'{diff.token}-USDT'}):
+            PairSettings.objects.filter(pair=f'{diff.token}-USDT').delete()
+
     elif diff.token and diff.blockchain:
         print('[*] WithdrawalFee entry will be deleted')
-        WithdrawalFee.objects.filter(currency=diff.token, blockchain_currency=diff.blockchain).delete()
+        if is_entry_exists(WithdrawalFee, {'currency': diff.token, 'blockchain_currency': diff.blockchain}):
+            WithdrawalFee.objects.filter(currency=diff.token, blockchain_currency=diff.blockchain).delete()
     restore_backup_file()
 
-
 def get_available_currency_id():
-    return max(c[0] for c in CURRENCIES_LIST) + 1
-
+    return max(max(c[0] for c in CURRENCIES_LIST), 1000) + 1
 
 def get_available_pair_id():
-    return max(p[0] for p in PAIRS_LIST) + 1
-
+    return max(max(p[0] for p in PAIRS_LIST), 1000) + 1
 
 def is_token_exists(symbol, blockchain_symbol):
     blockchain_currencies = TOKENS_BLOCKCHAINS_MAP[blockchain_symbol]
     symbols = [c.code for c in blockchain_currencies]
     return symbol in symbols
-
 
 def prompt(text, arg_type=str, choices=None, default=None):
     if not choices:
@@ -233,6 +249,42 @@ def prompt(text, arg_type=str, choices=None, default=None):
             continue
     return res
 
-
 def is_float(s):
     return s.replace('.', '', 1).isdigit()
+
+
+def prompt_contract(blockchain):
+    fn = CRYPTO_ADDRESS_VALIDATORS[Currency.get(blockchain)]
+    while 1:
+        contract = prompt('Enter token contract address')
+        if not fn(contract):
+            print('[!] Contract address is not valid')
+        else:
+            return contract
+
+def is_entry_exists(model, fields):
+    try:
+        res = model.objects.filter(**fields).exists()
+    except CurrencyNotFound:
+        return False
+    except PairNotFound:
+        return False
+    return res
+
+
+# def fetch_link():
+#     while 1:
+#         link = prompt('Enter link url address', default='')
+#         if not link:
+#             return ''
+#         try:
+#             img_content = requests.get(link).content
+#         except:
+#             print(f'[-] Cant fetch image from {link}')
+#             continue
+#         try:
+#             Image.open(BytesIO(img_content))
+#         except Exception as e:
+#             print(f'[-] {e}')
+#             continue
+#         return ContentFile(img_content)
