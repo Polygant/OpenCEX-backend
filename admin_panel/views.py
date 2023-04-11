@@ -81,7 +81,7 @@ def admin_withdrawal_request_approve(request):
 
 @staff_member_required
 def admin_eth_withdrawal_request_approve(request):
-    currencies = [ETH_CURRENCY] + [ERC20_CURRENCIES]
+    currencies = [ETH_CURRENCY] + list(ERC20_CURRENCIES)
     withdrawal_requests = get_withdrawal_requests_to_process(currencies, blockchain_currency='ETH')
 
     if request.method == 'POST':
@@ -113,7 +113,7 @@ def admin_eth_withdrawal_request_approve(request):
 
 @staff_member_required
 def admin_trx_withdrawal_request_approve(request):
-    currencies = [TRX_CURRENCY] + [TRC20_CURRENCIES]
+    currencies = [TRX_CURRENCY] + list(TRC20_CURRENCIES)
     withdrawal_requests = get_withdrawal_requests_to_process(currencies, blockchain_currency='TRX')
 
     if request.method == 'POST':
