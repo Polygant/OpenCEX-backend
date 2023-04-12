@@ -35,7 +35,8 @@ class BaseHttpSession():
                 print('EXCEPTION', e, type(e))
                 err = e
             except requests.exceptions.HTTPError as e:
-                print(e.response.text)
+                if e.response.status_code == 400:
+                    print(e.response.text)
                 err = e
 
         raise err
