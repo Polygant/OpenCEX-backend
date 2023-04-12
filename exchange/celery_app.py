@@ -214,6 +214,13 @@ if is_section_enabled('bnb'):
                 'expires': 20,
             }
         },
+        # 'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
+        #     'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
+        #     'schedule': crontab(minute='5', hour='0'),
+        #     'options': {
+        #         'queue': 'bnb_accumulations',
+        #     }
+        # },
         # 'process_payouts': {
         #     'task': 'cryptocoins.tasks.bnb.process_payouts',
         #     'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
@@ -302,6 +309,13 @@ if is_section_enabled('tron'):
                 'expires': 20,
             }
         },
+        # 'cryptocoins.tasks.trx.accumulate_trx_dust': {
+        #     'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
+        #     'schedule': crontab(minute='10', hour='0'),
+        #     'options': {
+        #         'queue': 'trx_accumulations',
+        #     }
+        # },
     })
     app.conf.task_routes.update({
         'cryptocoins.tasks.trx.trx_process_new_blocks': {
@@ -436,20 +450,6 @@ if is_section_enabled('utils'):
         #         'queue': 'utils',
         #     }
         # },
-        # 'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
-        #     'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
-        #     'schedule': crontab(minute='5', hour='0'),
-        #     'options': {
-        #         'queue': 'utils',
-        #     }
-        # },
-        # 'cryptocoins.tasks.trx.accumulate_trx_dust': {
-        #     'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
-        #     'schedule': crontab(minute='10', hour='0'),
-        #     'options': {
-        #         'queue': 'utils',
-        #     }
-        # },
         'cryptocoins.tasks.commons.check_crypto_workers': {
             'task': 'cryptocoins.tasks.commons.check_crypto_workers',
             'schedule': crontab(minute=0),  # every hour
@@ -570,8 +570,8 @@ if is_section_enabled('otc'):
                 'queue': 'otc'
             }
         },
-        'update_external_exchanges_pairs_price_cache': {
-            'task': 'core.tasks.stats.update_external_exchanges_pairs_price_cache',
+        'update_crypto_external_prices': {
+            'task': 'cryptocoins.tasks.datasources.update_crypto_external_prices',
             'schedule': 15.0,
             'options': {
                 'queue': 'otc',

@@ -3,4 +3,4 @@ from cryptocoins.coins.btc.service import BTCCoinService
 
 
 class Command(BaseWorker):
-    service_class = BTCCoinService
+    SERVICE_CLASS = BTCCoinService

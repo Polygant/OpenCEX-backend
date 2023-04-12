@@ -25,7 +25,7 @@ from cryptocoins.utils.commons import create_keeper
 from core.consts.currencies import CRYPTO_WALLET_CREATORS
 from core.currency import Currency
 from core.utils.wallet_history import create_or_update_wallet_history_item_from_transaction
-from core.models import UserWallet, UserFee, Profile
+from core.models import UserWallet, UserFee, Profile, DisabledCoin
 from core.models import Transaction
 from core.models import FeesAndLimits
 from core.models import PairSettings
@@ -51,6 +51,9 @@ BACKUP_PATH = os.path.join(settings.BASE_DIR, 'backup')
 
 
 def main():
+
+    IS_TRON = True if env('COMMON_TASKS_TRON', default=True) else False
+    IS_BSC = True if env('COMMON_TASKS_BNB', default=True) else False
 
     coin_list = [
         ETH,
@@ -356,17 +359,55 @@ def main():
             },
         ],
     }
+
+    if not IS_BSC:
+        coin_info[BNB].append(
+            {
+                'model': DisabledCoin,
+                'find': {'currency': BNB},
+                'attributes': {
+                    'disable_all': True,
+                    'disable_stack': True,
+                    'disable_pairs': True,
+                    'disable_exchange': True,
+                    'disable_withdrawals': True,
+                    'disable_topups': True,
+                },
+            },
+        )
+
+    if not IS_TRON:
+        coin_info[TRX].append(
+            {
+                'model': DisabledCoin,
+                'find': {'currency': TRX},
+                'attributes': {
+                    'disable_all': True,
+                    'disable_stack': True,
+                    'disable_pairs': True,
+                    'disable_exchange': True,
+                    'disable_withdrawals': True,
+                    'disable_topups': True,
+                },
+            },
+        )
+
     with atomic():
         to_write = []
 
-        def get_or_create(model_inst, curr, get_attrs, set_attrs):
-            model_inst.objects.get_or_create(
+        def get_or_create(model_inst, curr, get_attrs, set_attrs: dict):
+            item, is_created = model_inst.objects.get_or_create(
                 **get_attrs,
                 defaults={
                     'currency': curr,
                     **set_attrs,
                 }
             )
+
+            if not is_created:
+                for key, attr in set_attrs.items():
+                    setattr(item, key, attr)
+                item.save()
 
         for coin, to_create_list in coin_info.items():
             for data in to_create_list:
@@ -472,7 +513,7 @@ def main():
             },
             Pair.get('TRX-USDT'): {
                 PairSettings: {
-                    'is_enabled': True,
+                    'is_enabled': IS_TRON,
                     'is_autoorders_enabled': True,
                     'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
                     'custom_price': 0,
@@ -493,12 +534,12 @@ def main():
                     'low_orders_max_match_size': 1,
                     'low_orders_spread_size': 1,
                     'low_orders_min_order_size': 1,
-                    'enabled': True,
+                    'enabled': IS_TRON,
                 }
             },
             Pair.get('BNB-USDT'): {
                 PairSettings: {
-                    'is_enabled': True,
+                    'is_enabled': IS_BSC,
                     'is_autoorders_enabled': True,
                     'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
                     'custom_price': 0,
@@ -519,7 +560,7 @@ def main():
                     'low_orders_max_match_size': 1,
                     'low_orders_spread_size': 1,
                     'low_orders_min_order_size': 1,
-                    'enabled': True,
+                    'enabled': IS_BSC,
                 }
             },
         }
@@ -588,7 +629,6 @@ def main():
         # btc
         if not Keeper.objects.filter(currency=BTC_CURRENCY).exists():
             btc_info, btc_keeper = generate_btc_multisig_keeper()
-            btc_keeper: Keeper
             to_write.append('BTC Info')
             to_write.append(f'Keeper address: {btc_keeper.user_wallet.address}')
             to_write.append('private data:')

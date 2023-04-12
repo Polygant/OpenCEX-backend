@@ -16,7 +16,7 @@ User = get_user_model()
 class BotConfigApiAdmin(BaseModelAdmin):
     fields = ('name', 'user', 'pair', 'strategy', 'match_user_orders', 'instant_match', 'ohlc_period', 'enabled',
               'loop_period', 'loop_period_random', 'min_period', 'max_period',
-              'ext_price_delta',
+              'ext_price_delta', 'symbol_precision', 'quote_precision',
               'min_order_quantity', 'max_order_quantity',
               'use_custom_price', 'custom_price',
               'low_orders_match', 'low_orders_max_match_size', 'low_orders_spread_size',

@@ -24,27 +24,19 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
         },
-        # 'graypy': {
-        #     'level': 'DEBUG',
-        #     'class': 'graypy.GELFUDPHandler',
-        #     'host': 'graylog.plgdev.com',
-        #     'port': 12201,
-        #     'filters': ['static_fields'],
-        # },
     },
     'loggers': {
         '': {
             'handlers': ['console'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
-        # 'graypy': {
-        #     'handlers': ['graypy'],
-        #     'level': 'DEBUG',
-        #     'propagate': True,
-        # },
+        'BitcoinRPC': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+        },
     },
 }
 
 if DEBUG:
     # logs
-    LOGGING['loggers']['']['handlers'] = ['console']
+    LOGGING['loggers']['']['level'] = 'DEBUG'

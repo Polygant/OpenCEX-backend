@@ -750,8 +750,8 @@ class FeesAndLimitsAdmin(BaseModelAdmin):
 
 @admin.register(WalletTransactions)
 class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
-    fields = ('created', 'user', 'currency', 'blockchain', 'amount', 'fee_amount', 'transaction', 'tx_hash', 'status',
-              'state', 'monitoring_state', 'is_old', 'external_accumulation_address',)
+    fields = ('created', 'currency', 'amount', 'fee_amount', 'transaction', 'tx_hash', 'status',
+              'state', 'monitoring_state', 'external_accumulation_address',)
     list_display = ('created', 'user', 'currency', 'blockchain', 'amount', 'fee_amount', 'transaction', 'tx_hash',
                     'status', 'state', 'monitoring_state', 'is_old', 'external_accumulation_address',)
     # fields = ('created', 'currency', 'amount', 'tx_hash', 'status', 'state')
@@ -815,14 +815,6 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
             messages.error(request, e)
 
     @admin.action(permissions=('change',))
-    def external_accumulation(self, request, queryset):
-        """
-        :param queryset:
-        :type queryset: list[WalletTransactions]
-        """
-        print(request, queryset)
-
-    @admin.action(permissions=('change',))
     def recheck_kyt(self, request, queryset):
         for entry in queryset:
             entry.check_scoring()
@@ -834,13 +826,6 @@ class WalletTransactionsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
             wallet_tr.force_deposit()
 
     force_deposit_and_accumulate.short_description = 'Force deposit and accumulate'
-
-    @admin.action(permissions=('change',))
-    def handle_old_wallet_deposit(self, request, queryset: List[WalletTransactions]):
-        for wallet_tr in queryset:
-            wallet_tr.check_deposit()
-
-    handle_old_wallet_deposit.short_description = 'Handle old wallet deposit'
 
     @admin.action(permissions=('change',))
     def external_accumulation(self, request, queryset: List[WalletTransactions]):
@@ -1638,7 +1623,7 @@ class UserWalletAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
 
 @admin.register(PairSettings)
 class PairSettingsAdmin(BaseModelAdmin):
-    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation']
+    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'enable_alerts']
     list_display = _fields
     fields = _fields
     no_delete = False

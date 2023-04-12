@@ -63,6 +63,7 @@ class WalletTransactions(BaseModel):
     STATE_MANUAL_DEPOSIT = 14
     STATE_OLD_WALLET_DEPOSIT = 15
     STATE_EXTERNAL_ACCUMULATED = 16
+    STATE_GAS_PRICE_TOO_HIGH = 17
 
     STATES = (
         (STATE_CREATED, 'Created'),
@@ -81,6 +82,7 @@ class WalletTransactions(BaseModel):
         (STATE_MANUAL_DEPOSIT, 'Manual deposit'),
         (STATE_OLD_WALLET_DEPOSIT, 'Old wallet deposit'),
         (STATE_EXTERNAL_ACCUMULATED, 'External accumulated'),
+        (STATE_GAS_PRICE_TOO_HIGH, 'Gas price too high'),
     )
 
     ACCUMULATION_READY_STATES = [
@@ -88,6 +90,7 @@ class WalletTransactions(BaseModel):
         STATE_GAS_REQUIRED,
         STATE_WAITING_FOR_GAS,
         STATE_READY_FOR_ACCUMULATION,
+        STATE_GAS_PRICE_TOO_HIGH,
     ]
 
     currency = CurrencyModelField()
@@ -108,15 +111,12 @@ class WalletTransactions(BaseModel):
 
     def save(self, *args, **kwargs):
         assert self.amount > 0
-        if not self.id:
-            self.check_deposit()
-        return super(WalletTransactions, self).save(*args, **kwargs)
+        is_insert = self._state.adding is True
+        super(WalletTransactions, self).save(*args, **kwargs)
+        if is_insert:
+            self.__check_deposit()
 
-    def check_deposit(self):
-        # only for new deposits or with STATE_OLD_WALLET_DEPOSIT state
-        if self.id and self.state != self.STATE_OLD_WALLET_DEPOSIT:
-            return
-
+    def __check_deposit(self):
         deposit_min_limit = FeesAndLimits.get_limit(self.currency.code, FeesAndLimits.DEPOSIT,
                                                     FeesAndLimits.MIN_VALUE)
         deposit_max_limit = FeesAndLimits.get_limit(self.currency.code, FeesAndLimits.DEPOSIT,
@@ -152,10 +152,13 @@ class WalletTransactions(BaseModel):
     def get_fee_amount(self):
         return FeesAndLimits.get_fee(self.currency.code, FeesAndLimits.DEPOSIT, FeesAndLimits.ADDRESS)
 
-    def set_external_accumulation_address(self, address):
+    def set_external_accumulation_address(self, address: str):
         is_valid_fn = CRYPTO_ADDRESS_VALIDATORS[self.wallet.blockchain_currency]
         if not is_valid_fn(address):
             raise ValidationError('Incorrect address')
+        if address.lower() == self.wallet.address:
+            raise ValidationError('Incorrect address. Cannot transfer to yourself')
+
         self.state = self.STATE_WAITING_FOR_ACCUMULATION
         self.external_accumulation_address = address
         super(WalletTransactions, self).save()

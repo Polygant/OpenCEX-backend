@@ -29,7 +29,7 @@ from exchange.loggers import DynamicFieldFilter
 from exchange.models import BaseModel
 from exchange.models import UserMixinModel
 from lib.cache import PrefixedRedisCache
-from lib.fields import MoneyField, RichTextField
+from lib.fields import MoneyField, RichTextField, SVGAndImageField
 from lib.utils import hmac_random_string, generate_random_string
 
 EXPIRE_TOKEN_CACHE = PrefixedRedisCache.get_cache(prefix='expire_token')
@@ -590,8 +590,14 @@ class CoinInfo(models.Model):
     index = models.SmallIntegerField()
     tx_explorer = models.CharField(max_length=255, default='')
     links = models.JSONField(default=default_coin_info_links)
+    logo = models.CharField(max_length=255, default='')
 
     def as_dict(self):
+        from core.models import DisabledCoin
+        blockchain_list = [
+            b for b in self.currency.blockchain_list if not DisabledCoin.is_coin_disabled(b, DisabledCoin.DISABLE_ALL)
+        ]
+
         return {
             'name': self.name,
             'base': self.is_base,
@@ -600,7 +606,8 @@ class CoinInfo(models.Model):
             'tx_explorer': self.tx_explorer,
             'links': self.links,
             'is_token': self.currency.is_token,
-            'blockchain_list': self.currency.blockchain_list,
+            'blockchain_list': blockchain_list,
+            'logo': self.logo
         }
 
     def save(self, *args, **kwargs):
@@ -608,8 +615,8 @@ class CoinInfo(models.Model):
         self._cache_data(True)
 
     @classmethod
-    def get_coins_info(cls) -> dict:
-        return cls._cache_data()
+    def get_coins_info(cls, update=False) -> dict:
+        return cls._cache_data(update)
 
     @classmethod
     def _cache_data(cls, set_cache=False):

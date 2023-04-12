@@ -100,17 +100,21 @@ def get_user_wallet(symbol: Union[str, Currency], address: str) -> BlockchainAcc
     )
 
 
-def get_user_addresses(currency: Union[Currency, str]) -> List[str]:
+def get_user_addresses(currency: List[Union[Currency, str]] = None, blockchain_currency: Union[Currency, str] = None) -> List[str]:
     """
     Get all user registered wallet addresses.
     note: cache may be required due users count increase
     """
     from core.models.cryptocoins import UserWallet
     currency = ensure_currency(currency)
-    qs = UserWallet.objects.filter(
-        currency=currency,
-    ).values_list('address', flat=True)
-    return list(qs)
+    qs = UserWallet.objects.all()
+    if currency:
+        qs = UserWallet.objects.filter(
+            currency__in=currency,
+        )
+    if blockchain_currency:
+        qs = qs.filter(blockchain_currency=blockchain_currency)
+    return list(qs.values_list('address', flat=True))
 
 
 def create_keeper(user_wallet, KeeperModel=Keeper, extra=None):

@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect
 
 from admin_panel.forms import BtcApproveAdminForm, EthApproveAdminForm, MakeTopUpForm, TrxApproveAdminForm, \
     BnbApproveAdminForm
+from core.consts.currencies import BEP20_CURRENCIES, TRC20_CURRENCIES, ERC20_CURRENCIES
 from core.models import Transaction
 from core.models.inouts.transaction import REASON_MANUAL_TOPUP
 from core.utils.wallet_history import create_or_update_wallet_history_item_from_transaction
@@ -80,7 +81,8 @@ def admin_withdrawal_request_approve(request):
 
 @staff_member_required
 def admin_eth_withdrawal_request_approve(request):
-    withdrawal_requests = get_withdrawal_requests_to_process([ETH_CURRENCY, USDT_CURRENCY], blockchain_currency='ETH')
+    currencies = [ETH_CURRENCY] + list(ERC20_CURRENCIES)
+    withdrawal_requests = get_withdrawal_requests_to_process(currencies, blockchain_currency='ETH')
 
     if request.method == 'POST':
         form = EthApproveAdminForm(request.POST)
@@ -111,7 +113,8 @@ def admin_eth_withdrawal_request_approve(request):
 
 @staff_member_required
 def admin_trx_withdrawal_request_approve(request):
-    withdrawal_requests = get_withdrawal_requests_to_process([TRX_CURRENCY, USDT_CURRENCY], blockchain_currency='TRX')
+    currencies = [TRX_CURRENCY] + list(TRC20_CURRENCIES)
+    withdrawal_requests = get_withdrawal_requests_to_process(currencies, blockchain_currency='TRX')
 
     if request.method == 'POST':
         form = TrxApproveAdminForm(request.POST)
@@ -142,7 +145,8 @@ def admin_trx_withdrawal_request_approve(request):
 
 @staff_member_required
 def admin_bnb_withdrawal_request_approve(request):
-    withdrawal_requests = get_withdrawal_requests_to_process([BNB_CURRENCY, USDT_CURRENCY], blockchain_currency='BNB')
+    currencies = [BNB_CURRENCY] + list(BEP20_CURRENCIES)
+    withdrawal_requests = get_withdrawal_requests_to_process(currencies, blockchain_currency='BNB')
 
     if request.method == 'POST':
         form = BnbApproveAdminForm(request.POST)

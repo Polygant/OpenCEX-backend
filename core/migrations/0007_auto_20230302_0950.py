@@ -6,7 +6,7 @@ import lib.fields
 
 def mark_states(apps, schema_editor):
     WalletTransactions = apps.get_model('core', 'WalletTransactions')
-    WalletTransactions.objects.all.update(state=12, monitoring_state=2)
+    WalletTransactions.objects.all().update(state=12, monitoring_state=2)
 
 
 class Migration(migrations.Migration):

@@ -86,12 +86,15 @@ def eth_process_block(self, block_id):
     erc20_jobs = []
 
     eth_withdrawal_requests_pending = get_withdrawal_requests_pending([ETH_CURRENCY])
-    erc20_withdrawal_requests_pending = get_withdrawal_requests_pending(ERC20_TOKEN_CURRENCIES, blockchain_currency='ETH')
+    erc20_withdrawal_requests_pending = get_withdrawal_requests_pending(
+        ERC20_TOKEN_CURRENCIES,
+        blockchain_currency='ETH'
+    )
 
     eth_withdrawals_dict = {i.id: i.data.get('txs_attempts', [])
                             for i in eth_withdrawal_requests_pending}
     eth_withdrawal_requests_pending_txs = {v: k for k,
-                                           values in eth_withdrawals_dict.items() for v in values}
+                                                    values in eth_withdrawals_dict.items() for v in values}
 
     erc20_withdrawals_dict = {i.id: i.data.get('txs_attempts', [])
                               for i in erc20_withdrawal_requests_pending}
@@ -261,10 +264,11 @@ def eth_process_eth_deposit(tx_data: dict):
         log.error(f'ETH deposit transaction {tx.hash} is invalid or failed')
         return
 
+    eth_keeper = ethereum_manager.get_keeper_wallet()
     external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses([ETH_CURRENCY])
 
     # is accumulation tx?
-    if tx.to_addr in [ETH_SAFE_ADDR] + external_accumulation_addresses:
+    if tx.to_addr in [ETH_SAFE_ADDR, eth_keeper.address] + external_accumulation_addresses:
         accumulation_transaction = AccumulationTransaction.objects.filter(
             tx_hash=tx.hash,
         ).first()
@@ -282,7 +286,6 @@ def eth_process_eth_deposit(tx_data: dict):
         log.info(f'Tx {tx.hash} is ETH accumulation')
         return
 
-    eth_keeper = ethereum_manager.get_keeper_wallet()
     eth_gas_keeper = ethereum_manager.get_gas_keeper_wallet()
     # is inner gas deposit?
     if tx.from_addr == eth_gas_keeper.address:
@@ -354,10 +357,10 @@ def eth_process_erc20_deposit(tx_data: dict):
     token = ethereum_manager.get_token_by_address(tx.contract_address)
     token_to_addr = tx.to_addr
     token_amount = token.get_amount_from_base_denomination(tx.value)
-
+    eth_keeper = ethereum_manager.get_keeper_wallet()
     external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses(list(ERC20_CURRENCIES))
 
-    if token_to_addr in [ETH_SAFE_ADDR] + external_accumulation_addresses:
+    if token_to_addr in [ETH_SAFE_ADDR, eth_keeper.address] + external_accumulation_addresses:
         log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
 
         accumulation_transaction = AccumulationTransaction.objects.filter(
@@ -385,7 +388,6 @@ def eth_process_erc20_deposit(tx_data: dict):
         return
 
     # check for keeper deposit
-    eth_keeper = ethereum_manager.get_keeper_wallet()
     if db_wallet.address == eth_keeper.address:
         log.info('TX %s is keeper %s deposit: %s', tx.hash, token.currency, token_amount)
         return
@@ -677,15 +679,22 @@ def accumulate_eth(wallet_transaction_id):
     amount = wallet_transaction.amount
     amount_wei = ethereum_manager.get_base_denomination_from_amount(amount)
 
-    log.info('Accumulation ETH from: %s; Balance: %s', address, amount,)
+    log.info('Accumulation ETH from: %s; Balance: %s; Min acc balance:%s',
+             address, amount, ethereum_manager.accumulation_min_balance)
 
-    accumulation_address = wallet_transaction.external_accumulation_address or ethereum_manager.get_accumulation_address(amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or ethereum_manager.get_accumulation_address(
+        amount)
 
     # we want to process our tx faster
     gas_price = ethereum_manager.gas_price_cache.get_increased_price()
     gas_amount = gas_price * settings.ETH_TX_GAS
     withdrawal_amount_wei = amount_wei - gas_amount
     withdrawal_amount = ethereum_manager.get_amount_from_base_denomination(withdrawal_amount_wei)
+
+    if ethereum_manager.is_gas_price_reach_max_limit(gas_price):
+        log.warning(f'Gas price too high: {gas_price}')
+        ethereum_manager.set_gas_price_too_high(wallet_transaction)
+        return
 
     # in debug mode values can be very small
     if withdrawal_amount_wei <= 0:
@@ -700,7 +709,7 @@ def accumulate_eth(wallet_transaction_id):
     tx_hash = ethereum_manager.send_tx(
         private_key=wallet.private_key,
         to_address=accumulation_address,
-        amount=withdrawal_amount,
+        amount=withdrawal_amount_wei,
         nonce=nonce,
         gasPrice=gas_price,
     )
@@ -749,7 +758,8 @@ def accumulate_erc20(wallet_transaction_id):
                     currency, address, token_amount)
         return
 
-    accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(token_amount)
+    accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(
+        token_amount)
 
     # we keep amount not as wei, it's more easy, so we need to convert it
     # checked_amount_wei = token.get_wei_from_amount(accumulation_state.current_balance)
@@ -798,7 +808,8 @@ def accumulate_erc20(wallet_transaction_id):
     wallet_transaction.set_accumulation_in_progress()
 
     AccumulationDetails.objects.create(
-        currency=currency,
+        currency=ETH_CURRENCY,
+        token_currency=currency,
         txid=tx_hash.hex(),
         from_address=address,
         to_address=accumulation_address,
@@ -834,6 +845,12 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
     accumulation_gas_amount = token.get_transfer_gas_amount(ETH_SAFE_ADDR, token_amount_wei)
     gas_price = ethereum_manager.gas_price_cache.get_increased_price(
         old_tx_data.get('gasPrice') or 0)
+
+    if ethereum_manager.is_gas_price_reach_max_limit(gas_price):
+        log.warning(f'Gas price too high: {gas_price}')
+        ethereum_manager.set_gas_price_too_high(wallet_transaction)
+        return
+
     accumulation_gas_total_amount = accumulation_gas_amount * gas_price
 
     if gas_keeper_balance_wei < accumulation_gas_total_amount:
@@ -876,14 +893,12 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
 
     acc_transaction = AccumulationTransaction.objects.create(
         wallet_transaction=wallet_transaction,
-        amount=ethereum_manager.get_eth_amount_from_wei(accumulation_gas_total_amount),
+        amount=ethereum_manager.get_amount_from_base_denomination(accumulation_gas_total_amount),
         tx_type=AccumulationTransaction.TX_TYPE_GAS_DEPOSIT,
         tx_state=AccumulationTransaction.STATE_PENDING,
         tx_hash=tx_hash.hex(),
     )
     wallet_transaction.set_waiting_for_gas()
-    log.info('Gas deposit TX %s sent', tx_hash.hex())
-
     log.info('Gas deposit TX %s sent', tx_hash.hex())
 
     # wait tx processed
