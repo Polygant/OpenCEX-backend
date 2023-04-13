@@ -1623,7 +1623,7 @@ class UserWalletAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
 
 @admin.register(PairSettings)
 class PairSettingsAdmin(BaseModelAdmin):
-    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'enable_alerts']
+    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'enable_alerts', 'precisions']
     list_display = _fields
     fields = _fields
     no_delete = False
