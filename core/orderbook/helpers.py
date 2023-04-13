@@ -43,8 +43,10 @@ def group_by_precision(pair_code, stack_data):
     buys = stack_data['buys']
     sells = stack_data['sells']
 
-    pair = Pair.get(pair_code)
-    for precision in pair.stack_precisions:
+    from core.models import PairSettings
+    stack_precisions = PairSettings.get_stack_precisions_by_pair(pair_code)
+
+    for precision in stack_precisions:
         stack_data_copy = stack_data.copy()
         new_buys = {}
         new_sells = {}

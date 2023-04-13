@@ -124,7 +124,9 @@ class Command(BaseCommand):
 
         token_currency_id = get_available_currency_id()
 
-        if token_symbol not in all_tokens_data:
+        only_blockchain_added = token_symbol in all_tokens_data
+
+        if not only_blockchain_added:
             all_tokens_data[token_symbol] = {'id': token_currency_id, 'blockchains': {}, 'pairs': []}
 
         all_tokens_data[token_symbol]['blockchains'][blockchain_symbol] = {
@@ -133,7 +135,7 @@ class Command(BaseCommand):
         }
 
         # new blockchain is added to the existing token
-        if not token_symbol in all_tokens_data:
+        if only_blockchain_added:
             write_tokens_file(json.dumps(all_tokens_data, indent=2))
             return
 
@@ -150,7 +152,7 @@ class Command(BaseCommand):
             yes_no = prompt_yes_no('IS EVERYTHING CORRECT?')
 
         pair_id = get_available_pair_id()
-        all_tokens_data[token_symbol]["pairs"].append([pair_id, pair_to_usdt, precisions]) # TODO delete precision
+        all_tokens_data[token_symbol]["pairs"].append([pair_id, pair_to_usdt])
         write_tokens_file(json.dumps(all_tokens_data, indent=2))
         register_tokens_and_pairs()
 
