@@ -12,8 +12,10 @@ def transfer_precisions(apps, schema_editor):
         'TRX-USDT': ['0.01', '0.001', '0.0001', '0.00001'],
         'BNB-USDT': ['100', '10', '1', '0.1', '0.01'],
     }
-    for pair, precisions in precisions_map.items():
-        PairSettings.objects.filter(pair=pair).update(precisions=precisions)
+    for ps in PairSettings.objects.all():
+        if ps.pair.code in precisions_map:
+            ps.precisions = precisions_map[ps.pair.code]
+            ps.save()
 
 
 class Migration(migrations.Migration):
