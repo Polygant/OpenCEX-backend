@@ -93,7 +93,7 @@ def get_pairs_24h_stats() -> dict:
             'price_24h': trend,  # price 24h percent
             'price_24h_value': price_24_value,  # price 24h value
             'pair': str(pair),
-            'pair_data': pair.to_dict()
+            'pair_data': pair_data,
         })
 
     return {
