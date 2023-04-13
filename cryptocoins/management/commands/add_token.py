@@ -20,13 +20,13 @@ TOKENS_BLOCKCHAINS_MAP = {'ETH': ERC20_CURRENCIES, 'BNB': BEP20_CURRENCIES, 'TRX
 EXPLORERS_MAP = {'ETH': 'https://etherscan.io/', 'BNB': 'https://bscscan.com/', 'TRX': 'https://tronscan.org/'}
 
 HEADER = """ 
-000000\                                 000000\  00000000\ 00\   00\ 
+ 000000\                                 000000\  00000000\ 00\   00\ 
 00  __00\                               00  __00\ 00  _____|00 |  00 |
-00 /  00 | 000000\   000000\  0000000\  00 /  \__|00 |      \00\ 00  |
-00 |  00 |00  __00\ 00  __00\ 00  __00\ 00 |      00000\     \0000  / 
+00 /  00 | 000000\   000000\  0000000\  00 /  \__|00 |      \\00\ 00  |
+00 |  00 |00  __00\ 00  __00\ 00  __00\ 00 |      00000\     \\0000  / 
 00 |  00 |00 /  00 |00000000 |00 |  00 |00 |      00  __|    00  00<  
-00 |  00 |00 |  00 |00   ____|00 |  00 |00 |  00\ 00 |      00  /\00\ 
- 000000  |0000000  |\0000000\ 00 |  00 |\000000  |00000000\ 00 /  00 |
+00 |  00 |00 |  00 |00   ____|00 |  00 |00 |  00\ 00 |      00  /\\00\ 
+ 000000  |0000000  |\\0000000\ 00 |  00 |\\000000  |00000000\ 00 /  00 |
  \______/ 00  ____/  \_______|\__|  \__| \______/ \________|\__|  \__|
           00 |                                                        
           00 |                                                        
@@ -305,11 +305,10 @@ def prompt(text, arg_type=str, choices=None, default=None):
 
     res = None
 
-    # filtering out wrong chars
-    text = ''.join(c for c in text if c in printable)
-
     while res is None:
         res = input(text + ': ')
+        # filtering out wrong chars
+        res = ''.join(c for c in res if c in printable)
         if not res:
             if default is not None:
                 return default
