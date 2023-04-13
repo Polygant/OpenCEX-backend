@@ -291,7 +291,7 @@ class PairsListView(APIView):
     def get(self, request, currency=None, format=None):
         res = []
         for p in PAIRS:
-            if p.code not in PairSettings.get_disabled_pairs():
+            if p.code in PairSettings.get_disabled_pairs():
                 continue
             pair_data = p.to_dict()
             pair_data['stack_precisions'] = PairSettings.get_stack_precisions_by_pair(p.code)
