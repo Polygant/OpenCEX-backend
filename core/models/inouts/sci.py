@@ -1,12 +1,12 @@
-from django.contrib.postgres.fields import JSONField
 from django.db import models
+from django.db.models import JSONField
 from django.db.transaction import atomic
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.exceptions import ValidationError
 
+from core.consts.gates import GATES
 from core.currency import CurrencyModelField
 from core.exceptions.inouts import NotEnoughFunds
-from core.consts.gates import GATES
 from core.models.inouts.transaction import Transaction, REASON_PAYGATE_REVERT_RETURN, REASON_PAYGATE_REVERT_CHARGE
 from exchange.models import BaseModel
 from exchange.models import UserMixinModel

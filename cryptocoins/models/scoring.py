@@ -1,5 +1,4 @@
-import cachetools.func
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.core.cache import cache
 from django.db import models
 
