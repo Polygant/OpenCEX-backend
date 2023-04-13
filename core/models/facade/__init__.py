@@ -588,7 +588,7 @@ class CoinInfo(models.Model):
     is_base = models.BooleanField(default=False)
     decimals = models.PositiveSmallIntegerField(default=8)
     index = models.SmallIntegerField()
-    tx_explorer = models.CharField(max_length=255, default='')
+    tx_explorer = models.CharField(max_length=255, default='', blank=True)
     links = models.JSONField(default=default_coin_info_links)
     logo = models.CharField(max_length=255, default='')
 

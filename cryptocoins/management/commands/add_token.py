@@ -137,6 +137,7 @@ class Command(BaseCommand):
         # new blockchain is added to the existing token
         if only_blockchain_added:
             write_tokens_file(json.dumps(all_tokens_data, indent=2))
+            print('Token successfully added. Restart the backend to complete installation.')
             return
 
         # STEP 2. Pair data
@@ -252,6 +253,7 @@ class Command(BaseCommand):
             InoutsStats.objects.create(
                 currency=token_symbol,
             )
+        print('Token successfully added. Restart the backend to complete installation.')
 
 
 def revert():
