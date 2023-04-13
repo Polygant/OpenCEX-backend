@@ -3,6 +3,7 @@ from django.db import models
 
 from core.pairs import PairModelField, Pair, PAIRS
 from lib.fields import MoneyField
+from django.contrib.postgres.fields import ArrayField
 
 PAIRS_SETTINGS_CACHE_KEY = 'pairs_settings_cache'
 
@@ -23,13 +24,14 @@ class PairSettings(models.Model):
     custom_price = MoneyField(default=0.0)
     deviation = models.DecimalField(default=0.0, max_digits=5, decimal_places=4, help_text='Max order price deviation')
     enable_alerts = models.BooleanField(default=True)
+    precisions = ArrayField(models.CharField(max_length=16), default=list)
 
     def save(self, *args, **kwargs):
         super(PairSettings, self).save(*args, **kwargs)
         self._cache_data(True)
 
     @classmethod
-    def _cache_data(cls, set_cache=False):
+    def _cache_data(cls, set_cache=False) -> dict:
         data = cache.get(PAIRS_SETTINGS_CACHE_KEY, {})
         if set_cache or not data:
             for entry in cls.objects.all():
@@ -40,6 +42,7 @@ class PairSettings(models.Model):
                     'custom_price': entry.custom_price,
                     'deviation': entry.deviation,
                     'enable_alerts': entry.enable_alerts,
+                    'precisions': entry.precisions,
                 }
             cache.set(PAIRS_SETTINGS_CACHE_KEY, data)
         return data
@@ -81,6 +84,16 @@ class PairSettings(models.Model):
         if isinstance(pair, Pair):
             pair = pair.code
         return cls._cache_data().get(pair, {}).get('enable_alerts')
+
+    @classmethod
+    def get_stack_precisions(cls):
+        data = cls._cache_data()
+        return {k: v['precisions'] for k,v in data.items()}
+
+    @classmethod
+    def get_stack_precisions_by_pair(cls, pair_code: str):
+        precisions = cls.get_stack_precisions()
+        return precisions.get(pair_code, [])
 
     def __str__(self):
         return f'{self.pair}; Enabled: {self.is_enabled}; AutoOrders: {self.is_autoorders_enabled}'
