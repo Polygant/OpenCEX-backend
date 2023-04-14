@@ -340,6 +340,10 @@ def prompt_contract(blockchain):
         else:
             if blockchain in ['ETH', 'BNB']:
                 contract = Web3.toChecksumAddress(contract)
+            exists_contracts = [v.contract_address for k, v in TOKENS_BLOCKCHAINS_MAP[blockchain].items()]
+            if contract in exists_contracts:
+                print('[!] Contract with this address already exists')
+                continue
             return contract
 
 
