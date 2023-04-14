@@ -99,7 +99,8 @@ class PairsNotificator(BaseNotificator):
     PARAMS = []
 
     def get_data(self, **kwargs):
-        res = {p.code: p.stack_precisions for p in PAIRS}
+        from core.models import PairSettings
+        res = PairSettings.get_stack_precisions()
         return {'data': res}
 
 

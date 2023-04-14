@@ -34,14 +34,14 @@ class OTCSerializer(serializers.Serializer):
                 'message': f'OTC percent < {-settings.OTC_PERCENT_LIMIT}!',
                 'type': 'percent_min_value'
             })
-        if attrs['otc_percent'] < -settings.OTC_PERCENT_LIMIT:
+        if attrs['otc_percent'] > settings.OTC_PERCENT_LIMIT:
             raise ValidationError({
                 'message': f'OTC percent > {settings.OTC_PERCENT_LIMIT}!',
                 'type': 'percent_max_value'
             })
-        if attrs['otc_limit'] <= 0.000001:
+        if attrs['otc_limit'] <= 0.0000001:
             raise ValidationError({
-                'message': 'limit <= 0.000001!',
+                'message': 'limit <= 0.0000001!',
                 'type': 'limit_min_value'
             })
         return attrs

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 tokens_config_fp = os.path.join(settings.BASE_DIR, 'tokens.json')
 
+
 @dataclass
 class Difference:
     token: str
@@ -78,7 +79,6 @@ def register_tokens_and_pairs():
                 [
                 100, # pair id
                 "USDC-USDT", # pair symbol
-                ["100", "10", "1", "0.1", "0.01"] # precisions
                 ]
             ]
        }
