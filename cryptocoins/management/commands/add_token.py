@@ -137,6 +137,8 @@ class Command(BaseCommand):
         # new blockchain is added to the existing token
         if only_blockchain_added:
             write_tokens_file(json.dumps(all_tokens_data, indent=2))
+            register_tokens_and_pairs()
+            create_withdrawal_fee(token_symbol, blockchain_symbol)
             print('Token successfully added. Restart the backend to complete installation.')
             return
 
@@ -236,15 +238,7 @@ class Command(BaseCommand):
             }
             FeesAndLimits.objects.create(**default_fees_and_limits)
 
-        # ********* WithdrawalFee **************
-        if is_entry_exists(WithdrawalFee, {'currency': token_symbol, 'blockchain_currency': blockchain_symbol}):
-            print(f'[*] WithdrawalFee already exists')
-        else:
-            WithdrawalFee.objects.create(
-                currency=token_symbol,
-                blockchain_currency=blockchain_symbol,
-                address_fee=1.00000000
-            )
+        create_withdrawal_fee(token_symbol, blockchain_symbol)
 
         # ********* InoutsStats **************
         if is_entry_exists(InoutsStats, {'currency': token_symbol}):
@@ -388,3 +382,16 @@ def prompt_yes_no(text) -> bool:
             return True
         elif ans == 'n':
             return False
+
+
+def create_withdrawal_fee(token_symbol, blockchain_symbol):
+    # ********* WithdrawalFee **************
+    if is_entry_exists(WithdrawalFee, {'currency': token_symbol, 'blockchain_currency': blockchain_symbol}):
+        print(f'[*] WithdrawalFee already exists')
+    else:
+        WithdrawalFee.objects.create(
+            currency=token_symbol,
+            blockchain_currency=blockchain_symbol,
+            address_fee=1.00000000
+        )
+
