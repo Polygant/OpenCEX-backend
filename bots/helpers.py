@@ -34,6 +34,10 @@ class BaseHttpSession():
             except ConnectionError as e:
                 print('EXCEPTION', e, type(e))
                 err = e
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 400:
+                    print(e.response.text)
+                err = e
 
         raise err
 

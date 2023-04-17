@@ -8,10 +8,10 @@ import pyotp
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
-from django.contrib.postgres.fields.jsonb import JSONField
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.db.models import JSONField
 from django.db.transaction import atomic
 from django.utils import timezone
 from django.utils.timezone import now
@@ -29,7 +29,7 @@ from exchange.loggers import DynamicFieldFilter
 from exchange.models import BaseModel
 from exchange.models import UserMixinModel
 from lib.cache import PrefixedRedisCache
-from lib.fields import MoneyField, RichTextField
+from lib.fields import MoneyField
 from lib.utils import hmac_random_string, generate_random_string
 
 EXPIRE_TOKEN_CACHE = PrefixedRedisCache.get_cache(prefix='expire_token')
@@ -428,7 +428,7 @@ class SourceOfFunds(models.Model):
     )
 
     user = models.OneToOneField(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    is_beneficiary = models.NullBooleanField()
+    is_beneficiary = models.BooleanField(null=True)
     profession = ArrayField(
         models.PositiveSmallIntegerField(choices=PROFESSIONS, blank=True, null=True),
         blank=True,
@@ -588,8 +588,9 @@ class CoinInfo(models.Model):
     is_base = models.BooleanField(default=False)
     decimals = models.PositiveSmallIntegerField(default=8)
     index = models.SmallIntegerField()
-    tx_explorer = models.CharField(max_length=255, default='')
+    tx_explorer = models.CharField(max_length=255, default='', blank=True)
     links = models.JSONField(default=default_coin_info_links)
+    logo = models.CharField(max_length=255, default='')
 
     def as_dict(self):
         from core.models import DisabledCoin
@@ -606,6 +607,7 @@ class CoinInfo(models.Model):
             'links': self.links,
             'is_token': self.currency.is_token,
             'blockchain_list': blockchain_list,
+            'logo': self.logo
         }
 
     def save(self, *args, **kwargs):

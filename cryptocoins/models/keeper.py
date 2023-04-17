@@ -1,5 +1,5 @@
-from django.contrib.postgres.fields import JSONField
 from django.db import models
+from django.db.models import JSONField
 
 from core.currency import CurrencyModelField
 from exchange.models import BaseModel
