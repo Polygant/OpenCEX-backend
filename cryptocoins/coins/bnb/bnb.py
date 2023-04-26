@@ -9,6 +9,7 @@ from core.consts.currencies import BEP20_CURRENCIES
 from core.currency import Currency
 from cryptocoins.coins.bnb import BNB_CURRENCY
 from cryptocoins.coins.bnb.connection import get_w3_connection
+from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import GasPriceCache
 from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
 
@@ -54,6 +55,7 @@ w3 = get_w3_connection()
 bnb_manager = BnbManager(client=w3)
 
 
+@register_evm_handler
 class BnbHandler(Web3CommonHandler):
     CURRENCY = BNB_CURRENCY
     COIN_MANAGER = bnb_manager

@@ -420,20 +420,20 @@ class Web3CommonHandler(BaseEVMCoinHandler):
 
         if coin_deposit_jobs:
             log.info('Need to check %s deposits count: %s', cls.CURRENCY.code, len(coin_deposit_jobs))
-            group(coin_deposit_jobs).apply_async()
+            group(coin_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code}_deposits')
 
         if tokens_deposit_jobs:
             log.info('Need to check %s TOKENS deposits count: %s', cls.CURRENCY.code, len(tokens_deposit_jobs))
-            group(tokens_deposit_jobs).apply_async()
+            group(tokens_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code}_deposits')
 
         if check_coin_withdrawal_jobs:
             log.info('Need to check %s withdrawals count: %s', cls.CURRENCY.code, len(check_coin_withdrawal_jobs))
-            group(check_coin_withdrawal_jobs).apply_async()
+            group(check_coin_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
 
         if check_tokens_withdrawal_jobs:
             log.info('Need to check %s TOKENS withdrawals count: %s', cls.CURRENCY.code,
                      len(check_coin_withdrawal_jobs))
-            group(check_tokens_withdrawal_jobs).apply_async()
+            group(check_tokens_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
 
         # check accumulations
         for tx_data in transactions:
@@ -696,7 +696,10 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         # coin
         if currency == cls.CURRENCY:
             wallet_transaction.set_ready_for_accumulation()
-            accumulate_coin_task.apply_async([cls.CURRENCY.code, wallet_transaction_id])
+            accumulate_coin_task.apply_async(
+                [cls.CURRENCY.code, wallet_transaction_id],
+                queue=f'{cls.CURRENCY.code}_accumulations'
+            )
 
         # tokens
         else:
@@ -705,11 +708,17 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             if not cls.is_gas_need(wallet_transaction):
                 log.info(f'Gas not required for {currency} {address}')
                 wallet_transaction.set_ready_for_accumulation()
-                accumulate_tokens_task.apply_async([cls.CURRENCY.code, wallet_transaction_id])
+                accumulate_tokens_task.apply_async(
+                    [cls.CURRENCY.code, wallet_transaction_id],
+                    queue=f'{cls.CURRENCY.code}_tokens_accumulations'
+                )
             else:
                 log.info(f'Gas required for {currency} {address}')
                 wallet_transaction.set_gas_required()
-                send_gas_task.apply_async([cls.CURRENCY.code, wallet_transaction_id])
+                send_gas_task.apply_async(
+                    [cls.CURRENCY.code, wallet_transaction_id],
+                    queue=f'{cls.CURRENCY.code}_send_gas'
+                )
 
     @classmethod
     def accumulate_coin(cls, wallet_transaction_id):
@@ -864,7 +873,10 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         old_tx_data = old_tx_data or {}
 
         if not old_tx_hash and not cls.is_gas_need(wallet_transaction):
-            check_balance_task.apply_async([cls.CURRENCY.code, wallet_transaction_id])
+            check_balance_task.apply_async(
+                [cls.CURRENCY.code, wallet_transaction_id],
+                queue=f'{cls.CURRENCY.code}_check_balances'
+            )
             return
 
         address = wallet_transaction.wallet.address

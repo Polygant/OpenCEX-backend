@@ -9,6 +9,7 @@ from django.conf import settings
 from core.consts.currencies import ERC20_CURRENCIES
 from core.currency import Currency, TokenParams
 from cryptocoins.coins.eth import ETH_CURRENCY
+from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import GasPriceCache
 from cryptocoins.interfaces.common import Token
 from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
@@ -55,6 +56,7 @@ class EthereumManager(Web3Manager):
 ethereum_manager = EthereumManager(client=w3)
 
 
+@register_evm_handler
 class EthereumHandler(Web3CommonHandler):
     CURRENCY = ETH_CURRENCY
     COIN_MANAGER = ethereum_manager

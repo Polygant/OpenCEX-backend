@@ -27,6 +27,7 @@ from cryptocoins.coins.trx import TRX_CURRENCY
 from cryptocoins.coins.trx.consts import TRC20_ABI
 from cryptocoins.coins.trx.utils import is_valid_tron_address
 from cryptocoins.evm.base import BaseEVMCoinHandler
+from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import Token, BlockchainManager, BlockchainTransaction
 from cryptocoins.models import AccumulationDetails
 from cryptocoins.models.accumulation_transaction import AccumulationTransaction
@@ -216,6 +217,7 @@ class TronManager(BlockchainManager):
 tron_manager = TronManager(tron_client)
 
 
+@register_evm_handler
 class TronHandler(BaseEVMCoinHandler):
     CURRENCY = TRX_CURRENCY
     COIN_MANAGER = tron_manager
@@ -247,10 +249,10 @@ class TronHandler(BaseEVMCoinHandler):
 
         log.info('Transactions count in block #%s: %s', block_id, len(transactions))
 
-        coin_jobs = []
-        tokens_jobs = []
+        coin_deposit_jobs = []
+        tokens_deposit_jobs = []
 
-        coin_withdrawal_requests_pending = get_withdrawal_requests_pending([TRX_CURRENCY])
+        coin_withdrawal_requests_pending = get_withdrawal_requests_pending([cls.CURRENCY])
         tokens_withdrawal_requests_pending = get_withdrawal_requests_pending(
             cls.TOKEN_CURRENCIES, blockchain_currency=cls.CURRENCY.code)
 
@@ -297,10 +299,10 @@ class TronHandler(BaseEVMCoinHandler):
             if tx.to_addr in trx_addresses_deps:
                 # Process TRX
                 if not tx.contract_address:
-                    coin_jobs.append(process_coin_deposit_task.s(cls.CURRENCY.code, tx.as_dict()))
+                    coin_deposit_jobs.append(process_coin_deposit_task.s(cls.CURRENCY.code, tx.as_dict()))
                 # Process TRC20
                 elif tx.contract_address and tx.contract_address in cls.TOKEN_CONTRACT_ADDRESSES:
-                    tokens_jobs.append(process_tokens_deposit_task.s(cls.CURRENCY.code, tx.as_dict()))
+                    tokens_deposit_jobs.append(process_tokens_deposit_task.s(cls.CURRENCY.code, tx.as_dict()))
 
         # Accumulations monitoring
         for tx in all_valid_transactions:
@@ -336,25 +338,25 @@ class TronHandler(BaseEVMCoinHandler):
                     accumulation_details['token_currency'] = token.currency
                     AccumulationDetails.objects.create(**accumulation_details)
 
-        if coin_jobs:
-            log.info('Need to check TRX deposits count: %s', len(coin_jobs))
-            group(coin_jobs).apply_async()
+        if coin_deposit_jobs:
+            log.info('Need to check TRX deposits count: %s', len(coin_deposit_jobs))
+            group(coin_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code}_deposits')
 
-        if tokens_jobs:
-            log.info('Need to check TRC20 withdrawals count: %s', len(tokens_jobs))
-            group(tokens_jobs).apply_async()
+        if tokens_deposit_jobs:
+            log.info('Need to check TRC20 withdrawals count: %s', len(tokens_deposit_jobs))
+            group(tokens_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code}_deposits')
 
         if check_coin_withdrawal_jobs:
             log.info('Need to check TRX withdrawals count: %s', len(check_coin_withdrawal_jobs))
-            group(check_coin_withdrawal_jobs).apply_async()
+            group(check_coin_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
 
         if check_tokens_withdrawal_jobs:
             log.info('Need to check TRC20 withdrawals count: %s', len(check_coin_withdrawal_jobs))
-            group(check_tokens_withdrawal_jobs).apply_async()
+            group(check_tokens_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
 
         execution_time = time.time() - started_at
         log.info('Block #%s processed in %.2f sec. (TRX TX count: %s, TRC20 TX count: %s, WR TX count: %s)',
-                 block_id, execution_time, len(coin_jobs), len(tokens_jobs),
+                 block_id, execution_time, len(coin_deposit_jobs), len(tokens_deposit_jobs),
                  len(check_tokens_withdrawal_jobs) + len(check_coin_withdrawal_jobs))
 
     @classmethod
@@ -466,11 +468,17 @@ class TronHandler(BaseEVMCoinHandler):
         # TRX
         if currency == TRX_CURRENCY:
             wallet_transaction.set_ready_for_accumulation()
-            accumulate_coin_task.apply_async([cls.CURRENCY.code, wallet_transaction_id])
+            accumulate_coin_task.apply_async(
+                [cls.CURRENCY.code, wallet_transaction_id],
+                queue=f'{cls.CURRENCY.code}_accumulations'
+            )
         # tokens
         else:
             wallet_transaction.set_ready_for_accumulation()
-            accumulate_tokens_task.apply_async([cls.CURRENCY.code, wallet_transaction_id])
+            accumulate_tokens_task.apply_async(
+                [cls.CURRENCY.code, wallet_transaction_id],
+                queue=f'{cls.CURRENCY.code}_tokens_accumulations'
+            )
 
     @classmethod
     def accumulate_trx(cls, wallet_transaction_id):

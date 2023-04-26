@@ -116,266 +116,93 @@ if is_section_enabled('cryptocoins_commons'):
 if is_section_enabled('ethereum'):
     app.conf.beat_schedule.update({
         'eth_process_new_blocks': {
-            'task': 'cryptocoins.tasks.eth.eth_process_new_blocks',
+            'task': 'cryptocoins.tasks.evm.process_new_blocks_task',
             'schedule': settings.ETH_BLOCK_GENERATION_TIME,
-        },
-        'eth_check_balances': {
-            'task': 'cryptocoins.tasks.eth.check_balances',
-            'schedule': settings.ETH_ERC20_ACCUMULATION_PERIOD,
+            'args': ('ETH', ),
             'options': {
-                'expires': 20,
+                'queue': 'ETH_new_blocks',
             }
         },
-        # 'process_payouts': {
-        #     'task': 'cryptocoins.tasks.eth.process_payouts',
-        #     'schedule': settings.ETH_ERC20_ACCUMULATION_PERIOD,
-        #     'options': {
-        #         'expires': 20,
-        #     }
-        # },
+        'eth_check_balances': {
+            'task': 'cryptocoins.tasks.evm.check_balances_task',
+            'schedule': settings.ETH_ERC20_ACCUMULATION_PERIOD,
+            'args': ('ETH',),
+            'options': {
+                'expires': 20,
+                'queue': 'ETH_check_balances',
+            }
+        },
     })
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.eth.eth_process_new_blocks': {
-            'queue': 'eth_new_blocks',
-        },
-        'cryptocoins.tasks.eth.eth_process_block': {
-            'queue': 'eth_new_blocks',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.eth.eth_process_eth_deposit': {
-            'queue': 'eth_deposits',
-        },
-        'cryptocoins.tasks.eth.eth_process_erc20_deposit': {
-            'queue': 'eth_deposits',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.eth.process_payouts': {
-            'queue': 'eth_payouts',
-        },
-        'cryptocoins.tasks.eth.withdraw_eth': {
-            'queue': 'eth_payouts',
-        },
-        'cryptocoins.tasks.eth.withdraw_erc20': {
-            'queue': 'eth_payouts',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.eth.check_balances': {
-            'queue': 'eth_check_balances',
-        },
-        'cryptocoins.tasks.eth.check_balance': {
-            'queue': 'eth_check_balances',
-        },
-        'cryptocoins.tasks.eth.check_tx_withdrawal': {
-            'queue': 'eth_check_balances',
-        },
-        'cryptocoins.tasks.eth.check_deposit_scoring': {
-            'queue': 'eth_check_balances',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.eth.accumulate_eth': {
-            'queue': 'eth_accumulations',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.eth.accumulate_erc20': {
-            'queue': 'erc20_accumulations',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.eth.send_gas': {
-            'queue': 'eth_send_gas',
-        },
-    }),
 
     app.conf.task_queues += (
-        Queue('eth_new_blocks'),
-        Queue('eth_deposits'),
-        Queue('eth_payouts'),
-        Queue('eth_check_balances'),
-        Queue('eth_accumulations'),
-        Queue('erc20_accumulations'),
-        Queue('eth_send_gas'),
+        Queue('ETH_new_blocks'),
+        Queue('ETH_deposits'),
+        Queue('ETH_payouts'),
+        Queue('ETH_check_balances'),
+        Queue('ETH_accumulations'),
+        Queue('ETH_tokens_accumulations'),
+        Queue('ETH_send_gas'),
     )
 
 if is_section_enabled('bnb'):
     app.conf.beat_schedule.update({
         'bnb_process_new_blocks': {
-            'task': 'cryptocoins.tasks.bnb.bnb_process_new_blocks',
+            'task': 'cryptocoins.tasks.evm.process_new_blocks_task',
             'schedule': settings.BNB_BLOCK_GENERATION_TIME,
-        },
-        'bnb_check_balances': {
-            'task': 'cryptocoins.tasks.bnb.check_balances',
-            'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
+            'args': ('BNB', ),
             'options': {
-                'expires': 20,
+                'queue': 'BNB_new_blocks',
             }
         },
-        # 'cryptocoins.tasks.bnb.accumulate_bnb_dust': {
-        #     'task': 'cryptocoins.tasks.bnb.accumulate_bnb_dust',
-        #     'schedule': crontab(minute='5', hour='0'),
-        #     'options': {
-        #         'queue': 'bnb_accumulations',
-        #     }
-        # },
-        # 'process_payouts': {
-        #     'task': 'cryptocoins.tasks.bnb.process_payouts',
-        #     'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
-        #     'options': {
-        #         'expires': 20,
-        #     }
-        # },
+        'bnb_check_balances': {
+            'task': 'cryptocoins.tasks.evm.check_balances_task',
+            'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
+            'args': ('BNB',),
+            'options': {
+                'expires': 20,
+                'queue': 'BNB_check_balances',
+            }
+        },
     })
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.bnb.bnb_process_new_blocks': {
-            'queue': 'bnb_new_blocks',
-        },
-        'cryptocoins.tasks.bnb.bnb_process_block': {
-            'queue': 'bnb_new_blocks',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.bnb.bnb_process_bnb_deposit': {
-            'queue': 'bnb_deposits',
-        },
-        'cryptocoins.tasks.bnb.bnb_process_bep20_deposit': {
-            'queue': 'bnb_deposits',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.bnb.process_payouts': {
-            'queue': 'bnb_payouts',
-        },
-        'cryptocoins.tasks.bnb.withdraw_bnb': {
-            'queue': 'bnb_payouts',
-        },
-        'cryptocoins.tasks.bnb.withdraw_bep20': {
-            'queue': 'bnb_payouts',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.bnb.check_balances': {
-            'queue': 'bnb_check_balances',
-        },
-        'cryptocoins.tasks.bnb.check_balance': {
-            'queue': 'bnb_check_balances',
-        },
-        'cryptocoins.tasks.bnb.check_tx_withdrawal': {
-            'queue': 'bnb_check_balances',
-        },
-        'cryptocoins.tasks.bnb.check_deposit_scoring': {
-            'queue': 'bnb_check_balances',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.bnb.accumulate_bnb': {
-            'queue': 'bnb_accumulations',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.bnb.accumulate_bep20': {
-            'queue': 'bep20_accumulations',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.bnb.send_gas': {
-            'queue': 'bnb_send_gas',
-        },
-    }),
 
     app.conf.task_queues += (
-        Queue('bnb_new_blocks'),
-        Queue('bnb_deposits'),
-        Queue('bnb_payouts'),
-        Queue('bnb_check_balances'),
-        Queue('bnb_accumulations'),
-        Queue('bep20_accumulations'),
-        Queue('bnb_send_gas'),
+        Queue('BNB_new_blocks'),
+        Queue('BNB_deposits'),
+        Queue('BNB_payouts'),
+        Queue('BNB_check_balances'),
+        Queue('BNB_accumulations'),
+        Queue('BNB_tokens_accumulations'),
+        Queue('BNB_send_gas'),
     )
 
 if is_section_enabled('tron'):
     app.conf.beat_schedule.update({
-        'trx_process_new_blocks': {
-            'task': 'cryptocoins.tasks.trx.trx_process_new_blocks',
+        'bnb_process_new_blocks': {
+            'task': 'cryptocoins.tasks.evm.process_new_blocks_task',
             'schedule': settings.TRX_BLOCK_GENERATION_TIME,
-        },
-        'trx_check_balances': {
-            'task': 'cryptocoins.tasks.trx.check_balances',
-            'schedule': settings.TRX_TRC20_ACCUMULATION_PERIOD,
+            'args': ('TRX', ),
             'options': {
-                'expires': 20,
+                'queue': 'TRX_new_blocks',
             }
         },
-        # 'cryptocoins.tasks.trx.accumulate_trx_dust': {
-        #     'task': 'cryptocoins.tasks.trx.accumulate_trx_dust',
-        #     'schedule': crontab(minute='10', hour='0'),
-        #     'options': {
-        #         'queue': 'trx_accumulations',
-        #     }
-        # },
+        'bnb_check_balances': {
+            'task': 'cryptocoins.tasks.evm.check_balances_task',
+            'schedule': settings.TRX_TRC20_ACCUMULATION_PERIOD,
+            'args': ('TRX',),
+            'options': {
+                'expires': 20,
+                'queue': 'TRX_check_balances',
+            }
+        },
     })
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.trx.trx_process_new_blocks': {
-            'queue': 'trx_new_blocks',
-        },
-        'cryptocoins.tasks.trx.trx_process_block': {
-            'queue': 'trx_new_blocks',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.trx.trx_process_trx_deposit': {
-            'queue': 'trx_deposits',
-        },
-        'cryptocoins.tasks.trx.trx_process_trc20_deposit': {
-            'queue': 'trx_deposits',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.trx.process_payouts': {
-            'queue': 'trx_payouts',
-        },
-        'cryptocoins.tasks.trx.withdraw_trx': {
-            'queue': 'trx_payouts',
-        },
-        'cryptocoins.tasks.trx.withdraw_trc20': {
-            'queue': 'trx_payouts',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.trx.check_balances': {
-            'queue': 'trx_check_balances',
-        },
-        'cryptocoins.tasks.trx.check_balance': {
-            'queue': 'trx_check_balances',
-        },
-        'cryptocoins.tasks.trx.check_tx_withdrawal': {
-            'queue': 'trx_check_balances',
-        },
-        'cryptocoins.tasks.trx.check_deposit_scoring': {
-            'queue': 'trx_check_balances',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.trx.accumulate_trx': {
-            'queue': 'trx_accumulations',
-        },
-    }),
-    app.conf.task_routes.update({
-        'cryptocoins.tasks.trx.accumulate_trc20': {
-            'queue': 'trc20_accumulations',
-        },
-    }),
 
     app.conf.task_queues += (
-        Queue('trx_new_blocks'),
-        Queue('trx_deposits'),
-        Queue('trx_payouts'),
-        Queue('trx_check_balances'),
-        Queue('trx_accumulations'),
-        Queue('trc20_accumulations'),
+        Queue('TRX_new_blocks'),
+        Queue('TRX_deposits'),
+        Queue('TRX_payouts'),
+        Queue('TRX_check_balances'),
+        Queue('TRX_accumulations'),
+        Queue('TRX_tokens_accumulations'),
     )
 
 if is_section_enabled('notifications'):

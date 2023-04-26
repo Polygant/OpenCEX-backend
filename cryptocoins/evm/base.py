@@ -147,7 +147,10 @@ class BaseEVMCoinHandler:
 
             log.info(f'Tx {tx.hash} is gas deposit')
             accumulation_transaction.complete(is_gas=True)
-            accumulate_tokens_task.apply_async([cls.CURRENCY.code, accumulation_transaction.wallet_transaction_id])
+            accumulate_tokens_task.apply_async(
+                [cls.CURRENCY.code, accumulation_transaction.wallet_transaction_id],
+                queue=f'{cls.CURRENCY.code}_tokens_accumulations'
+            )
             return
 
         db_wallet = cls.COIN_MANAGER.get_wallet_db_instance(cls.CURRENCY, tx.to_addr)
@@ -262,7 +265,10 @@ class BaseEVMCoinHandler:
                 # skip freezed withdrawals
                 if item.user.profile.is_payouts_freezed():
                     continue
-                withdraw_coin_task.apply_async([cls.CURRENCY.code, item.id, password])
+                withdraw_coin_task.apply_async(
+                    [cls.CURRENCY.code, item.id, password],
+                    queue=f'{cls.CURRENCY.code}_payouts'
+                )
 
         tokens_withdrawal_requests = get_withdrawal_requests_to_process(
             currencies=cls.TOKEN_CURRENCIES,
@@ -277,7 +283,10 @@ class BaseEVMCoinHandler:
                 # skip freezed withdrawals
                 if item.user.profile.is_payouts_freezed():
                     continue
-                withdraw_tokens_task.apply_async([cls.CURRENCY.code, item.id, password])
+                withdraw_tokens_task.apply_async(
+                    [cls.CURRENCY.code, item.id, password],
+                    queue=f'{cls.CURRENCY.code}_payouts'
+                )
 
     @classmethod
     def check_deposit_scoring(cls, wallet_transaction_id):
@@ -304,15 +313,15 @@ class BaseEVMCoinHandler:
         if kyt_check_jobs:
             log.info('Need to check for KYT: %s', len(kyt_check_jobs))
             jobs_group = group(kyt_check_jobs)
-            jobs_group.apply_async()
+            jobs_group.apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
 
         if accumulations_jobs:
             log.info('Need to check accumulations: %s', len(accumulations_jobs))
             jobs_group = group(accumulations_jobs)
-            jobs_group.apply_async()
+            jobs_group.apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
 
         if external_accumulations_jobs:
             log.info('Need to check external accumulations: %s', len(external_accumulations_jobs))
             jobs_group = group(external_accumulations_jobs)
-            jobs_group.apply_async()
+            jobs_group.apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
 
