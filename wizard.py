@@ -465,7 +465,8 @@ def main():
                     'is_autoorders_enabled': True,
                     'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
                     'custom_price': 0,
-                    'deviation': 0.99000000
+                    'deviation': 0.99000000,
+                    'precisions': ['100', '10', '1', '0.1', '0.01']
                 },
                 BotConfig: {
                     'name': 'BTC-USDT',
@@ -491,7 +492,8 @@ def main():
                     'is_autoorders_enabled': True,
                     'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
                     'custom_price': 0,
-                    'deviation': 0.99000000
+                    'deviation': 0.99000000,
+                    'precisions': ['100', '10', '1', '0.1', '0.01']
                 },
                 BotConfig: {
                     'name': 'ETH-USDT',
@@ -517,7 +519,8 @@ def main():
                     'is_autoorders_enabled': True,
                     'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
                     'custom_price': 0,
-                    'deviation': 0.0
+                    'deviation': 0.0,
+                    'precisions': ['0.01', '0.001', '0.0001', '0.00001', '0.000001']
                 },
                 BotConfig: {
                     'name': 'TRX-USDT',
@@ -543,7 +546,8 @@ def main():
                     'is_autoorders_enabled': True,
                     'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
                     'custom_price': 0,
-                    'deviation': 0.0
+                    'deviation': 0.0,
+                    'precisions': ['100', '10', '1', '0.1', '0.01'],
                 },
                 BotConfig: {
                     'name': 'BNB-USDT',
