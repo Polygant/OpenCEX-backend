@@ -160,9 +160,6 @@ class AccessLogApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
     ordering = ('-created',)
 
 
-
-
-
 @api_admin.register(LoginHistory)
 class LoginHistoryApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
     list_display = ['created', 'ip', 'user_agent']
@@ -249,13 +246,38 @@ class TwoFactorSecretHistoryApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
 
 @api_admin.register(TwoFactorSecretTokens)
 class TwoFactorSecretTokensApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
-    list_display = ['status', 'last_updated']
+    list_display = ['id', 'email', 'status', 'last_updated']
+    search_fields = (
+        'id',
+        'user__email',
+        'user__id',
+    )
+    actions = (
+        'disable',
+    )
 
     def status(self, obj):
         return 'ON' if TwoFactorSecretTokens.is_enabled_for_user(obj.user) else 'OFF'
 
     def last_updated(self, obj):
         return obj.updated
+
+    def email(self, obj):
+        return obj.user.email
+
+    @api_admin.action(permissions=('change',))
+    def disable(self, request, queryset):
+        """
+        :param request:
+        :param queryset:
+        :type queryset: list[TwoFactorSecretTokens]
+        """
+        try:
+            with atomic():
+                for tfs in queryset:
+                    tfs.drop()
+        except BaseException as e:
+            messages.error(request, e)
 
 
 @api_admin.register(UserExchangeFee)
@@ -275,7 +297,13 @@ class UserKYCApiAdmin(DefaultApiAdmin):
 
 @api_admin.register(WithdrawalFee)
 class WithdrawalFeeApiAdmin(DefaultApiAdmin):
-    pass
+    list_display = [
+        'id',
+        'currency',
+        'blockchain_currency',
+        'address_fee',
+    ]
+    filterset_fields = ['currency', 'blockchain_currency']
 
 
 @api_admin.register(FeesAndLimits)
@@ -299,9 +327,15 @@ class WalletTransactionsApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
         'transaction__user__id',
         'id',
         'tx_hash']
-    actions = (
-        'revert',
-    )
+
+    actions = {
+        'revert': [],
+        'recheck_kyt': [],
+        'force_deposit_and_accumulate': [],
+        'external_accumulation': [
+            {'label': 'External address', 'name': 'external_address'},
+        ],
+    }
 
     def get_queryset(self):
         qs = super(WalletTransactionsApiAdmin, self).get_queryset().annotate(
@@ -334,6 +368,29 @@ class WalletTransactionsApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
                     wallet_tr.revert()
         except Exception as e:
             messages.error(request, e)
+
+    @api_admin.action(permissions=('change',))
+    def recheck_kyt(self, request, queryset):
+        for entry in queryset:
+            entry.check_scoring()
+
+    recheck_kyt.short_description = 'Recheck KYT'
+
+    @api_admin.action(permissions=('change',))
+    def force_deposit_and_accumulate(self, request, queryset: List[WalletTransactions]):
+        for wallet_tr in queryset:
+            wallet_tr.force_deposit()
+
+    force_deposit_and_accumulate.short_description = 'Force deposit and accumulate'
+
+    @api_admin.action(permissions=('change',))
+    def external_accumulation(self, request, queryset: List[WalletTransactions]):
+        data = request.POST or request.data
+        address = data.get('external_address')
+        for wallet_tr in queryset:
+            wallet_tr.set_external_accumulation_address(address)
+
+    external_accumulation.short_description = 'External accumulation'
 
 
 @api_admin.register(WalletTransactionsRevert)

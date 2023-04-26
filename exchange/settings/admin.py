@@ -52,8 +52,6 @@ VUE_ADMIN_SIDE_MENU = [
     {'divider': True},
     {'heading': 'menu.bots'},
     {'icon': 'mdi-cogs', 'model': 'bots.botconfig', 'text': 'Bot configs'},
-    {'icon': 'mdi-check-all', 'model': 'bots.liquiditymatch', 'text': 'Liquid Matches'},
-    {'icon': 'mdi-check-all', 'model': 'bots.liquiditystat', 'text': 'Liquid Stats'},
     {'divider': True},
     {'heading': 'menu.otp'},
     {'icon': 'mdi-two-factor-authentication', 'model': 'otp_totp.totpdevice', 'text': 'TOTP Devices'},
