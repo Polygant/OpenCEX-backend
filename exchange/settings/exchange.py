@@ -32,6 +32,7 @@ PAYOUTS_PROCESSING_ENABLED = True  # Flag to disable any payouts processing
 
 EXTERNAL_PRICES_DEVIATION_PERCENTS = 10
 CRYPTOCOMPARE_DEVIATION_PERCENTS = 2
+EXTERNAL_PRICES_FETCH_PERIOD = env('EXTERNAL_PRICE_FETCH_PERIOD', 15)  # every N seconds
 
 FEE_USER = env('FEE_USER', default='fee@exchange.net')
 
