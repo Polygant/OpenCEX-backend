@@ -10,7 +10,7 @@ from core.currency import Currency
 from cryptocoins.coins.bnb import BNB_CURRENCY
 from cryptocoins.coins.bnb.connection import get_w3_connection
 from cryptocoins.interfaces.common import GasPriceCache
-from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction
+from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
 
 log = logging.getLogger(__name__)
 
@@ -52,3 +52,14 @@ class BnbManager(Web3Manager):
 
 w3 = get_w3_connection()
 bnb_manager = BnbManager(client=w3)
+
+
+class BnbHandler(Web3CommonHandler):
+    CURRENCY = BNB_CURRENCY
+    COIN_MANAGER = bnb_manager
+    TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
+    TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
+    TRANSACTION_CLASS = BnbTransaction
+    DEFAULT_BLOCK_ID_DELTA = 1000
+    SAFE_ADDR = w3.toChecksumAddress(settings.BNB_SAFE_ADDR)
+    CHAIN_ID = settings.BNB_CHAIN_ID

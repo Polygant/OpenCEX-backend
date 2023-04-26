@@ -11,7 +11,7 @@ from core.currency import Currency, TokenParams
 from cryptocoins.coins.eth import ETH_CURRENCY
 from cryptocoins.interfaces.common import GasPriceCache
 from cryptocoins.interfaces.common import Token
-from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction
+from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
 from cryptocoins.utils.infura import w3
 
 log = logging.getLogger(__name__)
@@ -53,3 +53,14 @@ class EthereumManager(Web3Manager):
 
 
 ethereum_manager = EthereumManager(client=w3)
+
+
+class EthereumHandler(Web3CommonHandler):
+    CURRENCY = ETH_CURRENCY
+    COIN_MANAGER = ethereum_manager
+    TOKEN_CURRENCIES = ethereum_manager.registered_token_currencies
+    TOKEN_CONTRACT_ADDRESSES = ethereum_manager.registered_token_addresses
+    TRANSACTION_CLASS = EthTransaction
+    DEFAULT_BLOCK_ID_DELTA = 1000
+    SAFE_ADDR = w3.toChecksumAddress(settings.ETH_SAFE_ADDR)
+    CHAIN_ID = settings.ETH_CHAIN_ID

@@ -202,6 +202,9 @@ class BlockchainManager:
         self._token_by_symbol_dict: Dict[str, Token] = {}
         self._register_tokens()
 
+    def get_latest_block_num(self):
+        raise NotImplementedError
+
     def get_block(self, block_id):
         raise NotImplementedError
 
@@ -213,6 +216,9 @@ class BlockchainManager:
 
     def send_tx(self, private_key, to_address, amount, **kwargs):
         raise NotImplementedError
+
+    def is_valid_transaction(self, tx_hash: str) -> bool:
+        return True
 
     def _register_tokens(self):
         """
