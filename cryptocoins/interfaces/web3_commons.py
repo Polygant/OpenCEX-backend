@@ -41,7 +41,6 @@ from lib.helpers import to_decimal
 
 log = logging.getLogger(__name__)
 accumulation_manager = AccumulationManager()
-log = logging.getLogger(__name__)
 abi_codec = ABICodec(registry)
 
 

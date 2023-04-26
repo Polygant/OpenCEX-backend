@@ -60,6 +60,5 @@ class BnbHandler(Web3CommonHandler):
     TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
     TRANSACTION_CLASS = BnbTransaction
-    DEFAULT_BLOCK_ID_DELTA = 1000
     SAFE_ADDR = w3.toChecksumAddress(settings.BNB_SAFE_ADDR)
     CHAIN_ID = settings.BNB_CHAIN_ID

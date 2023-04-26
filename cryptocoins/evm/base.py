@@ -1,12 +1,10 @@
 import logging
 
 from celery import group
-from django.conf import settings
 
 from core.models.inouts.wallet import WalletTransactions
 from core.utils.withdrawal import get_withdrawal_requests_to_process
 from cryptocoins.accumulation_manager import AccumulationManager
-from cryptocoins.coins.eth.ethereum import EthTransaction
 from cryptocoins.models.accumulation_transaction import AccumulationTransaction
 from cryptocoins.tasks.evm import (
     withdraw_coin_task,
@@ -19,7 +17,6 @@ from cryptocoins.utils.commons import (
     load_last_processed_block_id,
     store_last_processed_block_id,
 )
-from cryptocoins.utils.infura import w3
 from lib.utils import memcache_lock
 
 log = logging.getLogger(__name__)
@@ -29,11 +26,11 @@ accumulation_manager = AccumulationManager()
 class BaseEVMCoinHandler:
     CURRENCY = None
     COIN_MANAGER = None
-    TRANSACTION_CLASS = EthTransaction
+    TRANSACTION_CLASS = None
     DEFAULT_BLOCK_ID_DELTA = 1000
-    SAFE_ADDR = w3.toChecksumAddress(settings.ETH_SAFE_ADDR)
-    TOKEN_CURRENCIES = COIN_MANAGER.registered_token_currencies
-    TOKEN_CONTRACT_ADDRESSES = COIN_MANAGER.registered_token_addresses
+    SAFE_ADDR = None
+    TOKEN_CURRENCIES = None
+    TOKEN_CONTRACT_ADDRESSES = None
 
     @classmethod
     def process_block(cls, block_id):
