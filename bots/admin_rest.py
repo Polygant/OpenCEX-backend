@@ -17,14 +17,12 @@ User = get_user_model()
 class BotConfigApiAdmin(DefaultApiAdmin):
     fields = ('name', 'user', 'pair', 'strategy', 'match_user_orders', 'instant_match', 'ohlc_period', 'enabled',
               'loop_period', 'loop_period_random', 'min_period', 'max_period',
-              'ext_price_delta',
+              'ext_price_delta','symbol_precision', 'quote_precision',
               'min_order_quantity', 'max_order_quantity',
               'use_custom_price', 'custom_price',
               'low_orders_match', 'low_orders_max_match_size', 'low_orders_spread_size',
               'low_orders_min_order_size', 'low_orders_match_greater_order',
-              'binance_apikey', 'binance_secret', 'liquidity_buy_order_size', 'liquidity_sell_order_size',
-              'liquidity_order_step', 'liquidity_min_btc_balance', 'liquidity_min_eth_balance',
-              'liquidity_min_usdt_balance',
+              'binance_apikey', 'binance_secret',
               'low_spread_alert',)
     list_display = ('name', 'bot_info')
     readonly_fields = ['binance_apikey', 'binance_secret']
