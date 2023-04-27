@@ -163,7 +163,7 @@ class GasPriceCache:
 
     @cachetools.func.ttl_cache(ttl=GAS_PRICE_UPDATE_PERIOD)
     def get_price(self):
-        price = self.web3.eth.gasPrice
+        price = self.web3.eth.gas_price
         log.info('Current gas price: %s', price)
 
         return price

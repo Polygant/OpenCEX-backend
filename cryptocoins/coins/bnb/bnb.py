@@ -12,6 +12,7 @@ from cryptocoins.coins.bnb.connection import get_w3_connection
 from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import GasPriceCache
 from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
+from exchange.settings import env
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class BnbGasPriceCache(GasPriceCache):
 
     @cachetools.func.ttl_cache(ttl=GAS_PRICE_UPDATE_PERIOD)
     def get_price(self):
-        return self.web3.eth.gasPrice
+        return self.web3.eth.gas_price
 
 
 class BEP20Token(Web3Token):
@@ -62,5 +63,8 @@ class BnbHandler(Web3CommonHandler):
     TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
     TRANSACTION_CLASS = BnbTransaction
-    SAFE_ADDR = w3.toChecksumAddress(settings.BNB_SAFE_ADDR)
+    SAFE_ADDR = w3.to_checksum_address(settings.BNB_SAFE_ADDR)
     CHAIN_ID = settings.BNB_CHAIN_ID
+    BLOCK_GENERATION_TIME = settings.BNB_BLOCK_GENERATION_TIME
+    ACCUMULATION_PERIOD = settings.BNB_BEP20_ACCUMULATION_PERIOD
+    IS_ENABLED = env('COMMON_TASKS_BNB', default=True)

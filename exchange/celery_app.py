@@ -12,6 +12,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'exchange.settings')
 django.setup()
 
 from lib.cryptointegrator.tasks import generate_crypto_schedule
+from cryptocoins.evm.manager import evm_handlers_manager
 from kombu import Queue
 from django.conf import settings
 from celery.schedules import crontab
@@ -59,6 +60,10 @@ for item in settings.CRYPTO_AUTO_SCHEDULE_CONF:
     generated_queues.append(Queue(currency_symbol))
 
 app.conf.task_queues += tuple(generated_queues)
+
+# evm coins tasks
+evm_queues = evm_handlers_manager.register_celery_tasks(app.conf.beat_schedule)
+app.conf.task_queues += tuple(evm_queues)
 
 if is_section_enabled('payout_withdraw'):
     app.conf.beat_schedule.update({
@@ -112,98 +117,6 @@ if is_section_enabled('cryptocoins_commons'):
         },
     }),
     app.conf.task_queues += (Queue('cryptocoins_commons'),)
-
-if is_section_enabled('ethereum'):
-    app.conf.beat_schedule.update({
-        'eth_process_new_blocks': {
-            'task': 'cryptocoins.tasks.evm.process_new_blocks_task',
-            'schedule': settings.ETH_BLOCK_GENERATION_TIME,
-            'args': ('ETH', ),
-            'options': {
-                'queue': 'ETH_new_blocks',
-            }
-        },
-        'eth_check_balances': {
-            'task': 'cryptocoins.tasks.evm.check_balances_task',
-            'schedule': settings.ETH_ERC20_ACCUMULATION_PERIOD,
-            'args': ('ETH',),
-            'options': {
-                'expires': 20,
-                'queue': 'ETH_check_balances',
-            }
-        },
-    })
-
-    app.conf.task_queues += (
-        Queue('ETH_new_blocks'),
-        Queue('ETH_deposits'),
-        Queue('ETH_payouts'),
-        Queue('ETH_check_balances'),
-        Queue('ETH_accumulations'),
-        Queue('ETH_tokens_accumulations'),
-        Queue('ETH_send_gas'),
-    )
-
-if is_section_enabled('bnb'):
-    app.conf.beat_schedule.update({
-        'bnb_process_new_blocks': {
-            'task': 'cryptocoins.tasks.evm.process_new_blocks_task',
-            'schedule': settings.BNB_BLOCK_GENERATION_TIME,
-            'args': ('BNB', ),
-            'options': {
-                'queue': 'BNB_new_blocks',
-            }
-        },
-        'bnb_check_balances': {
-            'task': 'cryptocoins.tasks.evm.check_balances_task',
-            'schedule': settings.BNB_BEP20_ACCUMULATION_PERIOD,
-            'args': ('BNB',),
-            'options': {
-                'expires': 20,
-                'queue': 'BNB_check_balances',
-            }
-        },
-    })
-
-    app.conf.task_queues += (
-        Queue('BNB_new_blocks'),
-        Queue('BNB_deposits'),
-        Queue('BNB_payouts'),
-        Queue('BNB_check_balances'),
-        Queue('BNB_accumulations'),
-        Queue('BNB_tokens_accumulations'),
-        Queue('BNB_send_gas'),
-    )
-
-if is_section_enabled('tron'):
-    app.conf.beat_schedule.update({
-        'bnb_process_new_blocks': {
-            'task': 'cryptocoins.tasks.evm.process_new_blocks_task',
-            'schedule': settings.TRX_BLOCK_GENERATION_TIME,
-            'args': ('TRX', ),
-            'options': {
-                'queue': 'TRX_new_blocks',
-            }
-        },
-        'bnb_check_balances': {
-            'task': 'cryptocoins.tasks.evm.check_balances_task',
-            'schedule': settings.TRX_TRC20_ACCUMULATION_PERIOD,
-            'args': ('TRX',),
-            'options': {
-                'expires': 20,
-                'queue': 'TRX_check_balances',
-            }
-        },
-    })
-
-    app.conf.task_queues += (
-        Queue('TRX_new_blocks'),
-        Queue('TRX_deposits'),
-        Queue('TRX_payouts'),
-        Queue('TRX_check_balances'),
-        Queue('TRX_accumulations'),
-        Queue('TRX_tokens_accumulations'),
-    )
 
 if is_section_enabled('notifications'):
     app.conf.task_routes.update({

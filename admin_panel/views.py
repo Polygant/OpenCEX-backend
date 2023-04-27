@@ -17,9 +17,9 @@ from cryptocoins.coins.btc.service import BTCCoinService
 from cryptocoins.coins.eth import ETH_CURRENCY
 from cryptocoins.coins.trx import TRX_CURRENCY
 from cryptocoins.coins.usdt import USDT_CURRENCY
-from cryptocoins.tasks.eth import process_payouts as eth_process_payouts
-from cryptocoins.tasks.trx import process_payouts as trx_process_payouts
-from cryptocoins.tasks.bnb import process_payouts as bnb_process_payouts
+# from cryptocoins.tasks.eth import process_payouts as eth_process_payouts
+# from cryptocoins.tasks.trx import process_payouts as trx_process_payouts
+# from cryptocoins.tasks.bnb import process_payouts as bnb_process_payouts
 
 
 @staff_member_required

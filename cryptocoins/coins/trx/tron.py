@@ -41,6 +41,7 @@ from cryptocoins.tasks.evm import (
 from cryptocoins.utils.commons import (
     store_last_processed_block_id,
 )
+from exchange.settings import env
 from lib.cipher import AESCoderDecoder
 from lib.helpers import to_decimal
 
@@ -82,7 +83,7 @@ class TrxTransaction(BlockchainTransaction):
                     # hard replace padding bytes to zeroes for parsing
                     contract_fn_arguments = bytes.fromhex('00' * 12 + contract_data[32:])
                     try:
-                        to_address, amount = trx_abi.decode_abi(['address', 'uint256'], contract_fn_arguments)
+                        to_address, amount = trx_abi.decode(['address', 'uint256'], contract_fn_arguments)
                     except:
                         pass
 
@@ -225,6 +226,9 @@ class TronHandler(BaseEVMCoinHandler):
     TOKEN_CONTRACT_ADDRESSES = tron_manager.registered_token_addresses
     TRANSACTION_CLASS = TrxTransaction
     SAFE_ADDR = settings.TRX_SAFE_ADDR
+    BLOCK_GENERATION_TIME = settings.TRX_BLOCK_GENERATION_TIME
+    ACCUMULATION_PERIOD = settings.TRX_TRC20_ACCUMULATION_PERIOD
+    IS_ENABLED = env('COMMON_TASKS_TRON', default=True)
 
     @classmethod
     def process_block(cls, block_id):

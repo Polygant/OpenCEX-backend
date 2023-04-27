@@ -31,6 +31,9 @@ class BaseEVMCoinHandler:
     SAFE_ADDR = None
     TOKEN_CURRENCIES = None
     TOKEN_CONTRACT_ADDRESSES = None
+    BLOCK_GENERATION_TIME = 15
+    ACCUMULATION_PERIOD = 60
+    IS_ENABLED = True
 
     @classmethod
     def process_block(cls, block_id):

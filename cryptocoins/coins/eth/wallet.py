@@ -21,7 +21,7 @@ def create_eth_address():
         account = PassphraseAccount.create(pwallet.generate_mnemonic())
 
         encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
-            Web3.toHex(account.privateKey)
+            Web3.to_hex(account.privateKey)
         )
         decrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).decrypt(encrypted_key)
 
@@ -126,4 +126,4 @@ def erc20_wallet_creation_wrapper(user_id, currency, is_new=False, **kwargs):
     return UserWallet.objects.filter(id=wallet.id)
 
 def is_valid_eth_address(address):
-    return Web3.isAddress(address)
+    return Web3.is_address(address)
