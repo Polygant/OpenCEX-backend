@@ -35,7 +35,7 @@ w3 = bnb_manager.client
 BEP20_TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
 BEP20_TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
 try:
-    BNB_SAFE_ADDR = w3.toChecksumAddress(settings.BNB_SAFE_ADDR)
+    BNB_SAFE_ADDR = w3.to_checksum_address(settings.BNB_SAFE_ADDR)
 except BaseException:
     BNB_SAFE_ADDR = None
 
@@ -43,7 +43,7 @@ except BaseException:
 @shared_task
 def bnb_process_new_blocks():
     try:
-        current_block_id = w3.eth.blockNumber
+        current_block_id = w3.eth.block_number
     except Exception as e:
         log.exception('Cant get current block')
         w3.change_provider()
@@ -87,7 +87,7 @@ def bnb_process_block(self, block_id):
     log.info('Processing block #%s', block_id)
 
     try:
-        block = w3.eth.getBlock(block_id, full_transactions=True)
+        block = w3.eth.get_block(block_id, full_transactions=True)
         response_time = time.time() - started_at
         check_bnb_response_time(w3, response_time)
     except BlockNotFound as e:
@@ -249,7 +249,7 @@ def bnb_process_block(self, block_id):
             if not created:
                 log.info(f'Found accumulation BNB from {tx.from_addr} to {tx.to_addr}')
                 # Use to_address only from node
-                accumulation_details.to_address = w3.toChecksumAddress(tx.to_addr)
+                accumulation_details.to_address = w3.to_checksum_address(tx.to_addr)
                 accumulation_details.complete()
             else:
                 log.info(f'Unexpected accumulation BNB from {tx.from_addr} to {tx.to_addr}')
@@ -482,10 +482,10 @@ def withdraw_bnb(withdrawal_request_id, password, old_tx_data=None, prev_tx_hash
     withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
     # todo: handle errors
-    address = w3.toChecksumAddress(withdrawal_request.data.get('destination'))
+    address = w3.to_checksum_address(withdrawal_request.data.get('destination'))
     keeper = bnb_manager.get_keeper_wallet()
     amount_wei = bnb_manager.get_base_denomination_from_amount(withdrawal_request.amount)
-    withdrawal_fee_wei = Web3.toWei(to_decimal(
+    withdrawal_fee_wei = Web3.to_wei(to_decimal(
         get_withdrawal_fee(BNB_CURRENCY, BNB_CURRENCY)), 'ether')
     amount_to_send_wei = amount_wei - withdrawal_fee_wei
 
@@ -507,7 +507,7 @@ def withdraw_bnb(withdrawal_request_id, password, old_tx_data=None, prev_tx_hash
     if old_tx_data:
         log.info(
             'BNB withdrawal transaction to %s will be replaced',
-            w3.toChecksumAddress(address))
+            w3.to_checksum_address(address))
         tx_data = old_tx_data.copy()
         tx_data['gasPrice'] = gas_price
         if prev_tx_hash and bnb_manager.get_transaction_receipt(prev_tx_hash):
@@ -519,8 +519,8 @@ def withdraw_bnb(withdrawal_request_id, password, old_tx_data=None, prev_tx_hash
             'nonce': nonce,
             'gasPrice': gas_price,
             'gas': settings.BNB_TX_GAS,
-            'from': w3.toChecksumAddress(keeper.address),
-            'to': w3.toChecksumAddress(address),
+            'from': w3.to_checksum_address(keeper.address),
+            'to': w3.to_checksum_address(address),
             'value': amount_to_send_wei,
             'chainId': settings.BNB_CHAIN_ID,
         }
@@ -571,7 +571,7 @@ def withdraw_bep20(withdrawal_request_id, password, old_tx_data=None, prev_tx_ha
     withdrawal_request = WithdrawalRequest.objects.get(
         id=withdrawal_request_id)
 
-    address = w3.toChecksumAddress(withdrawal_request.data.get('destination'))
+    address = w3.to_checksum_address(withdrawal_request.data.get('destination'))
     currency = withdrawal_request.currency
 
     token = bnb_manager.get_token_by_symbol(currency)
@@ -763,7 +763,7 @@ def accumulate_bnb(wallet_transaction_id):
 
     # prepare tx
     wallet = bnb_manager.get_user_wallet('BNB', address)
-    nonce = bnb_manager.client.eth.getTransactionCount(address)
+    nonce = bnb_manager.client.eth.get_transaction_count(address)
 
     tx_hash = bnb_manager.send_tx(
         private_key=wallet.private_key,
@@ -840,7 +840,7 @@ def accumulate_bep20(wallet_transaction_id):
     gas_price = int(accumulation_gas_amount / accumulation_gas_required_amount)
 
     wallet = bnb_manager.get_user_wallet(currency, address)
-    nonce = w3.eth.getTransactionCount(address)
+    nonce = w3.eth.get_transaction_count(address)
 
     tx_hash = token.send_token(
         wallet.private_key,
@@ -914,7 +914,7 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
 
     # prepare tx
     if old_tx_data:
-        log.info('Gas transaction to %s will be replaced', w3.toChecksumAddress(address))
+        log.info('Gas transaction to %s will be replaced', w3.to_checksum_address(address))
         tx_data = old_tx_data.copy()
         tx_data['gasPrice'] = gas_price
         tx_data['value'] = accumulation_gas_total_amount
@@ -927,15 +927,15 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
             'nonce': nonce,
             'gasPrice': gas_price,
             'gas': settings.BNB_TX_GAS,
-            'from': w3.toChecksumAddress(gas_keeper.address),
+            'from': w3.to_checksum_address(gas_keeper.address),
             'to': address,
             'value': accumulation_gas_total_amount,
             'chainId': settings.BNB_CHAIN_ID,
         }
 
-    signed_tx = w3.eth.account.signTransaction(tx_data, gas_keeper.private_key)
+    signed_tx = w3.eth.account.sign_transaction(tx_data, gas_keeper.private_key)
     try:
-        tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
     except ValueError:
         log.exception('Unable to send accumulation TX')
         bnb_manager.release_nonce(is_gas=True)

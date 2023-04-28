@@ -30,14 +30,14 @@ log = logging.getLogger(__name__)
 accumulation_manager = AccumulationManager()
 
 DEFAULT_BLOCK_ID_DELTA = 1000
-ETH_SAFE_ADDR = w3.toChecksumAddress(settings.ETH_SAFE_ADDR)
+ETH_SAFE_ADDR = w3.to_checksum_address(settings.ETH_SAFE_ADDR)
 ERC20_TOKEN_CURRENCIES = ethereum_manager.registered_token_currencies
 ERC20_TOKEN_CONTRACT_ADDRESSES = ethereum_manager.registered_token_addresses
 
 
 @shared_task
 def eth_process_new_blocks():
-    current_block_id = w3.eth.blockNumber
+    current_block_id = w3.eth.block_number
     default_block_id = current_block_id - DEFAULT_BLOCK_ID_DELTA
     last_processed_block_id = load_last_processed_block_id(
         currency=ETH_CURRENCY, default=default_block_id)
@@ -68,7 +68,7 @@ def eth_process_block(self, block_id):
     started_at = time.time()
     log.info('Processing block #%s', block_id)
 
-    block = w3.eth.getBlock(block_id, full_transactions=True)
+    block = w3.eth.get_block(block_id, full_transactions=True)
 
     if block is None:
         log.error('Failed to get block #%s, skip...', block_id)
@@ -217,7 +217,7 @@ def eth_process_block(self, block_id):
             if not created:
                 log.info(f'Found accumulation ETH from {tx.from_addr} to {tx.to_addr}')
                 # Use to_address only from node
-                accumulation_details.to_address = w3.toChecksumAddress(tx.to_addr)
+                accumulation_details.to_address = w3.to_checksum_address(tx.to_addr)
                 accumulation_details.complete()
             else:
                 log.info(f'Unexpected accumulation ETH from {tx.from_addr} to {tx.to_addr}')
@@ -446,10 +446,10 @@ def withdraw_eth(withdrawal_request_id, password, old_tx_data=None, prev_tx_hash
     withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
     # todo: handle errors
-    address = w3.toChecksumAddress(withdrawal_request.data.get('destination'))
+    address = w3.to_checksum_address(withdrawal_request.data.get('destination'))
     keeper = ethereum_manager.get_keeper_wallet()
     amount_wei = ethereum_manager.get_base_denomination_from_amount(withdrawal_request.amount)
-    withdrawal_fee_wei = Web3.toWei(to_decimal(get_withdrawal_fee(ETH_CURRENCY, ETH_CURRENCY)), 'ether')
+    withdrawal_fee_wei = Web3.to_wei(to_decimal(get_withdrawal_fee(ETH_CURRENCY, ETH_CURRENCY)), 'ether')
     amount_to_send_wei = amount_wei - withdrawal_fee_wei
 
     gas_price = ethereum_manager.gas_price_cache.get_increased_price(
@@ -467,7 +467,7 @@ def withdraw_eth(withdrawal_request_id, password, old_tx_data=None, prev_tx_hash
         return
 
     if old_tx_data:
-        log.info('ETH withdrawal transaction to %s will be replaced', w3.toChecksumAddress(address))
+        log.info('ETH withdrawal transaction to %s will be replaced', w3.to_checksum_address(address))
         tx_data = old_tx_data.copy()
         tx_data['gasPrice'] = gas_price
         if prev_tx_hash and ethereum_manager.get_transaction_receipt(prev_tx_hash):
@@ -479,8 +479,8 @@ def withdraw_eth(withdrawal_request_id, password, old_tx_data=None, prev_tx_hash
             'nonce': nonce,
             'gasPrice': gas_price,
             'gas': settings.ETH_TX_GAS,
-            'from': w3.toChecksumAddress(keeper.address),
-            'to': w3.toChecksumAddress(address),
+            'from': w3.to_checksum_address(keeper.address),
+            'to': w3.to_checksum_address(address),
             'value': amount_to_send_wei,
             'chainId': settings.ETH_CHAIN_ID,
         }
@@ -525,7 +525,7 @@ def withdraw_erc20(withdrawal_request_id, password, old_tx_data=None, prev_tx_ha
 
     withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
-    address = w3.toChecksumAddress(withdrawal_request.data.get('destination'))
+    address = w3.to_checksum_address(withdrawal_request.data.get('destination'))
     currency = withdrawal_request.currency
 
     token = ethereum_manager.get_token_by_symbol(currency)
@@ -704,7 +704,7 @@ def accumulate_eth(wallet_transaction_id):
 
     # prepare tx
     wallet = ethereum_manager.get_user_wallet('ETH', address)
-    nonce = ethereum_manager.client.eth.getTransactionCount(address)
+    nonce = ethereum_manager.client.eth.get_transaction_count(address)
 
     tx_hash = ethereum_manager.send_tx(
         private_key=wallet.private_key,
@@ -783,7 +783,7 @@ def accumulate_erc20(wallet_transaction_id):
     gas_price = int(accumulation_gas_amount / accumulation_gas_required_amount)
 
     wallet = ethereum_manager.get_user_wallet(currency, address)
-    nonce = w3.eth.getTransactionCount(address)
+    nonce = w3.eth.get_transaction_count(address)
 
     tx_hash = token.send_token(
         wallet.private_key,
@@ -859,7 +859,7 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
 
     # prepare tx
     if old_tx_data:
-        log.info('Gas transaction to %s will be replaced', w3.toChecksumAddress(address))
+        log.info('Gas transaction to %s will be replaced', w3.to_checksum_address(address))
         tx_data = old_tx_data.copy()
         tx_data['gasPrice'] = gas_price
         tx_data['value'] = accumulation_gas_total_amount
@@ -872,15 +872,15 @@ def send_gas(wallet_transaction_id, old_tx_data=None, old_tx_hash=None):
             'nonce': nonce,
             'gasPrice': gas_price,
             'gas': settings.ETH_TX_GAS,
-            'from': w3.toChecksumAddress(gas_keeper.address),
+            'from': w3.to_checksum_address(gas_keeper.address),
             'to': address,
             'value': accumulation_gas_total_amount,
             'chainId': settings.ETH_CHAIN_ID,
         }
 
-    signed_tx = w3.eth.account.signTransaction(tx_data, gas_keeper.private_key)
+    signed_tx = w3.eth.account.sign_transaction(tx_data, gas_keeper.private_key)
     try:
-        tx_hash = w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
     except ValueError:
         log.exception('Unable to send accumulation TX')
         ethereum_manager.release_nonce(is_gas=True)
