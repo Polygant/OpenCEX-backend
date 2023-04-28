@@ -1,4 +1,5 @@
 import logging
+import secrets
 
 from django.conf import settings
 from django.db import transaction
@@ -12,12 +13,10 @@ log = logging.getLogger(__name__)
 
 def create_bnb_address():
     while 1:
-        Account.enable_unaudited_hdwallet_features()
-        account, mnemonic = Account.create_with_mnemonic()
+        private_key = "0x" + secrets.token_hex(32)
+        account = Account.from_key(private_key)
 
-        encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
-            Web3.to_hex(account.privateKey)
-        )
+        encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(private_key)
         decrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).decrypt(encrypted_key)
 
         if decrypted_key.startswith('0x') and len(decrypted_key) == 66:
