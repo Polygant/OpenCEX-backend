@@ -114,7 +114,7 @@ class Web3Token(Token):
         tx = self.contract.functions.transfer(
             to_address,
             amount_in_base_denomination,
-        ).buildTransaction({
+        ).build_transaction({
             'chainId': self.CHAIN_ID,
             'gas': gas,
             'gasPrice': gas_price,
