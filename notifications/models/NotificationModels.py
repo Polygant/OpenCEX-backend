@@ -21,7 +21,7 @@ class Notification(models.Model):
     title = models.CharField(max_length=255, default='')
     text = models.TextField(default='')
     type = models.PositiveSmallIntegerField(choices=TYPES, default=TYPE_SPLASH)
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, null=True, related_name='notifications')
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='notifications')
 
     def save(self, *args, **kwargs):
         super(Notification, self).save(*args, **kwargs)
@@ -35,7 +35,7 @@ class Mailing(models.Model):
     created = models.DateTimeField(default=timezone.now)
     subject = models.CharField(max_length=250, default=None, blank=True)
     text = models.TextField(default=None, blank=True)
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, null=True, related_name='mailing')
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='mailing')
 
     def send(self):
         from notifications.tasks import send_email_message

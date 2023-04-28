@@ -17,7 +17,7 @@ def create_bnb_address():
         account = PassphraseAccount.create(pwallet.generate_mnemonic())
 
         encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
-            Web3.toHex(account.privateKey)
+            Web3.to_hex(account.privateKey)
         )
         decrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).decrypt(encrypted_key)
 
@@ -108,4 +108,4 @@ def bep20_wallet_creation_wrapper(user_id, currency, is_new=False, **kwargs):
 
 
 def is_valid_bnb_address(address):
-    return Web3.isAddress(address)
+    return Web3.is_address(address)

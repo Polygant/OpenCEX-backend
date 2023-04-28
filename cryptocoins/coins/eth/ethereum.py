@@ -9,10 +9,12 @@ from django.conf import settings
 from core.consts.currencies import ERC20_CURRENCIES
 from core.currency import Currency, TokenParams
 from cryptocoins.coins.eth import ETH_CURRENCY
+from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import GasPriceCache
 from cryptocoins.interfaces.common import Token
-from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction
+from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
 from cryptocoins.utils.infura import w3
+from exchange.settings import env
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +35,7 @@ class EthGasPriceCache(GasPriceCache):
 
     @cachetools.func.ttl_cache(ttl=GAS_PRICE_UPDATE_PERIOD)
     def get_price(self):
-        return self.web3.eth.gasPrice
+        return self.web3.eth.gas_price
 
 
 class ERC20Token(Web3Token):
@@ -53,3 +55,18 @@ class EthereumManager(Web3Manager):
 
 
 ethereum_manager = EthereumManager(client=w3)
+
+
+@register_evm_handler
+class EthereumHandler(Web3CommonHandler):
+    CURRENCY = ETH_CURRENCY
+    COIN_MANAGER = ethereum_manager
+    TOKEN_CURRENCIES = ethereum_manager.registered_token_currencies
+    TOKEN_CONTRACT_ADDRESSES = ethereum_manager.registered_token_addresses
+    TRANSACTION_CLASS = EthTransaction
+    DEFAULT_BLOCK_ID_DELTA = 1000
+    SAFE_ADDR = w3.to_checksum_address(settings.ETH_SAFE_ADDR)
+    CHAIN_ID = settings.ETH_CHAIN_ID
+    BLOCK_GENERATION_TIME = settings.ETH_BLOCK_GENERATION_TIME
+    ACCUMULATION_PERIOD = settings.ETH_ERC20_ACCUMULATION_PERIOD
+    IS_ENABLED = env('COMMON_TASKS_ETHEREUM', default=True)

@@ -10,10 +10,10 @@ PAIRS = []
 
 
 PAIRS_LIST = [
-    (BTC_USDT, 'BTC-USDT', ['100', '10', '1', '0.1', '0.01']),
-    (ETH_USDT, 'ETH-USDT', ['100', '10', '1', '0.1', '0.01']),
-    (TRX_USDT, 'TRX-USDT', ['0.01', '0.001', '0.0001', '0.00001']),
-    (BNB_USDT, 'BNB-USDT', ['100', '10', '1', '0.1', '0.01']),
+    (BTC_USDT, 'BTC-USDT'),
+    (ETH_USDT, 'ETH-USDT'),
+    (TRX_USDT, 'TRX-USDT'),
+    (BNB_USDT, 'BNB-USDT'),
 ]
 
 pairs_ids_values = [(p[0], p[1]) for p in PAIRS_LIST]
@@ -29,11 +29,10 @@ class Pair(Currency):
     _by_id = {}
     _by_code = {}
 
-    def __init__(self, id, code, precisions):
+    def __init__(self, id, code):
         base, quote = code.split('-')
         self.base = Currency.get(base)
         self.quote = Currency.get(quote)
-        self.stack_precisions = precisions
         Currency.__init__(self, id, code)
         self.add_to_global_list()
 
@@ -47,15 +46,14 @@ class Pair(Currency):
             'code': self.code,
             'base': self.base.to_dict(),
             'quote': self.quote.to_dict(),
-            'stack_precisions': self.stack_precisions
         }
 
     def __json__(self):
         return self.to_dict()
 
 
-for _id, code, precisions in PAIRS_LIST:
-    _ = Pair(_id, code, precisions)
+for _id, code in PAIRS_LIST:
+    _ = Pair(_id, code)
 
 
 class PairModelField(models.Field):

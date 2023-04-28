@@ -7,9 +7,9 @@ from rest_framework.exceptions import ValidationError
 from core.consts.currencies import CURRENCIES_LIST
 from core.currency import Currency
 from core.pairs import PAIRS_LIST
-from cryptocoins.tasks.eth import ethereum_manager
-from cryptocoins.tasks.trx import tron_manager
-from cryptocoins.tasks.bnb import bnb_manager
+from cryptocoins.coins.eth.ethereum import ethereum_manager
+from cryptocoins.coins.trx.tron import tron_manager
+from cryptocoins.coins.bnb.bnb import bnb_manager
 from lib.cipher import AESCoderDecoder
 
 CryptoBitcoin = Bitcoin()

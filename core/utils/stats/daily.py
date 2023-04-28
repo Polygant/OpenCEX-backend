@@ -47,6 +47,7 @@ def get_last_prices(ts=None):
 def get_pairs_24h_stats() -> dict:
     """Returns pairs 24h stats"""
     from core.models.orders import ExecutionResult
+    from core.models.inouts.pair_settings import PairSettings
 
     volume = Sum(F('price') * F('quantity'))
 
@@ -83,6 +84,8 @@ def get_pairs_24h_stats() -> dict:
             trend = 100
         else:
             trend = 100 * (price - price24) / price24
+        pair_data = pair.to_dict()
+        pair_data['stack_precisions'] = PairSettings.get_stack_precisions_by_pair(pair.code)
         result.append({
             'volume': volumes.get(str(pair), None),
             'base_volume': base_volumes.get(str(pair), None),
@@ -90,7 +93,7 @@ def get_pairs_24h_stats() -> dict:
             'price_24h': trend,  # price 24h percent
             'price_24h_value': price_24_value,  # price 24h value
             'pair': str(pair),
-            'pair_data': pair.to_dict()
+            'pair_data': pair_data,
         })
 
     return {

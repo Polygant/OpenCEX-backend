@@ -289,8 +289,14 @@ class PairsListView(APIView):
         ]
     )
     def get(self, request, currency=None, format=None):
-        r = [i.to_dict() for i in PAIRS if i.code not in PairSettings.get_disabled_pairs()]
-        return Response({'pairs': r})
+        res = []
+        for p in PAIRS:
+            if p.code in PairSettings.get_disabled_pairs():
+                continue
+            pair_data = p.to_dict()
+            pair_data['stack_precisions'] = PairSettings.get_stack_precisions_by_pair(p.code)
+            res.append(pair_data)
+        return Response({'pairs': res})
 
 
 class StackView(APIView):

@@ -7,12 +7,12 @@ import xml.etree.cElementTree as et
 from io import BytesIO
 
 from django import forms
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.core.files import File as DjangoFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.validators import FileExtensionValidator, get_available_image_extensions
 from django.db import models
+from django.db.models import JSONField
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.fields import Field, FileField
