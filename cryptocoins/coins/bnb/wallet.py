@@ -5,15 +5,15 @@ from django.db import transaction
 from web3 import Web3
 
 from core.consts.currencies import BlockchainAccount
-from cryptocoins.utils.wallet import PassphraseAccount
+from eth_account.account import Account
 from lib.cipher import AESCoderDecoder
 
 log = logging.getLogger(__name__)
 
 def create_bnb_address():
     while 1:
-        PassphraseAccount.enable_unaudited_hdwallet_features()
-        account, mnemonic = PassphraseAccount.create_with_mnemonic()
+        Account.enable_unaudited_hdwallet_features()
+        account, mnemonic = Account.create_with_mnemonic()
 
         encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
             Web3.to_hex(account.privateKey)
