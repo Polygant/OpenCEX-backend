@@ -2,19 +2,18 @@ import logging
 
 from django.conf import settings
 from django.db import transaction
-from pywallet import wallet as pwallet
 from web3 import Web3
 
 from core.consts.currencies import BlockchainAccount
 from cryptocoins.utils.wallet import PassphraseAccount
 from lib.cipher import AESCoderDecoder
 
-
 log = logging.getLogger(__name__)
 
 def create_bnb_address():
     while 1:
-        account = PassphraseAccount.create(pwallet.generate_mnemonic())
+        PassphraseAccount.enable_unaudited_hdwallet_features()
+        account, mnemonic = PassphraseAccount.create_with_mnemonic()
 
         encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
             Web3.to_hex(account.privateKey)
