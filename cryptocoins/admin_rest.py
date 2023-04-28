@@ -20,9 +20,7 @@ from cryptocoins.serializers import BNBKeySerializer
 from cryptocoins.serializers import BTCKeySerializer
 from cryptocoins.serializers import ETHKeySerializer
 from cryptocoins.serializers import TRXKeySerializer
-from cryptocoins.tasks.bnb import process_payouts as bnb_process_payouts
-from cryptocoins.tasks.eth import process_payouts as eth_process_payouts
-from cryptocoins.tasks.trx import process_payouts as trx_process_payouts
+from cryptocoins.tasks.evm import process_payouts_task
 
 
 
@@ -71,7 +69,7 @@ class ETHWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
         serializer = ETHKeySerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             password = request.data.get('key')
-            eth_process_payouts.apply_async([password,])
+            process_payouts_task.apply_async(['ETH', password,], queue='eth_payouts')
     process.short_description = 'Process withdrawals'
 
 
@@ -85,7 +83,7 @@ class TRXWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
         serializer = TRXKeySerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             password = request.data.get('key')
-            trx_process_payouts.apply_async([password, ])
+            process_payouts_task.apply_async(['TRX', password, ], queue='trx_payouts')
 
     process.short_description = 'Process withdrawals'
 
@@ -100,7 +98,7 @@ class BNBWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
         serializer = BNBKeySerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             password = request.data.get('key')
-            bnb_process_payouts.apply_async([password,])
+            process_payouts_task.apply_async(['BNB', password,], queue='bnb_payouts')
     process.short_description = 'Process withdrawals'
 
 

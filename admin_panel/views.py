@@ -16,10 +16,7 @@ from cryptocoins.coins.bnb import BNB_CURRENCY
 from cryptocoins.coins.btc.service import BTCCoinService
 from cryptocoins.coins.eth import ETH_CURRENCY
 from cryptocoins.coins.trx import TRX_CURRENCY
-from cryptocoins.coins.usdt import USDT_CURRENCY
-# from cryptocoins.tasks.eth import process_payouts as eth_process_payouts
-# from cryptocoins.tasks.trx import process_payouts as trx_process_payouts
-# from cryptocoins.tasks.bnb import process_payouts as bnb_process_payouts
+from cryptocoins.tasks.evm import process_payouts_task
 
 
 @staff_member_required
@@ -90,7 +87,7 @@ def admin_eth_withdrawal_request_approve(request):
         try:
             if form.is_valid():
                 password = form.cleaned_data.get('key')
-                eth_process_payouts.apply_async([password,])
+                process_payouts_task.apply_async(['ETH', password,], queue='eth_payouts')
                 messages.success(request, 'Withdrawals in processing')
                 return redirect('admin_withdrawal_request_approve_eth')  # need for clear post data
         except Exception as e:  # all messages and errors to admin message
@@ -122,7 +119,7 @@ def admin_trx_withdrawal_request_approve(request):
         try:
             if form.is_valid():
                 password = form.cleaned_data.get('key')
-                trx_process_payouts.apply_async([password, ])
+                process_payouts_task.apply_async(['TRX', password, ], queue='trx_payouts')
                 messages.success(request, 'Withdrawals in processing')
                 return redirect('admin_withdrawal_request_approve_trx')  # need for clear post data
         except Exception as e:  # all messages and errors to admin message
@@ -154,7 +151,7 @@ def admin_bnb_withdrawal_request_approve(request):
         try:
             if form.is_valid():
                 password = form.cleaned_data.get('key')
-                bnb_process_payouts.apply_async([password, ])
+                process_payouts_task.apply_async(['BNB', password, ], queue='bnb_payouts')
                 messages.success(request, 'Withdrawals in processing')
                 return redirect('admin_withdrawal_request_approve_bnb')  # need for clear post data
         except Exception as e:  # all messages and errors to admin message
