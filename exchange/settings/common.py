@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',
     'rangefilter',
+    'admin_rest',
+    'dashboard_rest',
 ]
 
 MIDDLEWARE = [
