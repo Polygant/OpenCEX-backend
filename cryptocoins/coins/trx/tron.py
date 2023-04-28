@@ -344,19 +344,19 @@ class TronHandler(BaseEVMCoinHandler):
 
         if coin_deposit_jobs:
             log.info('Need to check TRX deposits count: %s', len(coin_deposit_jobs))
-            group(coin_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code}_deposits')
+            group(coin_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code.lower()}_deposits')
 
         if tokens_deposit_jobs:
             log.info('Need to check TRC20 withdrawals count: %s', len(tokens_deposit_jobs))
-            group(tokens_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code}_deposits')
+            group(tokens_deposit_jobs).apply_async(queue=f'{cls.CURRENCY.code.lower()}_deposits')
 
         if check_coin_withdrawal_jobs:
             log.info('Need to check TRX withdrawals count: %s', len(check_coin_withdrawal_jobs))
-            group(check_coin_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
+            group(check_coin_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code.lower()}_check_balances')
 
         if check_tokens_withdrawal_jobs:
             log.info('Need to check TRC20 withdrawals count: %s', len(check_coin_withdrawal_jobs))
-            group(check_tokens_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
+            group(check_tokens_withdrawal_jobs).apply_async(queue=f'{cls.CURRENCY.code.lower()}_check_balances')
 
         execution_time = time.time() - started_at
         log.info('Block #%s processed in %.2f sec. (TRX TX count: %s, TRC20 TX count: %s, WR TX count: %s)',
@@ -474,14 +474,14 @@ class TronHandler(BaseEVMCoinHandler):
             wallet_transaction.set_ready_for_accumulation()
             accumulate_coin_task.apply_async(
                 [cls.CURRENCY.code, wallet_transaction_id],
-                queue=f'{cls.CURRENCY.code}_accumulations'
+                queue=f'{cls.CURRENCY.code.lower()}_accumulations'
             )
         # tokens
         else:
             wallet_transaction.set_ready_for_accumulation()
             accumulate_tokens_task.apply_async(
                 [cls.CURRENCY.code, wallet_transaction_id],
-                queue=f'{cls.CURRENCY.code}_tokens_accumulations'
+                queue=f'{cls.CURRENCY.code.lower()}_tokens_accumulations'
             )
 
     @classmethod

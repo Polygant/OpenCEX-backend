@@ -24,7 +24,7 @@ class EVMHandlerManager:
                     'schedule': evm_handler.BLOCK_GENERATION_TIME,
                     'args': (currency_code,),
                     'options': {
-                        'queue': f'{currency_code}_new_blocks',
+                        'queue': f'{currency_code.lower()}_new_blocks',
                     }
                 },
                 f'{currency_code}_check_balances': {
@@ -33,18 +33,18 @@ class EVMHandlerManager:
                     'args': (currency_code,),
                     'options': {
                         'expires': 20,
-                        'queue': f'{currency_code}_check_balances',
+                        'queue': f'{currency_code.lower()}_check_balances',
                     }
                 },
             })
             queues.extend([
-                Queue(f'{currency_code}_new_blocks'),
-                Queue(f'{currency_code}_deposits'),
-                Queue(f'{currency_code}_payouts'),
-                Queue(f'{currency_code}_check_balances'),
-                Queue(f'{currency_code}_accumulations'),
-                Queue(f'{currency_code}_tokens_accumulations'),
-                Queue(f'{currency_code}_send_gas'),
+                Queue(f'{currency_code.lower()}_new_blocks'),
+                Queue(f'{currency_code.lower()}_deposits'),
+                Queue(f'{currency_code.lower()}_payouts'),
+                Queue(f'{currency_code.lower()}_check_balances'),
+                Queue(f'{currency_code.lower()}_accumulations'),
+                Queue(f'{currency_code.lower()}_tokens_accumulations'),
+                Queue(f'{currency_code.lower()}_send_gas'),
             ])
         return queues
 

@@ -152,7 +152,7 @@ class BaseEVMCoinHandler:
             accumulation_transaction.complete(is_gas=True)
             accumulate_tokens_task.apply_async(
                 [cls.CURRENCY.code, accumulation_transaction.wallet_transaction_id],
-                queue=f'{cls.CURRENCY.code}_tokens_accumulations'
+                queue=f'{cls.CURRENCY.code.lower()}_tokens_accumulations'
             )
             return
 
@@ -270,7 +270,7 @@ class BaseEVMCoinHandler:
                     continue
                 withdraw_coin_task.apply_async(
                     [cls.CURRENCY.code, item.id, password],
-                    queue=f'{cls.CURRENCY.code}_payouts'
+                    queue=f'{cls.CURRENCY.code.lower()}_payouts'
                 )
 
         tokens_withdrawal_requests = get_withdrawal_requests_to_process(
@@ -288,7 +288,7 @@ class BaseEVMCoinHandler:
                     continue
                 withdraw_tokens_task.apply_async(
                     [cls.CURRENCY.code, item.id, password],
-                    queue=f'{cls.CURRENCY.code}_payouts'
+                    queue=f'{cls.CURRENCY.code.lower()}_payouts'
                 )
 
     @classmethod
@@ -316,15 +316,15 @@ class BaseEVMCoinHandler:
         if kyt_check_jobs:
             log.info('Need to check for KYT: %s', len(kyt_check_jobs))
             jobs_group = group(kyt_check_jobs)
-            jobs_group.apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
+            jobs_group.apply_async(queue=f'{cls.CURRENCY.code.lower()}_check_balances')
 
         if accumulations_jobs:
             log.info('Need to check accumulations: %s', len(accumulations_jobs))
             jobs_group = group(accumulations_jobs)
-            jobs_group.apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
+            jobs_group.apply_async(queue=f'{cls.CURRENCY.code.lower()}_check_balances')
 
         if external_accumulations_jobs:
             log.info('Need to check external accumulations: %s', len(external_accumulations_jobs))
             jobs_group = group(external_accumulations_jobs)
-            jobs_group.apply_async(queue=f'{cls.CURRENCY.code}_check_balances')
+            jobs_group.apply_async(queue=f'{cls.CURRENCY.code.lower()}_check_balances')
 
