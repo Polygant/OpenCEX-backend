@@ -312,7 +312,7 @@ if is_section_enabled('otc'):
         },
         'update_crypto_external_prices': {
             'task': 'cryptocoins.tasks.datasources.update_crypto_external_prices',
-            'schedule': 15.0,
+            'schedule': settings.EXTERNAL_PRICES_FETCH_PERIOD,
             'options': {
                 'queue': 'otc',
             }
