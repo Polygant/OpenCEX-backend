@@ -255,6 +255,7 @@ class BaseEVMCoinHandler:
         )
         log.info(f'TX {tx.hash} processed as {token_amount} {token.currency} deposit')
 
+    @classmethod
     def process_payouts(cls, password, withdrawals_ids=None):
         coin_withdrawal_requests = get_withdrawal_requests_to_process(currencies=[cls.CURRENCY])
 
