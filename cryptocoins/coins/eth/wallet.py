@@ -3,10 +3,6 @@ import logging
 from django.conf import settings
 from django.db import transaction
 from eth_account import Account
-from eth_utils.curried import combomethod
-from eth_utils.curried import keccak
-from eth_utils.curried import text_if_str
-from eth_utils.curried import to_bytes
 from web3 import Web3
 
 from core.consts.currencies import BlockchainAccount
@@ -17,8 +13,8 @@ log = logging.getLogger(__name__)
 
 def create_eth_address():
     while 1:
-        PassphraseAccount.enable_unaudited_hdwallet_features()
-        account, mnemonic = PassphraseAccount.create_with_mnemonic()
+        Account.enable_unaudited_hdwallet_features()
+        account, mnemonic = Account.create_with_mnemonic()
 
         encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
             Web3.to_hex(account.privateKey)
@@ -94,15 +90,6 @@ def get_or_create_erc20_wallet(user_id, currency, is_new=False):
     )
 
     return erc20_wallet
-
-
-class PassphraseAccount(Account):
-
-    @combomethod
-    def create(self, passphrase):
-        extra_key_bytes = text_if_str(to_bytes, passphrase)
-        key_bytes = keccak(extra_key_bytes)
-        return self.privateKeyToAccount(key_bytes)
 
 
 def get_wallet_data(user_id, currency, is_new=False):
