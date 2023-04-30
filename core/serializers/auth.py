@@ -6,6 +6,7 @@ from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import Model
 from django.db.transaction import atomic
@@ -38,6 +39,7 @@ from core.tasks.facade import notify_failed_login
 from core.tasks.facade import notify_user_ip_changed
 from core.utils.auth import RegisterUserCheck
 from exchange.loggers import DynamicFieldFilter
+from exchange.settings.kyc import IS_KYC_REQUIRED
 from lib.serializers import LANG_FIELD
 from lib.utils import generate_random_string
 
@@ -272,6 +274,8 @@ class LoginSerializer(GCodeMixIn, BaseLoginSerializer):
                     'token': current_token
                 })
 
+            self.validate_kyc(user)
+
             attrs['user'] = user
             captcher.set_captcha_passed()
 
@@ -320,6 +324,17 @@ class LoginSerializer(GCodeMixIn, BaseLoginSerializer):
 
         return attrs
 
+    def validate_kyc(self, user: User) -> None:
+        if not IS_KYC_REQUIRED:
+            return
+        if not UserKYC.valid_for_user(user):
+            msg = _('Unable to log in due to KYC restrictions.')
+            raise AccountNotActive(
+                {
+                    'message': msg,
+                    'type': 'account_block'
+                }
+            )
 
 class RegisterSerializer(BaseRegisterSerializer):
     first_name = serializers.CharField(required=True)
