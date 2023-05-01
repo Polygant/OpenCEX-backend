@@ -329,10 +329,10 @@ class LoginSerializer(GCodeMixIn, BaseLoginSerializer):
             return
         if not UserKYC.valid_for_user(user):
             msg = _('Unable to log in due to KYC restrictions.')
-            raise AccountNotActive(
+            raise ValidationError(
                 {
                     'message': msg,
-                    'type': 'account_block'
+                    'type': 'wrong_data'
                 }
             )
 
