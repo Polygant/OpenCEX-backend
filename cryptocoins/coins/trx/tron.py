@@ -18,9 +18,10 @@ from tronpy.providers import HTTPProvider
 
 from core.consts.currencies import TRC20_CURRENCIES
 from core.currency import Currency
+from core.models import WalletTransactions
 from core.models.inouts.withdrawal import PENDING as WR_PENDING
 from core.models.inouts.withdrawal import WithdrawalRequest
-from core.utils.inouts import get_withdrawal_fee
+from core.utils.inouts import get_withdrawal_fee, get_min_accumulation_balance
 from core.utils.withdrawal import get_withdrawal_requests_pending
 from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.coins.trx import TRX_CURRENCY
@@ -237,7 +238,7 @@ class TronHandler(BaseEVMCoinHandler):
         log.info('Processing block #%s', block_id)
 
         try:
-            block = tron_manager.get_block(block_id)
+            block = cls.COIN_MANAGER.get_block(block_id)
         except BlockNotFound:
             log.warning(f'Block not found: {block_id}')
             return
@@ -289,9 +290,9 @@ class TronHandler(BaseEVMCoinHandler):
                 check_tokens_withdrawal_jobs.append(check_tx_withdrawal_task.s(cls.CURRENCY.code, None, tx.as_dict()))
                 continue
 
-        keeper_wallet = tron_manager.get_keeper_wallet()
-        gas_keeper_wallet = tron_manager.get_keeper_wallet()
-        trx_addresses = set(tron_manager.get_user_addresses())
+        keeper_wallet = cls.COIN_MANAGER.get_keeper_wallet()
+        gas_keeper_wallet = cls.COIN_MANAGER.get_keeper_wallet()
+        trx_addresses = set(cls.COIN_MANAGER.get_user_addresses())
 
         trx_addresses_deps = set(trx_addresses)
         trx_addresses_deps.add(TRX_SAFE_ADDR)
@@ -338,7 +339,7 @@ class TronHandler(BaseEVMCoinHandler):
 
                 elif tx.contract_address and tx.contract_address in cls.TOKEN_CONTRACT_ADDRESSES:
                     # Store TRC20 accumulations
-                    token = tron_manager.get_token_by_address(tx.contract_address)
+                    token = cls.COIN_MANAGER.get_token_by_address(tx.contract_address)
                     accumulation_details['token_currency'] = token.currency
                     AccumulationDetails.objects.create(**accumulation_details)
 
@@ -381,14 +382,182 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.fail()
 
     @classmethod
+    def process_coin_deposit(cls, tx_data: dict):
+        """
+        Process TRX deposit, excepting inner gas deposits, etc
+        """
+        log.info('Processing trx deposit: %s', tx_data)
+        tx = cls.TRANSACTION_CLASS(tx_data)
+        amount = cls.COIN_MANAGER.get_amount_from_base_denomination(tx.value)
+
+        trx_keeper = cls.COIN_MANAGER.get_keeper_wallet()
+        external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses([TRX_CURRENCY])
+
+        # is accumulation tx?
+        if tx.to_addr in [TRX_SAFE_ADDR, trx_keeper.address] + external_accumulation_addresses:
+            accumulation_transaction = AccumulationTransaction.objects.filter(
+                tx_hash=tx.hash,
+            ).first()
+
+            if accumulation_transaction is None:
+                log.error(f'Accumulation TX {tx.hash} not exist')
+                return
+
+            if accumulation_transaction.tx_state == AccumulationTransaction.STATE_COMPLETED:
+                log.info(f'Accumulation TX {tx.hash} already processed')
+                return
+
+            accumulation_transaction.complete()
+
+            log.info(f'Tx {tx.hash} is TRX accumulation')
+            return
+
+        trx_gas_keeper = cls.COIN_MANAGER.get_gas_keeper_wallet()
+        # is inner gas deposit?
+        if tx.from_addr == trx_gas_keeper.address:
+            accumulation_transaction = AccumulationTransaction.objects.filter(
+                tx_hash=tx.hash,
+                tx_type=AccumulationTransaction.TX_TYPE_GAS_DEPOSIT,
+            ).first()
+
+            if accumulation_transaction is None:
+                log.error(f'Gas accumulation TX {tx.hash} not found')
+                return
+
+            if accumulation_transaction.tx_state == AccumulationTransaction.STATE_COMPLETED:
+                log.info(f'Accumulation TX {tx.hash} already processed as token gas')
+                return
+
+            log.info(f'Tx {tx.hash} is gas deposit')
+            accumulation_transaction.complete(is_gas=True)
+            accumulate_tokens_task.apply_async(
+                [cls.CURRENCY.code, accumulation_transaction.wallet_transaction_id],
+                queue='trx_accumulations',
+            )
+            return
+
+        db_wallet = cls.COIN_MANAGER.get_wallet_db_instance(TRX_CURRENCY, tx.to_addr)
+        if db_wallet is None:
+            log.error(f'Wallet TRX {tx.to_addr} not exists or blocked')
+            return
+
+        # is already processed?
+        db_wallet_transaction = WalletTransactions.objects.filter(
+            tx_hash__iexact=tx.hash,
+            wallet_id=db_wallet.id,
+        ).first()
+
+        if db_wallet_transaction is not None:
+            log.warning('TX %s already processed as TRX deposit', tx.hash)
+            return
+
+        # make deposit
+        # check for keeper deposit
+        if db_wallet.address == trx_keeper.address:
+            log.info('TX %s is keeper TRX deposit: %s', tx.hash, amount)
+            return
+
+        # check for gas keeper deposit
+        if db_wallet.address == trx_gas_keeper.address:
+            log.info('TX %s is gas keeper TRX deposit: %s', tx.hash, amount)
+            return
+
+        # check for accumulation min limit
+        if amount < cls.COIN_MANAGER.accumulation_min_balance:
+            log.info(
+                'TX %s amount: %s less accumulation min limit: %s',
+                tx.hash, amount, cls.COIN_MANAGER.accumulation_min_balance
+            )
+            return
+
+        WalletTransactions.objects.create(
+            wallet=db_wallet,
+            tx_hash=tx.hash,
+            amount=amount,
+            currency=TRX_CURRENCY,
+        )
+        log.info('TX %s processed as %s TRX deposit', tx.hash, amount)
+
+    @classmethod
+    def process_tokens_deposit(cls, tx_data: dict):
+        """
+        Process TRC20 deposit
+        """
+        log.info('Processing TRC20 deposit: %s', tx_data)
+        tx = TrxTransaction(tx_data)
+
+        token = cls.COIN_MANAGER.get_token_by_address(tx.contract_address)
+        token_to_addr = tx.to_addr
+        token_amount = token.get_amount_from_base_denomination(tx.value)
+        trx_keeper = cls.COIN_MANAGER.get_keeper_wallet()
+        external_accumulation_addresses = accumulation_manager.get_external_accumulation_addresses(
+            list(cls.TOKEN_CURRENCIES)
+        )
+
+        if token_to_addr in [TRX_SAFE_ADDR, trx_keeper.address] + external_accumulation_addresses:
+            log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
+
+            accumulation_transaction = AccumulationTransaction.objects.filter(
+                tx_hash=tx.hash,
+            ).first()
+            if accumulation_transaction is None:
+                # accumulation from outside
+                log.error('Token accumulation TX %s not exist', tx.hash)
+                return
+
+            accumulation_transaction.complete()
+            return
+
+        db_wallet = cls.COIN_MANAGER.get_wallet_db_instance(token.currency, token_to_addr)
+        if db_wallet is None:
+            log.error('Wallet %s %s not exists or blocked', token.currency, token_to_addr)
+            return
+
+        db_wallet_transaction = WalletTransactions.objects.filter(
+            tx_hash__iexact=tx.hash,
+            wallet_id=db_wallet.id,
+        ).first()
+        if db_wallet_transaction is not None:
+            log.warning(f'TX {tx.hash} already processed as {token.currency} deposit')
+            return
+
+        # check for keeper deposit
+        if db_wallet.address == trx_keeper.address:
+            log.info(f'TX {tx.hash} is keeper {token.currency} deposit: {token_amount}')
+            return
+
+        # check for gas keeper deposit
+        trx_gas_keeper = cls.COIN_MANAGER.get_gas_keeper_wallet()
+        if db_wallet.address == trx_gas_keeper.address:
+            log.info(f'TX {tx.hash} is keeper {token.currency} deposit: {token_amount}')
+            return
+
+        # check for accumulation min limit
+        if token_amount < get_min_accumulation_balance(db_wallet.currency):
+            log.info(
+                'TX %s amount: %s less accumulation min limit: %s',
+                tx.hash, token_amount, cls.COIN_MANAGER.accumulation_min_balance
+            )
+            return
+
+        WalletTransactions.objects.create(
+            wallet_id=db_wallet.id,
+            tx_hash=tx.hash,
+            amount=token_amount,
+            currency=token.currency,
+        )
+
+        log.info(f'TX {tx.hash} processed as {token_amount} {token.currency} deposit')
+
+    @classmethod
     def withdraw_coin(cls, withdrawal_request_id, password, old_tx_data=None, prev_tx_hash=None):
         withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
         address = withdrawal_request.data.get('destination')
-        keeper = tron_manager.get_keeper_wallet()
-        amount_sun = tron_manager.get_base_denomination_from_amount(withdrawal_request.amount)
+        keeper = cls.COIN_MANAGER.get_keeper_wallet()
+        amount_sun = cls.COIN_MANAGER.get_base_denomination_from_amount(withdrawal_request.amount)
 
-        withdrawal_fee_sun = tron_manager.get_base_denomination_from_amount(
+        withdrawal_fee_sun = cls.COIN_MANAGER.get_base_denomination_from_amount(
             to_decimal(get_withdrawal_fee(TRX_CURRENCY, TRX_CURRENCY)))
         amount_to_send_sun = amount_sun - withdrawal_fee_sun
 
@@ -404,7 +573,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
 
-        res = tron_manager.send_tx(private_key, address, amount_to_send_sun)
+        res = cls.COIN_MANAGER.send_tx(private_key, address, amount_to_send_sun)
         txid = res.get('txid')
 
         if not res.get('result') or not txid:
@@ -412,7 +581,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         withdrawal_request.state = WR_PENDING
         withdrawal_request.txid = txid
-        withdrawal_request.our_fee_amount = tron_manager.get_amount_from_base_denomination(withdrawal_fee_sun)
+        withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
         withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
         receipt = res.wait()
         log.info(receipt)
@@ -425,7 +594,7 @@ class TronHandler(BaseEVMCoinHandler):
         address = withdrawal_request.data.get('destination')
         currency = withdrawal_request.currency
 
-        token = tron_manager.get_token_by_symbol(currency)
+        token = cls.COIN_MANAGER.get_token_by_symbol(currency)
         send_amount_sun = token.get_base_denomination_from_amount(withdrawal_request.amount)
         withdrawal_fee_sun = token.get_base_denomination_from_amount(token.withdrawal_fee)
         amount_to_send_sun = send_amount_sun - withdrawal_fee_sun
@@ -435,8 +604,8 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.fail()
             return
 
-        keeper = tron_manager.get_keeper_wallet()
-        keeper_trx_balance = tron_manager.get_balance_in_base_denomination(keeper.address)
+        keeper = cls.COIN_MANAGER.get_keeper_wallet()
+        keeper_trx_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
         keeper_token_balance = token.get_base_denomination_balance(keeper.address)
 
         if keeper_trx_balance < TRX_NET_FEE:
@@ -490,10 +659,10 @@ class TronHandler(BaseEVMCoinHandler):
         address = wallet_transaction.wallet.address
 
         amount = wallet_transaction.amount
-        amount_sun = tron_manager.get_base_denomination_from_amount(amount)
+        amount_sun = cls.COIN_MANAGER.get_base_denomination_from_amount(amount)
 
         log.info('Accumulation TRX from: %s; Balance: %s; Min acc balance:%s',
-                 address, amount, tron_manager.accumulation_min_balance)
+                 address, amount, cls.COIN_MANAGER.accumulation_min_balance)
 
         # minus coins to be burnt
         withdrawal_amount = amount_sun - TRX_NET_FEE
@@ -504,13 +673,13 @@ class TronHandler(BaseEVMCoinHandler):
             wallet_transaction.set_balance_too_low()
             return
 
-        accumulation_address = wallet_transaction.external_accumulation_address or tron_manager.get_accumulation_address(
+        accumulation_address = wallet_transaction.external_accumulation_address or cls.COIN_MANAGER.get_accumulation_address(
             amount)
 
         # prepare tx
-        wallet = tron_manager.get_user_wallet('TRX', address)
+        wallet = cls.COIN_MANAGER.get_user_wallet('TRX', address)
 
-        res = tron_manager.send_tx(wallet.private_key, accumulation_address, withdrawal_amount)
+        res = cls.COIN_MANAGER.send_tx(wallet.private_key, accumulation_address, withdrawal_amount)
         txid = res.get('txid')
 
         if not res.get('result') or not txid:
@@ -518,7 +687,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
-            amount=tron_manager.get_amount_from_base_denomination(withdrawal_amount),
+            amount=cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_amount),
             tx_type=AccumulationTransaction.TX_TYPE_ACCUMULATION,
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=txid,
@@ -541,7 +710,7 @@ class TronHandler(BaseEVMCoinHandler):
         address = wallet_transaction.wallet.address
         currency = wallet_transaction.currency
 
-        token = tron_manager.get_token_by_symbol(currency)
+        token = cls.COIN_MANAGER.get_token_by_symbol(currency)
         token_amount = wallet_transaction.amount
         token_amount_sun = token.get_base_denomination_from_amount(token_amount)
 
@@ -550,11 +719,11 @@ class TronHandler(BaseEVMCoinHandler):
         accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(
             token_amount)
 
-        gas_keeper = tron_manager.get_gas_keeper_wallet()
+        gas_keeper = cls.COIN_MANAGER.get_gas_keeper_wallet()
 
         # send trx from gas keeper to send tokens
         log.info('Trying to send token fee from GasKeeper')
-        res = tron_manager.send_tx(gas_keeper.private_key, address, TRC20_FEE_LIMIT)
+        res = cls.COIN_MANAGER.send_tx(gas_keeper.private_key, address, TRC20_FEE_LIMIT)
         gas_txid = res.get('txid')
 
         if not res.get('result') or not gas_txid:
@@ -562,7 +731,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         acc_transaction = AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
-            amount=tron_manager.get_amount_from_base_denomination(TRC20_FEE_LIMIT),
+            amount=cls.COIN_MANAGER.get_amount_from_base_denomination(TRC20_FEE_LIMIT),
             tx_type=AccumulationTransaction.TX_TYPE_GAS_DEPOSIT,
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=gas_txid,
@@ -574,7 +743,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         acc_transaction.complete(is_gas=True)
 
-        wallet = tron_manager.get_user_wallet(currency, address)
+        wallet = cls.COIN_MANAGER.get_user_wallet(currency, address)
         res = token.send_token(wallet.private_key, accumulation_address, token_amount_sun)
         txid = res.get('txid')
 
