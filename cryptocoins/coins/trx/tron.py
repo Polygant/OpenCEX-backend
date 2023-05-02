@@ -381,7 +381,7 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.fail()
 
     @classmethod
-    def withdraw_trx(cls, withdrawal_request_id, password):
+    def withdraw_coin(cls, withdrawal_request_id, password, old_tx_data=None, prev_tx_hash=None):
         withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
         address = withdrawal_request.data.get('destination')
@@ -419,7 +419,7 @@ class TronHandler(BaseEVMCoinHandler):
         log.info('TRX withdrawal TX %s sent', txid)
 
     @classmethod
-    def withdraw_trc20(cls, withdrawal_request_id, password):
+    def withdraw_tokens(cls, withdrawal_request_id, password, old_tx_data=None, prev_tx_hash=None):
         withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
         address = withdrawal_request.data.get('destination')
@@ -485,7 +485,7 @@ class TronHandler(BaseEVMCoinHandler):
             )
 
     @classmethod
-    def accumulate_trx(cls, wallet_transaction_id):
+    def accumulate_coin(cls, wallet_transaction_id):
         wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
         address = wallet_transaction.wallet.address
 
@@ -536,7 +536,7 @@ class TronHandler(BaseEVMCoinHandler):
         log.info(f'Accumulation TX {txid} sent from {wallet.address} to {accumulation_address}')
 
     @classmethod
-    def accumulate_trc20(cls, wallet_transaction_id):
+    def accumulate_tokens(cls, wallet_transaction_id):
         wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
         address = wallet_transaction.wallet.address
         currency = wallet_transaction.currency
