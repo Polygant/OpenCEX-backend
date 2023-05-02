@@ -45,9 +45,9 @@ class EtherscanClient:
             'hash': t['hash'],
             'from': t['from'],
             'to': t['to'],
-            'fee': to_decimal(Web3.fromWei(int(t['gasPrice']) * int(t['gasUsed']), 'ether')),
-            'amount': to_decimal(Web3.fromWei(int(t['value']), 'ether')),
-            'value': to_decimal(Web3.fromWei(int(t['value']) + int(t['gasPrice']) * int(t['gasUsed']), 'ether')),
+            'fee': to_decimal(Web3.from_wei(int(t['gasPrice']) * int(t['gasUsed']), 'ether')),
+            'amount': to_decimal(Web3.from_wei(int(t['value']), 'ether')),
+            'value': to_decimal(Web3.from_wei(int(t['value']) + int(t['gasPrice']) * int(t['gasUsed']), 'ether')),
         } for t in all_txs])
 
         if only_eth_txs:

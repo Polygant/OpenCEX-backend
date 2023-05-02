@@ -1,16 +1,21 @@
 import json
 import logging
+import time
 from decimal import Decimal
 
 import cachetools.func
 from django.conf import settings
+from web3.exceptions import BlockNotFound
 
 from core.consts.currencies import BEP20_CURRENCIES
 from core.currency import Currency
 from cryptocoins.coins.bnb import BNB_CURRENCY
-from cryptocoins.coins.bnb.connection import get_w3_connection
+from cryptocoins.coins.bnb.connection import get_w3_connection, check_bnb_response_time
+from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import GasPriceCache
-from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction
+from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
+from cryptocoins.utils.commons import store_last_processed_block_id
+from exchange.settings import env
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +36,7 @@ class BnbGasPriceCache(GasPriceCache):
 
     @cachetools.func.ttl_cache(ttl=GAS_PRICE_UPDATE_PERIOD)
     def get_price(self):
-        return self.web3.eth.gasPrice
+        return self.web3.eth.gas_price
 
 
 class BEP20Token(Web3Token):
@@ -49,6 +54,44 @@ class BnbManager(Web3Manager):
     MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.002')
     COLD_WALLET_ADDRESS = settings.BNB_SAFE_ADDR
 
+    def get_latest_block_num(self):
+        try:
+            current_block_id = self.client.eth.block_number
+        except Exception as e:
+            w3.change_provider()
+            raise e
+        return current_block_id
+
+    def get_block(self, block_id):
+        started_at = time.time()
+        try:
+            block = self.client.eth.get_block(block_id, full_transactions=True)
+            response_time = time.time() - started_at
+            check_bnb_response_time(w3, response_time)
+        except BlockNotFound as e:
+            store_last_processed_block_id(currency=BNB_CURRENCY, block_id=block_id)
+            raise e
+        except Exception as e:
+            log.exception('Cant parse current block')
+            store_last_processed_block_id(currency=BNB_CURRENCY, block_id=block_id)
+            self.client.change_provider()
+            raise e
+        return block
+
 
 w3 = get_w3_connection()
 bnb_manager = BnbManager(client=w3)
+
+
+@register_evm_handler
+class BnbHandler(Web3CommonHandler):
+    CURRENCY = BNB_CURRENCY
+    COIN_MANAGER = bnb_manager
+    TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
+    TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
+    TRANSACTION_CLASS = BnbTransaction
+    SAFE_ADDR = w3.to_checksum_address(settings.BNB_SAFE_ADDR)
+    CHAIN_ID = settings.BNB_CHAIN_ID
+    BLOCK_GENERATION_TIME = settings.BNB_BLOCK_GENERATION_TIME
+    ACCUMULATION_PERIOD = settings.BNB_BEP20_ACCUMULATION_PERIOD
+    IS_ENABLED = env('COMMON_TASKS_BNB', default=True)
