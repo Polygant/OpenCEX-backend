@@ -86,13 +86,6 @@ if is_section_enabled('payout_withdraw'):
 
 if is_section_enabled('cryptocoins_commons'):
     app.conf.beat_schedule.update({
-        'check_accumulations': {
-            'task': 'cryptocoins.tasks.commons.check_accumulations',
-            'schedule': 20,
-            'options': {
-                'queue': 'cryptocoins_commons',
-            }
-        },
         'mark_accumulated_topups': {
             'task': 'cryptocoins.tasks.commons.mark_accumulated_topups',
             'schedule': 60,

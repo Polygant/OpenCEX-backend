@@ -22,7 +22,6 @@ __all__ = (
     'accumulate_erc20',
     'send_gas',
     'sat_per_byte_cache',
-    'check_accumulations',
     'trx_process_block',
     'trx_process_trx_deposit',
     'trx_process_new_blocks',
