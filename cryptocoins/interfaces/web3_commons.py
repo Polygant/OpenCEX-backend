@@ -35,7 +35,6 @@ from cryptocoins.tasks.evm import (
     accumulate_tokens_task,
     send_gas_task,
 )
-from cryptocoins.utils.infura import w3
 from lib.cipher import AESCoderDecoder
 from lib.helpers import to_decimal
 
@@ -160,7 +159,7 @@ class Web3Manager(BlockchainManager):
         return self.client.eth.get_block(block_id, full_transactions=True)
 
     def get_balance_in_base_denomination(self, address: str):
-        return self.client.eth.get_balance(self.client.to_checksum_address(address))
+        return self.client.eth.get_balance(Web3.to_checksum_address(address))
 
     def get_balance(self, address: str) -> Decimal:
         base_balance = self.get_balance_in_base_denomination(address)
@@ -328,6 +327,7 @@ class Web3Manager(BlockchainManager):
 
 class Web3CommonHandler(BaseEVMCoinHandler):
     CHAIN_ID = None
+    W3_CLIENT = None
 
     @classmethod
     def process_block(cls, block_id):
@@ -490,7 +490,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
                 if not created:
                     log.info(f'Found accumulation {cls.CURRENCY.code} from {tx.from_addr} to {tx.to_addr}')
                     # Use to_address only from node
-                    accumulation_details.to_address = w3.to_checksum_address(tx.to_addr)
+                    accumulation_details.to_address = Web3.to_checksum_address(tx.to_addr)
                     accumulation_details.complete()
                 else:
                     log.info(f'Unexpected accumulation {cls.CURRENCY.code} from {tx.from_addr} to {tx.to_addr}')
@@ -528,7 +528,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
         # todo: handle errors
-        address = w3.to_checksum_address(withdrawal_request.data.get('destination'))
+        address = Web3.to_checksum_address(withdrawal_request.data.get('destination'))
         keeper = cls.COIN_MANAGER.get_keeper_wallet()
         amount_wei = cls.COIN_MANAGER.get_base_denomination_from_amount(withdrawal_request.amount)
         withdrawal_fee_wei = cls.COIN_MANAGER.get_base_denomination_from_amount(
@@ -562,8 +562,8 @@ class Web3CommonHandler(BaseEVMCoinHandler):
                 'nonce': nonce,
                 'gasPrice': gas_price,
                 'gas': settings.ETH_TX_GAS,
-                'from': w3.to_checksum_address(keeper.address),
-                'to': w3.to_checksum_address(address),
+                'from': Web3.to_checksum_address(keeper.address),
+                'to': Web3.to_checksum_address(address),
                 'value': amount_to_send_wei,
                 'chainId': cls.CHAIN_ID,
             }
@@ -607,7 +607,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
 
         withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
 
-        address = w3.to_checksum_address(withdrawal_request.data.get('destination'))
+        address = Web3.to_checksum_address(withdrawal_request.data.get('destination'))
         currency = withdrawal_request.currency
 
         token = cls.COIN_MANAGER.get_token_by_symbol(currency)
@@ -832,7 +832,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         gas_price = int(accumulation_gas_amount / accumulation_gas_required_amount)
 
         wallet = cls.COIN_MANAGER.get_user_wallet(currency, address)
-        nonce = w3.eth.get_transaction_count(address)
+        nonce = cls.W3_CLIENT.eth.get_transaction_count(address)
 
         tx_hash = token.send_token(
             wallet.private_key,
@@ -910,7 +910,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
 
         # prepare tx
         if old_tx_data:
-            log.info('Gas transaction to %s will be replaced', w3.to_checksum_address(address))
+            log.info('Gas transaction to %s will be replaced', Web3.to_checksum_address(address))
             tx_data = old_tx_data.copy()
             tx_data['gasPrice'] = gas_price
             tx_data['value'] = accumulation_gas_total_amount
@@ -923,16 +923,16 @@ class Web3CommonHandler(BaseEVMCoinHandler):
                 'nonce': nonce,
                 'gasPrice': gas_price,
                 'gas': settings.ETH_TX_GAS,
-                'from': w3.to_checksum_address(gas_keeper.address),
+                'from': Web3.to_checksum_address(gas_keeper.address),
                 'to': address,
                 'value': accumulation_gas_total_amount,
                 'chainId': cls.CHAIN_ID,
             }
             log.info(tx_data)
 
-        signed_tx = w3.eth.account.sign_transaction(tx_data, gas_keeper.private_key)
+        signed_tx = cls.W3_CLIENT.eth.account.sign_transaction(tx_data, gas_keeper.private_key)
         try:
-            tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            tx_hash = cls.W3_CLIENT.eth.send_raw_transaction(signed_tx.rawTransaction)
         except ValueError:
             log.exception('Unable to send accumulation TX')
             cls.COIN_MANAGER.release_nonce(is_gas=True)

@@ -95,3 +95,4 @@ class BnbHandler(Web3CommonHandler):
     BLOCK_GENERATION_TIME = settings.BNB_BLOCK_GENERATION_TIME
     ACCUMULATION_PERIOD = settings.BNB_BEP20_ACCUMULATION_PERIOD
     IS_ENABLED = env('COMMON_TASKS_BNB', default=True)
+    W3_CLIENT = w3
