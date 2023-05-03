@@ -86,7 +86,10 @@ class PairSerialField(Field):
 
 
 class PairSerialRestField(PairSerialField):
-    choices = dict([(p[0], p[1]) for p in PAIRS_LIST])  # for OPTIONS action
-
     def to_representation(self, obj):
         return obj.id
+
+    @property
+    def choices(self):
+        """for OPTIONS action"""
+        return dict(PAIRS_LIST)
