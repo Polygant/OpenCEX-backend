@@ -928,6 +928,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
                 'value': accumulation_gas_total_amount,
                 'chainId': cls.CHAIN_ID,
             }
+            log.info(tx_data)
 
         signed_tx = w3.eth.account.sign_transaction(tx_data, gas_keeper.private_key)
         try:
