@@ -70,3 +70,4 @@ class EthereumHandler(Web3CommonHandler):
     BLOCK_GENERATION_TIME = settings.ETH_BLOCK_GENERATION_TIME
     ACCUMULATION_PERIOD = settings.ETH_ERC20_ACCUMULATION_PERIOD
     IS_ENABLED = env('COMMON_TASKS_ETHEREUM', default=True)
+    W3_CLIENT = w3
