@@ -56,8 +56,8 @@ def check_balances_task(currency_code):
 
 
 @shared_task
-def check_balance_task(currency_code):
-    evm_handlers_manager.get_handler(currency_code).check_balance()
+def check_balance_task(currency_code, wallet_transaction_id):
+    evm_handlers_manager.get_handler(currency_code).check_balance(wallet_transaction_id)
 
 
 @shared_task
