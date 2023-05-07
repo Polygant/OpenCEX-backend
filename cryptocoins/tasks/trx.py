@@ -477,7 +477,7 @@ def withdraw_trc20(withdrawal_request_id, password):
     keeper_trx_balance = tron_manager.get_balance_in_base_denomination(keeper.address)
     keeper_token_balance = token.get_base_denomination_balance(keeper.address)
 
-    if keeper_trx_balance < TRX_NET_FEE:
+    if keeper_trx_balance < TRC20_FEE_LIMIT:
         log.warning('Keeper not enough TRX, skipping')
         return
 
