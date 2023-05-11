@@ -64,9 +64,7 @@ LATEST_ADDRESSES_REGENERATION = timezone.datetime(2021, 1, 28, 11, 20)
 CRYPTO_KEY_OLD = env('CRYPTO_KEY_OLD', default='')
 CRYPTO_KEY = env('CRYPTO_KEY', default='')
 
-# Infura auto client setup
-os.environ['WEB3_INFURA_API_KEY'] = WEB3_INFURA_API_KEY
-os.environ['WEB3_INFURA_API_SECRET'] = WEB3_INFURA_API_SECRET
-os.environ['WEB3_INFURA_SCHEME'] = 'https'
+INFURA_API_KEY = env('INFURA_API_KEY', default='')
+INFURA_API_SECRET = env('WEB3_INFURA_API_SECRET', default='')
 
 MIN_COST_ORDER_CANCEL = 0.0000001

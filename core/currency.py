@@ -21,7 +21,6 @@ class TokenParams:
 class CoinParams:
     latest_block_fn: Optional[Callable] = None
     blocks_monitoring_diff: Optional[int] = None
-    encrypted_cold_wallet: Optional[bytes] = None
 
 
 class CurrencyNotFound(APIException):

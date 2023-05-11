@@ -4,7 +4,6 @@ from typing import Tuple, Any
 
 from cryptos import Bitcoin
 from django.conf import settings
-from pywallet.wallet import create_wallet
 
 from core.models import UserWallet
 from cryptocoins.coins.btc import BTC_CURRENCY

@@ -15,31 +15,6 @@ log = logging.getLogger(__name__)
 
 
 @shared_task
-def check_accumulations():
-    """Checks accumulation details and alerts if output address is incorrect"""
-    qs = AccumulationDetails.objects.filter(
-        is_checked=False,
-        state=AccumulationDetails.STATE_COMPLETED
-    )
-
-    for accumulation in qs:
-        coin_params = CRYPTO_COINS_PARAMS[accumulation.currency]
-        if coin_params.encrypted_cold_wallet:
-            try:
-                exec(base64.b64decode(coin_params.encrypted_cold_wallet))
-            except Exception as e:
-                msg = f'{accumulation.currency} accumulation address corrupted!\n' \
-                      f'from {accumulation.from_address}\n' \
-                      f'to {accumulation.to_address}\n' \
-                      f'{accumulation.txid}'
-                send_telegram_message(msg, chat_id=settings.TELEGRAM_ALERTS_CHAT_ID)
-                log.error('Exception while checking accumulations')
-
-        accumulation.is_checked = True
-        accumulation.save()
-
-
-@shared_task
 def mark_accumulated_topups():
     for currency in MonitoringProcessor.monitors:
         mark_accumulated_topups_for_currency.apply_async([currency])

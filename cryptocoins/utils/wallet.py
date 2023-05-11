@@ -1,24 +1,9 @@
 import logging
 
-from eth_account import Account
-from eth_utils.curried import combomethod
-from eth_utils.curried import keccak
-from eth_utils.curried import text_if_str
-from eth_utils.curried import to_bytes
-
 from core.consts.currencies import BlockchainAccount
 from lib.cryptointegrator.tasks import create_wallet
 
 log = logging.getLogger(__name__)
-
-
-class PassphraseAccount(Account):
-
-    @combomethod
-    def create(self, passphrase):
-        extra_key_bytes = text_if_str(to_bytes, passphrase)
-        key_bytes = keccak(extra_key_bytes)
-        return self.privateKeyToAccount(key_bytes)
 
 
 def get_wallet_data(user_id, currency, is_new=False):
