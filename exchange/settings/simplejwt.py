@@ -1,3 +1,4 @@
+from datetime import timedelta
 """
 default settings
 
@@ -36,6 +37,7 @@ SIMPLE_JWT = {
 
 
 SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1440),
     'ROTATE_REFRESH_TOKENS': True,
     'UPDATE_LAST_LOGIN': True,
     'AUTH_HEADER_TYPES': ('Bearer', 'Token',),
