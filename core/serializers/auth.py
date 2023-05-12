@@ -431,12 +431,6 @@ class PasswordResetSerializer(GCodeMixIn, BasePasswordResetSerializer):
         captcher.check()
         return attrs
 
-    def get_email_options(self):
-        return dict(subject_template_name='account/email/password_reset_key_subject.txt',
-                    email_template_name='account/email/password_reset_key_message.txt',
-                    extra_email_context={"lang": self.validated_data.get('lang', 'en')}
-                    )
-
 
 class PasswordResetConfirmSerializer(BasePasswordResetConfirmSerializer):
     def save(self):
