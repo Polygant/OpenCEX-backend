@@ -179,18 +179,11 @@ class TronManager(BlockchainManager):
         return txn.broadcast()
 
     def accumulate_dust(self):
-        from core.models import WalletTransactions
-
         to_address = self.get_gas_keeper_wallet().address
 
-        addresses = WalletTransactions.objects.filter(
-            currency__in=self.registered_token_currencies,
-            wallet__blockchain_currency=self.CURRENCY.code,
-            created__gt=timezone.now() - datetime.timedelta(days=1),
+        from_addresses = self.get_currency_and_addresses_for_accumulation_dust()
 
-        ).values_list('wallet__address', flat=True).distinct()
-
-        for address in addresses:
+        for currency, address in from_addresses:
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)

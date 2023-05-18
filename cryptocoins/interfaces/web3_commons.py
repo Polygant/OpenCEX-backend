@@ -278,18 +278,10 @@ class Web3Manager(BlockchainManager):
         return 0
 
     def accumulate_dust(self):
-        from core.models import WalletTransactions
-
         to_address = self.get_gas_keeper_wallet().address
+        from_addresses = self.get_currency_and_addresses_for_accumulation_dust()
 
-        addresses = WalletTransactions.objects.filter(
-            currency__in=self.registered_token_currencies,
-            wallet__blockchain_currency=self.CURRENCY.code,
-            created__gt=timezone.now() - datetime.timedelta(days=1),
-
-        ).values_list('wallet__address', flat=True).distinct()
-
-        for address in addresses:
+        for address, currency in from_addresses:
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 address_balance_wei = self.get_base_denomination_from_amount(address_balance)
@@ -307,7 +299,7 @@ class Web3Manager(BlockchainManager):
                     return
 
                 # prepare tx
-                wallet = self.get_user_wallet(self.CURRENCY, address)
+                wallet = self.get_user_wallet(currency, address)
                 nonce = self.client.eth.get_transaction_count(address)
 
                 tx_hash = self.send_tx(
@@ -962,4 +954,3 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         except RetryRequired:
             # retry with higher gas price
             cls.send_gas(wallet_transaction_id, old_tx_data=tx_data, old_tx_hash=tx_hash)
-
