@@ -1,4 +1,3 @@
-import datetime
 import logging
 import time
 from decimal import Decimal
@@ -7,7 +6,6 @@ from typing import Type, Union
 from celery import group
 from django.conf import settings
 from django.core.cache import cache
-from django.utils import timezone
 from eth_abi.codec import ABICodec
 from eth_abi.exceptions import NonEmptyPaddingBytes
 from eth_abi.registry import registry
