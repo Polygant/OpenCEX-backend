@@ -73,3 +73,8 @@ def accumulate_tokens_task(currency_code, wallet_transaction_id):
 @shared_task
 def send_gas_task(currency_code, wallet_transaction_id):
     evm_handlers_manager.get_handler(currency_code).send_gas(wallet_transaction_id)
+
+
+@shared_task
+def accumulate_dust_task(currency_code):
+    evm_handlers_manager.get_handler(currency_code).accumulate_dust()

@@ -1,14 +1,19 @@
+import datetime
 import logging
 import time
 from decimal import Decimal
-from typing import Union, List, Dict, Type, Optional
+from typing import Tuple, Union, List, Dict, Type, Optional
 
 import cachetools.func
+from django.utils import timezone
 from web3 import Web3
 
+import core.currency
 from core.currency import TokenParams, Currency
 from core.models import FeesAndLimits, UserWallet
+from cryptocoins.evm.base import BaseEVMCoinHandler
 from cryptocoins.exceptions import UnknownTokenSymbol, UnknownTokenAddress
+from cryptocoins.models import AccumulationDetails, AccumulationTransaction
 from cryptocoins.utils.commons import get_user_addresses, BlockchainAccount, get_keeper_wallet, get_user_wallet
 from cryptocoins.utils.helpers import get_amount_from_base_denomination
 from cryptocoins.utils.helpers import get_base_denomination_from_amount
@@ -318,3 +323,22 @@ class BlockchainManager:
 
         return accumulation_address
 
+    def get_currency_and_addresses_for_accumulation_dust(self) -> Tuple[str, Currency]:
+        from core.models import WalletTransactions
+
+        unfinished_transaction = AccumulationTransaction.objects.exclude(
+            tx_state=AccumulationTransaction.STATE_COMPLETED,
+        ).values_list('tx_hash', flat=True)
+        unfinished_addresses = AccumulationDetails.objects.filter(
+            txid__in=unfinished_transaction,
+            token_currency=self.CURRENCY.code,
+        ).values_list('from_address', flat=True).distinct()
+
+        addresses = WalletTransactions.objects.filter(
+            currency__in=self.registered_token_currencies,
+            wallet__blockchain_currency=self.CURRENCY.code,
+            created__gt=timezone.now() - datetime.timedelta(seconds=BaseEVMCoinHandler.COLLECT_DUST_PERIOD + 60),
+        ).exclude(wallet__address__in=unfinished_addresses).values_list(
+            'wallet__address', 'wallet__currency').distinct()
+
+        return addresses
