@@ -4,7 +4,6 @@ from decimal import Decimal
 from typing import Type, Union
 
 from celery import group
-from django.conf import settings
 from django.core.cache import cache
 from eth_abi.codec import ABICodec
 from eth_abi.exceptions import NonEmptyPaddingBytes
@@ -287,7 +286,7 @@ class Web3Manager(BlockchainManager):
 
                 # we want to process our tx faster
                 gas_price = self.gas_price_cache.get_price()
-                gas_amount = gas_price * settings.ETH_TX_GAS  # TODO may be changed for non ETH currencies
+                gas_amount = gas_price * self.GAS_CURRENCY
                 withdrawal_amount = address_balance_wei - gas_amount
 
                 # in debug mode values can be very small
@@ -535,7 +534,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             return
 
         keeper_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
-        if keeper_balance < (amount_to_send_wei + (gas_price * settings.ETH_TX_GAS)):
+        if keeper_balance < (amount_to_send_wei + (gas_price * cls.GAS_CURRENCY)):
             log.warning(f'Keeper not enough {cls.CURRENCY}, skipping')
             return
 
@@ -551,7 +550,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             tx_data = {
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': settings.ETH_TX_GAS,
+                'gas': cls.GAS_CURRENCY,
                 'from': Web3.to_checksum_address(keeper.address),
                 'to': Web3.to_checksum_address(address),
                 'value': amount_to_send_wei,
@@ -727,7 +726,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
 
         # we want to process our tx faster
         gas_price = cls.COIN_MANAGER.gas_price_cache.get_increased_price()
-        gas_amount = gas_price * settings.ETH_TX_GAS
+        gas_amount = gas_price * cls.GAS_CURRENCY
         withdrawal_amount_wei = amount_wei - gas_amount
         withdrawal_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_amount_wei)
 
@@ -912,7 +911,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             tx_data = {
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': settings.ETH_TX_GAS,
+                'gas': cls.GAS_CURRENCY,
                 'from': Web3.to_checksum_address(gas_keeper.address),
                 'to': address,
                 'value': accumulation_gas_total_amount,
