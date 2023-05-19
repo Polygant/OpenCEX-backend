@@ -86,7 +86,7 @@ bnb_manager = BnbManager(client=w3)
 @register_evm_handler
 class BnbHandler(Web3CommonHandler):
     CURRENCY = BNB_CURRENCY
-    GAS_CURRENCY = settings.ETH_TX_GAS
+    GAS_CURRENCY = settings.BNB_TX_GAS
     COIN_MANAGER = bnb_manager
     TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses

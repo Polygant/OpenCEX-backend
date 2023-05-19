@@ -189,7 +189,7 @@ class TronManager(BlockchainManager):
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
                 log.info(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
 
-                withdrawal_amount = amount_sun - settings.TRX_NET_FEE
+                withdrawal_amount = amount_sun - self.GAS_CURRENCY
 
                 # in debug mode values can be very small
                 if withdrawal_amount <= 0:
@@ -215,7 +215,7 @@ tron_manager = TronManager(tron_client)
 @register_evm_handler
 class TronHandler(BaseEVMCoinHandler):
     CURRENCY = TRX_CURRENCY
-    GAS_CURRENCY = settings.ETH_TX_GAS
+    GAS_CURRENCY = settings.TRX_NET_FEE
     COIN_MANAGER = tron_manager
     TOKEN_CURRENCIES = tron_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = tron_manager.registered_token_addresses
@@ -561,7 +561,7 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.fail()
             return
 
-        if amount_to_send_sun - TRX_NET_FEE < 0:
+        if amount_to_send_sun - cls.GAS_CURRENCY < 0:
             log.error('Keeper balance too low')
             return
 
@@ -602,7 +602,7 @@ class TronHandler(BaseEVMCoinHandler):
         keeper_trx_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
         keeper_token_balance = token.get_base_denomination_balance(keeper.address)
 
-        if keeper_trx_balance < TRX_NET_FEE:
+        if keeper_trx_balance < cls.GAS_CURRENCY:
             log.warning('Keeper not enough TRX, skipping')
             return
 
@@ -659,7 +659,7 @@ class TronHandler(BaseEVMCoinHandler):
                  address, amount, cls.COIN_MANAGER.accumulation_min_balance)
 
         # minus coins to be burnt
-        withdrawal_amount = amount_sun - TRX_NET_FEE
+        withdrawal_amount = amount_sun - cls.GAS_CURRENCY
 
         # in debug mode values can be very small
         if withdrawal_amount <= 0:
