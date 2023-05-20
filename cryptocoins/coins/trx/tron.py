@@ -581,8 +581,10 @@ class TronHandler(BaseEVMCoinHandler):
 
         transaction = tron_client.get_transaction_info(txid)
 
+        receipt = res.wait()
+
         if transaction['receipt']['result'] in FAILED_RESULTS:
-            withdrawal_request.fale()
+            withdrawal_request.fail()
             log.error('Failed - %s', transaction['receipt']['result'])
         else:
             withdrawal_request.state = WR_PENDING
@@ -590,7 +592,6 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
             withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
 
-        receipt = res.wait()
         log.info(receipt)
         log.info('TRX withdrawal TX %s sent', txid)
 
@@ -634,8 +635,10 @@ class TronHandler(BaseEVMCoinHandler):
 
         transaction = tron_client.get_transaction_info(txid)
 
-        if transaction['receipt']['result'] == FAILED_RESULTS:
-            withdrawal_request.fale()
+        receipt = res.wait()
+
+        if transaction['receipt']['result'] in FAILED_RESULTS:
+            withdrawal_request.fail()
             log.error('Failed - %s', transaction['receipt']['result'])
         else:
             withdrawal_request.state = WR_PENDING
@@ -643,7 +646,6 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.our_fee_amount = token.get_amount_from_base_denomination(withdrawal_fee_sun)
             withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
 
-        receipt = res.wait()
         log.info(receipt)
         log.info('%s withdrawal TX %s sent', currency, txid)
 
