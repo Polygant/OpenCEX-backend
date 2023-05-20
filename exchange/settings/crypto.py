@@ -50,6 +50,11 @@ BNB_RPC_ENDPOINTS = [
     'https://bsc-dataseed1.ninicoin.io/',
 ]
 
+TRX_NET_FEE = 3_000_000  # 3 TRX
+TRC20_FEE_LIMIT = 100_000_000  # 100 TRX
+TRX_BLOCK_GENERATION_TIME = 3
+TRX_TRC20_ACCUMULATION_PERIOD = 5 * 60.0
+
 TRONGRID_API_KEY = [env('TRONGRID_API_KEY', default='')]
 ETHERSCAN_KEY = env('ETHERSCAN_KEY', default='')
 BSCSCAN_KEY = env('BSCSCAN_KEY', default='')
