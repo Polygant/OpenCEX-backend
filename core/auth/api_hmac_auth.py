@@ -1,9 +1,11 @@
 import hashlib
 import hmac
 import logging
+from typing import Optional, Tuple
 
 from rest_framework import authentication
 from rest_framework import exceptions
+from django.contrib.auth.models import User
 
 from core.models.facade import Profile
 from lib.cache import redis_client as redis_c
@@ -13,8 +15,18 @@ log = logging.getLogger(__name__)
 
 class HMACAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
-        api_key, access_signature, nonce = get_authorization_header(request=request)
+        api_key, access_signature, nonce = get_authorization_header(
+            request=request)
+        return self.authenticate_values(
+            api_key, access_signature, nonce
+        )
 
+    @staticmethod
+    def authenticate_values(
+            api_key: Optional[str],
+            access_signature: Optional[str],
+            nonce: Optional[str]
+    ) -> Tuple[User, Optional[str]]:
         if not api_key or not access_signature or not nonce:
             raise exceptions.AuthenticationFailed('APIKEY, SIGNATURE or NONCE header does not set')
 
@@ -70,4 +82,3 @@ def get_authorization_header(request):
     nonce = request.META.get('HTTP_NONCE')
 
     return [key, signature, nonce]
-
