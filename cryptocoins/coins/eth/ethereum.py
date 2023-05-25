@@ -50,7 +50,7 @@ class EthereumManager(Web3Manager):
     TOKEN_CLASS: Type[Token] = ERC20Token
     GAS_PRICE_CACHE_CLASS: Type[GasPriceCache] = EthGasPriceCache
     CHAIN_ID = settings.ETH_CHAIN_ID
-    MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.002')
+    MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.001')
     COLD_WALLET_ADDRESS = settings.ETH_SAFE_ADDR
 
 
@@ -60,6 +60,7 @@ ethereum_manager = EthereumManager(client=w3)
 @register_evm_handler
 class EthereumHandler(Web3CommonHandler):
     CURRENCY = ETH_CURRENCY
+    GAS_CURRENCY = settings.ETH_TX_GAS
     COIN_MANAGER = ethereum_manager
     TOKEN_CURRENCIES = ethereum_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = ethereum_manager.registered_token_addresses

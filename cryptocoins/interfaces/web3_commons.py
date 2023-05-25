@@ -1,13 +1,10 @@
-import datetime
 import logging
 import time
 from decimal import Decimal
 from typing import Type, Union
 
 from celery import group
-from django.conf import settings
 from django.core.cache import cache
-from django.utils import timezone
 from eth_abi.codec import ABICodec
 from eth_abi.exceptions import NonEmptyPaddingBytes
 from eth_abi.registry import registry
@@ -278,18 +275,10 @@ class Web3Manager(BlockchainManager):
         return 0
 
     def accumulate_dust(self):
-        from core.models import WalletTransactions
-
         to_address = self.get_gas_keeper_wallet().address
+        from_addresses = self.get_currency_and_addresses_for_accumulation_dust()
 
-        addresses = WalletTransactions.objects.filter(
-            currency__in=self.registered_token_currencies,
-            wallet__blockchain_currency=self.CURRENCY.code,
-            created__gt=timezone.now() - datetime.timedelta(days=1),
-
-        ).values_list('wallet__address', flat=True).distinct()
-
-        for address in addresses:
+        for address, currency in from_addresses:
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 address_balance_wei = self.get_base_denomination_from_amount(address_balance)
@@ -297,7 +286,7 @@ class Web3Manager(BlockchainManager):
 
                 # we want to process our tx faster
                 gas_price = self.gas_price_cache.get_price()
-                gas_amount = gas_price * settings.ETH_TX_GAS  # TODO may be changed for non ETH currencies
+                gas_amount = gas_price * self.GAS_CURRENCY
                 withdrawal_amount = address_balance_wei - gas_amount
 
                 # in debug mode values can be very small
@@ -307,7 +296,7 @@ class Web3Manager(BlockchainManager):
                     return
 
                 # prepare tx
-                wallet = self.get_user_wallet(self.CURRENCY, address)
+                wallet = self.get_user_wallet(currency, address)
                 nonce = self.client.eth.get_transaction_count(address)
 
                 tx_hash = self.send_tx(
@@ -545,7 +534,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             return
 
         keeper_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
-        if keeper_balance < (amount_to_send_wei + (gas_price * settings.ETH_TX_GAS)):
+        if keeper_balance < (amount_to_send_wei + (gas_price * cls.GAS_CURRENCY)):
             log.warning(f'Keeper not enough {cls.CURRENCY}, skipping')
             return
 
@@ -561,7 +550,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             tx_data = {
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': settings.ETH_TX_GAS,
+                'gas': cls.GAS_CURRENCY,
                 'from': Web3.to_checksum_address(keeper.address),
                 'to': Web3.to_checksum_address(address),
                 'value': amount_to_send_wei,
@@ -737,7 +726,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
 
         # we want to process our tx faster
         gas_price = cls.COIN_MANAGER.gas_price_cache.get_increased_price()
-        gas_amount = gas_price * settings.ETH_TX_GAS
+        gas_amount = gas_price * cls.GAS_CURRENCY
         withdrawal_amount_wei = amount_wei - gas_amount
         withdrawal_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_amount_wei)
 
@@ -922,7 +911,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             tx_data = {
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': settings.ETH_TX_GAS,
+                'gas': cls.GAS_CURRENCY,
                 'from': Web3.to_checksum_address(gas_keeper.address),
                 'to': address,
                 'value': accumulation_gas_total_amount,
@@ -962,4 +951,3 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         except RetryRequired:
             # retry with higher gas price
             cls.send_gas(wallet_transaction_id, old_tx_data=tx_data, old_tx_hash=tx_hash)
-

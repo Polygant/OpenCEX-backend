@@ -51,7 +51,7 @@ class BnbManager(Web3Manager):
     TOKEN_CLASS = BEP20Token
     GAS_PRICE_CACHE_CLASS = BnbGasPriceCache
     CHAIN_ID = settings.BNB_CHAIN_ID
-    MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.002')
+    MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.0002')
     COLD_WALLET_ADDRESS = settings.BNB_SAFE_ADDR
 
     def get_latest_block_num(self):
@@ -86,6 +86,7 @@ bnb_manager = BnbManager(client=w3)
 @register_evm_handler
 class BnbHandler(Web3CommonHandler):
     CURRENCY = BNB_CURRENCY
+    GAS_CURRENCY = settings.BNB_TX_GAS
     COIN_MANAGER = bnb_manager
     TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses

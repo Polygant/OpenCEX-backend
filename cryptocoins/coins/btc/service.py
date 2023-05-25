@@ -22,6 +22,7 @@ from lib.helpers import to_decimal
 
 class BTCCoinService(BitCoreCoinServiceBase):
     CURRENCY = BTC_CURRENCY
+    GAS_CURRENCY = settings.ETH_TX_GAS
     node_config = settings.NODES_CONFIG['btc']
     cold_wallet_address = settings.BTC_SAFE_ADDR
     const_fee = 0.00003
