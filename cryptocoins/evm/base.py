@@ -26,6 +26,7 @@ accumulation_manager = AccumulationManager()
 class BaseEVMCoinHandler:
     CURRENCY = None
     COIN_MANAGER = None
+    GAS_CURRENCY = None
     TRANSACTION_CLASS = None
     DEFAULT_BLOCK_ID_DELTA = 1000
     SAFE_ADDR = None
@@ -33,6 +34,7 @@ class BaseEVMCoinHandler:
     TOKEN_CONTRACT_ADDRESSES = None
     BLOCK_GENERATION_TIME = 15
     ACCUMULATION_PERIOD = 60
+    COLLECT_DUST_PERIOD = 1 * 60 * 60  # TODO: return from 1 hour to 24 hours
     IS_ENABLED = True
 
     @classmethod
@@ -329,3 +331,6 @@ class BaseEVMCoinHandler:
             jobs_group = group(external_accumulations_jobs)
             jobs_group.apply_async(queue=f'{cls.CURRENCY.code.lower()}_check_balances')
 
+    @classmethod
+    def accumulate_dust(cls):
+        cls.COIN_MANAGER.accumulate_dust()

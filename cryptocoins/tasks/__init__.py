@@ -7,7 +7,6 @@ from cryptocoins.tasks.evm import *
 
 __all__ = (
     'sat_per_byte_cache',
-    'check_accumulations',
     'process_deffered_deposit',
     'update_crypto_external_prices',
     'check_tx_withdrawal_task',
@@ -22,4 +21,5 @@ __all__ = (
     'accumulate_coin_task',
     'accumulate_tokens_task',
     'send_gas_task',
+    'accumulate_dust_task',
 )

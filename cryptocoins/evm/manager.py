@@ -36,6 +36,15 @@ class EVMHandlerManager:
                         'queue': f'{currency_code.lower()}_check_balances',
                     }
                 },
+                f'{currency_code}_accumulate_dust': {
+                    'task': 'cryptocoins.tasks.evm.accumulate_dust_task',
+                    'schedule': evm_handler.COLLECT_DUST_PERIOD,
+                    'args': (currency_code,),
+                    'options': {
+                        'expires': 20,
+                        'queue': f'{currency_code.lower()}_collect_dust',
+                    }
+                }
             })
             queues.extend([
                 Queue(f'{currency_code.lower()}_new_blocks'),
@@ -45,6 +54,7 @@ class EVMHandlerManager:
                 Queue(f'{currency_code.lower()}_accumulations'),
                 Queue(f'{currency_code.lower()}_tokens_accumulations'),
                 Queue(f'{currency_code.lower()}_send_gas'),
+                Queue(f'{currency_code.lower()}_collect_dust'),
             ])
         return queues
 
