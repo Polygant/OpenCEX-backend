@@ -31,7 +31,6 @@ from exchange.notifications import wallets_notificator
 
 logger = logging.getLogger(__name__)
 
-
 class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
     AUTH_TIMEOUT = 10
 
@@ -65,7 +64,9 @@ class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
             api_key = msg.get('api_key')
             signature = msg.get('signature')
             nonce = msg.get('nonce')
-            user, _ = authenticator.authenticate_values(
+            user, _ = await sync_to_async(
+                authenticator.authenticate_values
+            )(
                 api_key, signature, nonce
             )
             await self._set_user(user)
