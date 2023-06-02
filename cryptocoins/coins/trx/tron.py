@@ -633,9 +633,8 @@ class TronHandler(BaseEVMCoinHandler):
         if not res.get('result') or not txid:
             log.error('Unable to send TRX TX')
 
-        transaction = tron_client.get_transaction_info(txid)
-
         receipt = res.wait()
+        transaction = tron_client.get_transaction_info(txid)
 
         if transaction['receipt']['result'] in FAILED_RESULTS:
             withdrawal_request.fail()
