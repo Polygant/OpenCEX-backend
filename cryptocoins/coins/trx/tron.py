@@ -575,8 +575,13 @@ class TronHandler(BaseEVMCoinHandler):
 
         receipt = res.wait()
         transaction = tron_client.get_transaction_info(txid)
+        log.error('receipt: %s, transaction info: %s', receipt, transaction)
 
-        if transaction['receipt']['result'] in FAILED_RESULTS:
+        if (
+                "receipt" in transaction
+                and "result" in transaction["receipt"]
+                and transaction["receipt"]["result"] in FAILED_RESULTS
+        ):
             withdrawal_request.fail()
             log.error('Failed - %s', transaction['receipt']['result'])
         else:
@@ -628,8 +633,13 @@ class TronHandler(BaseEVMCoinHandler):
 
         receipt = res.wait()
         transaction = tron_client.get_transaction_info(txid)
+        log.error('receipt: %s, transaction info: %s', receipt, transaction)
 
-        if transaction['receipt']['result'] in FAILED_RESULTS:
+        if (
+                "receipt" in transaction
+                and "result" in transaction["receipt"]
+                and transaction["receipt"]["result"] in FAILED_RESULTS
+        ):
             withdrawal_request.fail()
             log.error('Failed - %s', transaction['receipt']['result'])
         else:
