@@ -581,6 +581,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         receipt = res.wait()
         transaction = tron_client.get_transaction_info(txid)
+        log.error('receipt: %s, transaction info: %s', receipt, transaction)
 
         if (
                 "receipt" in transaction
@@ -638,6 +639,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         receipt = res.wait()
         transaction = tron_client.get_transaction_info(txid)
+        log.error('receipt: %s, transaction info: %s', receipt, transaction)
 
         if (
                 "receipt" in transaction
