@@ -580,16 +580,14 @@ class TronHandler(BaseEVMCoinHandler):
             log.error('Unable to send withdrawal TX')
 
         receipt = res.wait()
-        transaction = tron_client.get_transaction_info(txid)
-        log.error('receipt: %s, transaction info: %s', receipt, transaction)
 
         if (
-                "receipt" in transaction
-                and "result" in transaction["receipt"]
-                and transaction["receipt"]["result"] in FAILED_RESULTS
+                "receipt" in receipt
+                and "result" in receipt["receipt"]
+                and receipt["receipt"]["result"] in FAILED_RESULTS
         ):
             withdrawal_request.fail()
-            log.error('Failed - %s', transaction['receipt']['result'])
+            log.error('Failed - %s', receipt['receipt']['result'])
         else:
             withdrawal_request.state = WR_PENDING
             withdrawal_request.txid = txid
@@ -638,16 +636,14 @@ class TronHandler(BaseEVMCoinHandler):
             log.error('Unable to send TRX TX')
 
         receipt = res.wait()
-        transaction = tron_client.get_transaction_info(txid)
-        log.error('receipt: %s, transaction info: %s', receipt, transaction)
 
         if (
-                "receipt" in transaction
-                and "result" in transaction["receipt"]
-                and transaction["receipt"]["result"] in FAILED_RESULTS
+                "receipt" in receipt
+                and "result" in receipt["receipt"]
+                and receipt["receipt"]["result"] in FAILED_RESULTS
         ):
             withdrawal_request.fail()
-            log.error('Failed - %s', transaction['receipt']['result'])
+            log.error('Failed - %s', receipt['receipt']['result'])
         else:
             withdrawal_request.state = WR_PENDING
             withdrawal_request.txid = txid
