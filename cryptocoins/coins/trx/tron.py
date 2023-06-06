@@ -183,7 +183,7 @@ class TronManager(BlockchainManager):
 
         from_addresses = self.get_currency_and_addresses_for_accumulation_dust()
 
-        for currency, address in from_addresses:
+        for address, currency in from_addresses:
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
