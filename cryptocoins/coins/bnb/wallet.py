@@ -1,24 +1,22 @@
 import logging
+import secrets
 
 from django.conf import settings
 from django.db import transaction
-from pywallet import wallet as pwallet
 from web3 import Web3
 
 from core.consts.currencies import BlockchainAccount
-from cryptocoins.utils.wallet import PassphraseAccount
+from eth_account.account import Account
 from lib.cipher import AESCoderDecoder
-
 
 log = logging.getLogger(__name__)
 
 def create_bnb_address():
     while 1:
-        account = PassphraseAccount.create(pwallet.generate_mnemonic())
+        private_key = "0x" + secrets.token_hex(32)
+        account = Account.from_key(private_key)
 
-        encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
-            Web3.toHex(account.privateKey)
-        )
+        encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(private_key)
         decrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).decrypt(encrypted_key)
 
         if decrypted_key.startswith('0x') and len(decrypted_key) == 66:
@@ -108,4 +106,4 @@ def bep20_wallet_creation_wrapper(user_id, currency, is_new=False, **kwargs):
 
 
 def is_valid_bnb_address(address):
-    return Web3.isAddress(address)
+    return Web3.is_address(address)

@@ -1,13 +1,9 @@
 import logging
+import secrets
 
 from django.conf import settings
 from django.db import transaction
 from eth_account import Account
-from eth_utils.curried import combomethod
-from eth_utils.curried import keccak
-from eth_utils.curried import text_if_str
-from eth_utils.curried import to_bytes
-from pywallet import wallet as pwallet
 from web3 import Web3
 
 from core.consts.currencies import BlockchainAccount
@@ -18,11 +14,10 @@ log = logging.getLogger(__name__)
 
 def create_eth_address():
     while 1:
-        account = PassphraseAccount.create(pwallet.generate_mnemonic())
+        private_key = "0x" + secrets.token_hex(32)
+        account = Account.from_key(private_key)
 
-        encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(
-            Web3.toHex(account.privateKey)
-        )
+        encrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).encrypt(private_key)
         decrypted_key = AESCoderDecoder(settings.CRYPTO_KEY).decrypt(encrypted_key)
 
         if decrypted_key.startswith('0x') and len(decrypted_key) == 66:
@@ -96,15 +91,6 @@ def get_or_create_erc20_wallet(user_id, currency, is_new=False):
     return erc20_wallet
 
 
-class PassphraseAccount(Account):
-
-    @combomethod
-    def create(self, passphrase):
-        extra_key_bytes = text_if_str(to_bytes, passphrase)
-        key_bytes = keccak(extra_key_bytes)
-        return self.privateKeyToAccount(key_bytes)
-
-
 def get_wallet_data(user_id, currency, is_new=False):
     from core.models.cryptocoins import UserWallet
 
@@ -126,4 +112,4 @@ def erc20_wallet_creation_wrapper(user_id, currency, is_new=False, **kwargs):
     return UserWallet.objects.filter(id=wallet.id)
 
 def is_valid_eth_address(address):
-    return Web3.isAddress(address)
+    return Web3.is_address(address)

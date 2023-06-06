@@ -15,6 +15,7 @@ admin.site.enable_nav_sidebar = False
 
 urlpatterns = [
     path('api/', include('exchange.api_urls')),
+    path('apiadmin/', include('admin_rest.urls')),
     path(f'', include('admin_panel.urls')),
     path('', include('core.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

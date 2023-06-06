@@ -19,8 +19,7 @@ def register_coin(currency_id: int, currency_code: str, *,
                   address_validation_fn: Optional[Callable] = None,
                   wallet_creation_fn: Optional[Callable] = None,
                   latest_block_fn: Optional[Callable] = None,
-                  blocks_diff_alert: Optional[int] = None,
-                  encrypted_cold_wallet: Optional[bytes] = None):
+                  blocks_diff_alert: Optional[int] = None):
 
     currency = Currency(currency_id, currency_code)
     if currency not in ALL_CURRENCIES:
@@ -42,7 +41,6 @@ def register_coin(currency_id: int, currency_code: str, *,
             currency: CoinParams(
                 latest_block_fn=latest_block_fn,
                 blocks_monitoring_diff=blocks_diff_alert,
-                encrypted_cold_wallet=encrypted_cold_wallet,
             )
         })
 
