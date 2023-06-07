@@ -35,7 +35,7 @@ from admin_rest.fields import ForeignSerialField
 from admin_rest.filters import GenericAllFieldsFilter
 from admin_rest.utils import get_user_permissions
 from core.currency import CurrencyModelField
-from core.pairs import PairModelField, PairSerialRestField
+from core.models.inouts.pairs import PairModelField, PairSerialRestField
 from lib.fields import JSDatetimeField, RichTextField, RichTextSerialField, ImageSerialField, TextSerialField, \
     JsonSerialField, SVGAndImageField
 

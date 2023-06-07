@@ -3,7 +3,7 @@ from itertools import chain
 
 from django.core.cache import cache
 
-from core.pairs import Pair
+from core.models.inouts.pairs import Pair
 from lib.helpers import decimalize, round_by_precision
 
 

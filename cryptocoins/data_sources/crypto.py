@@ -6,7 +6,7 @@ from binance.client import Client as BinanceClient
 from django.conf import settings
 
 from core.cache import cryptocompare_pairs_price_cache
-from core.pairs import Pair, PAIRS
+from core.models.inouts.pairs import Pair
 from cryptocoins.interfaces.datasources import BaseDataSource
 from lib.helpers import to_decimal
 
@@ -26,7 +26,7 @@ class BinanceDataSource(BaseDataSource):
         binance_client = BinanceClient()
         binance_pairs_data = {bc['symbol']: bc['price'] for bc in binance_client.get_all_tickers()}
         pairs_prices = {}
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             pair_exchange_key = f'{pair.base.code}{pair.quote.code}'
             if pair_exchange_key in binance_pairs_data:
                 pairs_prices[pair] = to_decimal(binance_pairs_data[pair_exchange_key])
@@ -57,7 +57,7 @@ class CryptocompareDataSource(BaseDataSource):
 
     def get_latest_prices(self) -> Dict[Pair, Decimal]:
         pairs_prices = {}
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             pairs_prices[pair] = cryptocompare_pairs_price_cache.get(pair)
         self._data = pairs_prices
         return pairs_prices
@@ -79,7 +79,7 @@ class KuCoinDataSource(BaseDataSource):
         kucoin_prices_data = {bc['symbol']: bc['last'] for bc in data}
 
         pairs_prices = {}
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             pair_exchange_key = f'{pair.base.code}-{pair.quote.code}'
             if pair_exchange_key in kucoin_prices_data:
                 pairs_prices[pair] = to_decimal(kucoin_prices_data[pair_exchange_key])

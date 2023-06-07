@@ -1,6 +1,7 @@
 from django_filters import rest_framework as filters
 from django_filters.constants import EMPTY_VALUES
 
+from admin_rest.filters import PairModelFilter
 from core.consts.currencies import CURRENCIES_LIST
 from core.consts.orders import (
     ORDER_OPENED,
@@ -9,8 +10,8 @@ from core.consts.orders import (
 )
 from core.currency import Currency, CurrencyModelField
 from core.models import Exchange
+from core.models.inouts.pairs import PairModelField
 from core.models.orders import Order
-from core.pairs import PairModelField
 
 
 class OrdersFilter(filters.FilterSet):
@@ -44,7 +45,7 @@ class OrdersFilter(filters.FilterSet):
         )
         filter_overrides = {
             PairModelField: {
-                'filter_class': filters.CharFilter,
+                'filter_class': PairModelFilter,
             }
         }
 

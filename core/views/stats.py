@@ -12,8 +12,8 @@ from rest_framework.views import APIView
 
 from core.models.orders import ExecutionResult
 from core.models.stats import TradesAggregatedStats
-from core.pairs import Pair
-from core.pairs import PairSerialField
+from core.models.inouts.pairs import Pair
+from core.models.inouts.pairs import PairSerialField
 from core.serializers.stats import StatsSerializer
 from core.utils.stats.chart import ChartTool
 from core.utils.stats.chart import TimelineGenerator

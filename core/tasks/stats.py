@@ -23,9 +23,7 @@ from core.models.orders import ExecutionResult
 from core.models.stats import ExternalPricesHistory
 from core.models.stats import TradesAggregatedStats
 from core.models.stats import UserPairDailyStat
-from core.pairs import Pair
-from core.pairs import PAIRS
-from core.pairs import PAIRS_LIST
+from core.models.inouts.pairs import Pair
 from core.tasks.orders import run_otc_orders_price_update
 from core.utils.stats.trades_aggregate import TradesAggregator
 from lib.batch import BatchProcessor
@@ -104,7 +102,7 @@ def update_cryptocompare_pairs_price_cache():
     """
     Get prices from external exchanges and update cache
     """
-    pairs = list([Pair.get(pt[1]) for pt in PAIRS_LIST])
+    pairs = list([Pair.get(pt.code) for pt in Pair.objects.all()])
 
     cc_client = CryptocompareClient()
 
@@ -126,7 +124,7 @@ def update_cryptocompare_pairs_price_cache():
 def plan_trades_aggregation(period):
     if not settings.PLAN_TRADES_STATS_AGGRREGATION:
         return
-    for pair in PAIRS:
+    for pair in Pair.objects.all():
         if DisabledCoin.is_coin_disabled(pair.base.code) or DisabledCoin.is_coin_disabled(pair.quote.code):
             continue
         do_trades_aggregation_for_pair.apply_async((pair.code, period))

@@ -32,8 +32,7 @@ from core.models.facade import CoinInfo
 from core.models.inouts.balance import Balance
 from core.models.inouts.disabled_coin import DisabledCoin
 from core.models.orders import ExecutionResult
-from core.pairs import PAIRS
-from core.pairs import Pair
+from core.models.inouts.pairs import Pair
 from core.serializers.orders import LimitOnlyOrderSerializer, UpdateOrderSerializer
 from core.utils.stats.daily import get_filtered_pairs_24h_stats
 from core.views.orders import StackView, OrdersView, OrderUpdateView
@@ -124,7 +123,7 @@ class TickerView(NoAuthMixin, ThrottlingViewMixin, APIView):
         pairs_data = {pair['pair']: pair for pair in pairs_data['pairs']}
         data = {}
 
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             if is_pair_disabled(pair, DISABLE_STACK):
                 continue
 
@@ -203,7 +202,7 @@ class SummaryView(NoAuthMixin, ThrottlingViewMixin, APIView):
                 'id', flat=True
             )
 
-        prices_24h = {i['pair'].code: i['price'] for i in
+        prices_24h = {Pair.get(i['pair']).code: i['price'] for i in
                       ExecutionResult.objects.filter(
                           id__in=id_filter(updated__lte=yesterday)
                       ).values('pair', 'price')}
@@ -217,9 +216,9 @@ class SummaryView(NoAuthMixin, ThrottlingViewMixin, APIView):
             high=Max('price'),
             low=Min('price'),
         )
-        high_lows_dict = {i['pair']: i for i in high_low_qs}
+        high_lows_dict = {Pair.get(i['pair']): i for i in high_low_qs}
 
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             if is_pair_disabled(pair, DISABLE_STACK):
                 continue
 
@@ -298,7 +297,7 @@ class PairsListView(NoAuthMixin, ThrottlingViewMixin, APIView):
     @extend_schema(exclude=True)
     def get(self, request):
         """Returns pairs data"""
-        r = [i.to_dict() for i in PAIRS if i.code not in PairSettings.get_disabled_pairs()]
+        r = [i.to_dict() for i in Pair.objects.all() if i.code not in PairSettings.get_disabled_pairs()]
         return Response({'pairs': r})
 
 
@@ -308,7 +307,7 @@ class MarketsListView(NoAuthMixin, ThrottlingViewMixin, APIView):
     @extend_schema(exclude=True)
     def get(self, request):
         """Returns available markets"""
-        r = [i.to_dict() for i in PAIRS if i.code not in PairSettings.get_disabled_pairs()]
+        r = [i.to_dict() for i in Pair.objects.all() if i.code not in PairSettings.get_disabled_pairs()]
         r = [{
             'id': i['code'],
             'base': i['base']['code'],

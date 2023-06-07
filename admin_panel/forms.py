@@ -6,7 +6,6 @@ from rest_framework.exceptions import ValidationError
 
 from core.consts.currencies import CURRENCIES_LIST
 from core.currency import Currency
-from core.pairs import PAIRS_LIST
 from cryptocoins.coins.eth.ethereum import ethereum_manager
 from cryptocoins.coins.trx.tron import tron_manager
 from cryptocoins.coins.bnb.bnb import bnb_manager
@@ -89,7 +88,7 @@ class MakeTopUpForm(forms.Form):
 
 
 class PairAdminForm(forms.ModelForm):
-    pair = forms.ChoiceField(choices=[(p[1], p[1]) for p in PAIRS_LIST])
+    pair = forms.ChoiceField()
 
 
 class TrxApproveAdminForm(BaseApproveAdminForm):

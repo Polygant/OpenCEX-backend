@@ -52,6 +52,7 @@ from core.models import AccessLog, Message, WithdrawalFee, FeesAndLimits, Wallet
     Exchange, ExecutionResult, OrderStateChangeHistory, ExternalPricesHistory, TradesAggregatedStats, UserPairDailyStat, \
     WalletHistoryItem, UserRestrictions, PayGateTopup, DisabledCoin, PairSettings
 from core.models.inouts.dif_balance import DifBalance
+from core.models.inouts.pairs import Pair
 from cryptocoins.models.stats import DepositsWithdrawalsStats
 from cryptocoins.tasks import calculate_topups_and_withdrawals
 from cryptocoins.utils.stats import generate_stats_fields
@@ -1624,6 +1625,14 @@ class UserWalletAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
 @admin.register(PairSettings)
 class PairSettingsAdmin(BaseModelAdmin):
     _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'enable_alerts', 'precisions']
+    list_display = _fields
+    fields = _fields
+    no_delete = False
+
+
+@admin.register(Pair)
+class PairAdmin(BaseModelAdmin):
+    _fields = ['base', 'quote']
     list_display = _fields
     fields = _fields
     no_delete = False

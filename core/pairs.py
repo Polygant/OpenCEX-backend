@@ -1,5 +1,4 @@
 from django.db import models
-from rest_framework.fields import Field
 
 from core.currency import Currency
 from core.currency import CurrencyNotFound
@@ -75,21 +74,3 @@ class PairModelField(models.Field):
 
     def get_prep_value(self, value):
         return Pair.get(value).id
-
-
-class PairSerialField(Field):
-    def to_representation(self, obj):
-        return obj.code
-
-    def to_internal_value(self, value):
-        return Pair.get(value)
-
-
-class PairSerialRestField(PairSerialField):
-    def to_representation(self, obj):
-        return obj.id
-
-    @property
-    def choices(self):
-        """for OPTIONS action"""
-        return dict(PAIRS_LIST)

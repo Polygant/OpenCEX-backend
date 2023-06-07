@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from core.pairs import PairSerialField
+from core.models.inouts.pairs import PairSerialField
 from lib.fields import JSDatetimeField
 
 

@@ -4,7 +4,7 @@ from typing import Dict
 
 from core.cache import external_exchanges_pairs_price_cache
 from core.models import PairSettings, ExternalPricesHistory, Settings
-from core.pairs import Pair, PAIRS
+from core.models.inouts.pairs import Pair
 from cryptocoins.default_settings import ALERT_ON_MISSING_EXTERNAL_PAIR_PRICE
 from cryptocoins.interfaces.datasources import BaseDataSource
 from lib.helpers import calc_relative_percent_difference
@@ -19,7 +19,7 @@ class DataSourcesManager:
         self._restore_old_prices()
 
     def _restore_old_prices(self):
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             self._data[pair] = external_exchanges_pairs_price_cache.get(pair.code)
 
     def _update_cached_prices(self, new_data=None):
