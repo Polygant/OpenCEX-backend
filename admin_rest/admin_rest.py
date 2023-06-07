@@ -1092,6 +1092,7 @@ class PairAdmin(DefaultApiAdmin):
     list_display = _fields
     fields = _fields
 
+
 @api_admin.register(CoinInfo)
 class CoinInfoAdmin(DefaultApiAdmin):
     pass

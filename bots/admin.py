@@ -23,7 +23,6 @@ class BotConfigApiAdmin(BaseModelAdmin):
               'low_spread_alert',)
     list_display = ('name', 'bot_info')
     no_delete = False
-    # form = PairAdminForm
 
     def bot_info(self, obj):
         return f'{obj.user.email}: {obj.pair.code} {obj.min_period}-{obj.max_period}s; Enabled: {obj.enabled}'

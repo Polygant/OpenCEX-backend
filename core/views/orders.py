@@ -540,7 +540,7 @@ class ExchangeEmailView(APIView):
 
 class AllOrdersView(ListAPIView):
     http_method_names = ['get']
-    # permission_classes = [BotsOnly]
+    permission_classes = [BotsOnly]
     serializer_class = AllOrdersSimpleSerializer
     queryset = Order.objects.all().order_by('price',).prefetch_related('user')
     pagination_class = None
