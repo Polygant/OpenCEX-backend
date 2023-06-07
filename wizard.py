@@ -32,8 +32,7 @@ from core.models import PairSettings
 from core.models import WithdrawalFee
 from core.models.facade import CoinInfo
 from core.models.inouts.transaction import REASON_MANUAL_TOPUP
-from core.models.inouts.pairs import Pair
-from core.pairs import PAIRS_LIST
+from core.models.inouts.pairs import Pair, PAIRS_LIST
 from cryptocoins.coins.btc import BTC, BTC_CURRENCY
 from cryptocoins.coins.eth import ETH
 from cryptocoins.coins.usdt import USDT

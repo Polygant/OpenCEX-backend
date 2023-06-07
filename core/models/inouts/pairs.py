@@ -1,13 +1,19 @@
 from rest_framework.fields import Field
 
-from core.consts.pairs import *
-
 import decimal
 
 from django.db import models
 from django.db.models import UniqueConstraint
 
+from core.consts.pairs import *
 from core.currency import CurrencyModelField, CurrencyNotFound
+
+PAIRS_LIST = [
+    (BTC_USDT, 'BTC-USDT'),
+    (ETH_USDT, 'ETH-USDT'),
+    (TRX_USDT, 'TRX-USDT'),
+    (BNB_USDT, 'BNB-USDT'),
+]
 
 class PairNotFound(CurrencyNotFound):
     default_detail = 'pair not found'

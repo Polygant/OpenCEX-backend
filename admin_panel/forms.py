@@ -87,10 +87,6 @@ class MakeTopUpForm(forms.Form):
         return user
 
 
-class PairAdminForm(forms.ModelForm):
-    pair = forms.ChoiceField()
-
-
 class TrxApproveAdminForm(BaseApproveAdminForm):
 
     def get_encrypted_string(self):

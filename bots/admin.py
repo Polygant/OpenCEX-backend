@@ -3,7 +3,6 @@ import logging
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 
-from admin_panel.forms import PairAdminForm
 from bots.models import BotConfig
 from lib.admin import BaseModelAdmin
 
@@ -24,7 +23,7 @@ class BotConfigApiAdmin(BaseModelAdmin):
               'low_spread_alert',)
     list_display = ('name', 'bot_info')
     no_delete = False
-    form = PairAdminForm
+    # form = PairAdminForm
 
     def bot_info(self, obj):
         return f'{obj.user.email}: {obj.pair.code} {obj.min_period}-{obj.max_period}s; Enabled: {obj.enabled}'

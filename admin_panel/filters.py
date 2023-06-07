@@ -13,7 +13,6 @@ from core.consts.currencies import CURRENCIES_LIST
 from core.models import WalletTransactions, Order
 from core.models.inouts.transaction import REASON_TOPUP
 from core.models.inouts.transaction import REASON_WITHDRAWAL
-from core.pairs import pairs_ids_values
 from core.models.inouts.sci import GATES
 
 User = get_user_model()
@@ -140,17 +139,6 @@ class AddressTypeFilter(SimpleListFilter):
         elif self.value() == 'old':
             return queryset.filter(wallet__created__lte=last_regen)
         return queryset
-
-
-class PairsFilter(SimpleListFilter):
-    title = 'pair'
-    parameter_name = 'pair'
-
-    def lookups(self, request, model_admin):
-        return pairs_ids_values
-
-    def queryset(self, request, queryset):
-        return queryset.filter(pair=self.value()) if self.value() else queryset
 
 
 class FeeRateFilter(SimpleListFilter):
