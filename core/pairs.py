@@ -1,3 +1,4 @@
+from deprecated import deprecated
 from django.db import models
 
 from core.currency import Currency
@@ -11,6 +12,8 @@ class PairNotFound(CurrencyNotFound):
     default_detail = 'pair not found'
 
 
+@deprecated(reason="Use new class in core/models/inouts/pairs.py. "
+                   "Class left for backwards compatibility and old migrations")
 class Pair(Currency):
     NOT_FOUND_EXCEPTION = PairNotFound
 
@@ -44,6 +47,8 @@ for _id, code in PAIRS_LIST:
     _ = Pair(_id, code)
 
 
+@deprecated(reason="Use new class in core/models/inouts/pairs.py. "
+                   "Class left for backwards compatibility and old migrations")
 class PairModelField(models.Field):
 
     def __init__(self, *args, **kwargs):
