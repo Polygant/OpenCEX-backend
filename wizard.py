@@ -195,7 +195,7 @@ def main():
                             "title": "CoinMarketCap"
                         },
                         "exp": {
-                            "href": "https://coin-cap.pro/en/contract/tether/",
+                            "href": "https://etherscan.io/",
                             "title": "Explorer"
                         },
                         "official": {
@@ -265,7 +265,7 @@ def main():
                             "title": "CoinMarketCap"
                         },
                         "exp": {
-                            "href": "https://coin-cap.pro/en/coin/tron/",
+                            "href": "https://tronscan.org/",
                             "title": "Explorer"
                         },
                         "official": {
