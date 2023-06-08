@@ -13,7 +13,7 @@ from admin_rest.restful_admin import DefaultApiAdmin
 from core.consts.currencies import ALL_CURRENCIES
 from core.enums.profile import UserTypeEnum
 from core.models import Order
-from core.pairs import PAIRS
+from core.models.inouts.pairs import Pair
 from core.utils.stats.counters import CurrencyStats
 from core.utils.stats.lib import get_prices_in_usd
 from dashboard_rest.models import CommonInouts, CommonUsersStats, TradeVolume
@@ -221,7 +221,7 @@ class TradeVolumeAdmin(ReadOnlyMixin, NonPaginatedListMixin, DefaultApiAdmin):
         volumes_dict = {p['pair']: p for p in qs}
 
         volumes = []
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             volumes.append({
                 'pair': pair,
                 'base_volume': round(volumes_dict.get(pair, {}).get('base_volume', 0), 8),

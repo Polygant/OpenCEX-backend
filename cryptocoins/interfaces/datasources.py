@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Dict, Union
 
-from core.pairs import Pair
+from core.models.inouts.pairs import Pair
 
 
 class BaseDataSource:

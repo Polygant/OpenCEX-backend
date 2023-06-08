@@ -15,7 +15,7 @@ sys.path.append(os.path.join(sys.path[0], '..'))
 
 from exchange.celery_app import app
 app.autodiscover_tasks(['core'])
-from core.pairs import PAIRS_LIST, Pair
+from core.models.inouts.pairs import Pair
 from lib.oneinstlock import MultiLock, AutoLock
 
 
@@ -37,7 +37,7 @@ def cli(debug, pairs):
         pairs = pairs.split(',')
 
     else:
-        pairs = [i[1] for i in PAIRS_LIST]
+        pairs = [i.code for i in Pair.objects.all()]
 
     lock = StackLock(pairs)
     lock.acquire()

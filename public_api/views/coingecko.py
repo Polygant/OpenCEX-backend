@@ -21,8 +21,7 @@ from rest_framework.views import APIView
 
 from core.models import PairSettings
 from core.models.orders import ExecutionResult
-from core.pairs import PAIRS
-from core.pairs import Pair
+from core.models.inouts.pairs import Pair
 from core.utils.stats.daily import get_filtered_pairs_24h_stats
 from core.views.orders import StackView
 from lib.throttling import RedisCacheAnonRateThrottle, RedisCacheUserRateThrottle
@@ -46,7 +45,7 @@ class PairsListView(APIView):
             'ticker_id': f'{i.base.code}_{i.quote.code}',
             'base': i.base.code,
             'target': i.quote.code
-        } for i in PAIRS if i.code not in PairSettings.get_disabled_pairs()])
+        } for i in Pair.objects.all() if i.code not in PairSettings.get_disabled_pairs()])
         return Response(r)
 
 
@@ -64,7 +63,7 @@ class TickersView(APIView):
         pairs_data = {pair['pair']: pair for pair in pairs_data['pairs']}
         yesterday = now() - datetime.timedelta(hours=24)
 
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             if is_pair_disabled(pair):
                 continue
 

@@ -12,7 +12,6 @@ from core.models.inouts.fees_and_limits import FeesAndLimits
 from core.models.orders import ExecutionResult
 from core.models.orders import Order
 from core.models.wallet_history import WalletHistoryItem
-from core.pairs import PAIRS
 from core.serializers.cryptocoins import UserWalletSerializer
 from core.serializers.orders import ExecutionResultSerializer
 from core.serializers.orders import OrderSerializer
@@ -307,9 +306,9 @@ class TradesNotificator(BasePaginatedNotificator):
         return entry, new_kwargs
 
     def get_queryset(self, **kwargs):
-        pair = kwargs['pair_name']
+        base, quote = kwargs['pair_name'].split('-')
         queryset = ExecutionResult.qs_last_executed(
-            ExecutionResult.objects.filter(pair=pair).select_related('order')
+            ExecutionResult.objects.filter(pair__base=base, pair__quote=quote).select_related('order')
         ).order_by('-created')
         return queryset
 
@@ -363,8 +362,8 @@ class OpenedOrdersByPairNotificator(OpenedOrdersNotificator):
 
     def get_queryset(self, **kwargs):
         qs = super().get_queryset(**kwargs)
-        pair = kwargs['pair_name']
-        qs = qs.filter(pair=pair)
+        base, quote = kwargs['pair_name'].split('-')
+        qs = qs.filter(pair__base=base, pair__quote=quote)
         return qs
 
 
@@ -382,8 +381,8 @@ class ClosedOrdersByPairNotificator(ClosedOrdersNotificator):
 
     def get_queryset(self, **kwargs):
         qs = super().get_queryset(**kwargs)
-        pair = kwargs['pair_name']
-        qs = qs.filter(pair=pair)
+        base, quote = kwargs['pair_name'].split('-')
+        qs = qs.filter(pair__base=base, pair__quote=quote)
         return qs
 
 

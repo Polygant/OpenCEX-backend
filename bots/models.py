@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from lib.fields import MoneyField
-from core.pairs import PairModelField
+from core.models.inouts.pairs import Pair, PairModelField
 from lib.cipher import AESCoderDecoder
 from django.conf import settings
 
@@ -21,7 +21,7 @@ class BotConfig(models.Model):
 
     name = models.CharField(max_length=255, unique=True)
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    pair = PairModelField()
+    pair = models.ForeignKey(Pair, on_delete=models.CASCADE)
     strategy = models.CharField(choices=TRADE_STRATEGIES, max_length=255, default=TRADE_STRATEGY_DRAW)
 
     symbol_precision = models.IntegerField(default=4)
@@ -97,7 +97,7 @@ class OrderMatch(models.Model):
     )
 
     created = models.DateTimeField(auto_now_add=True)
-    pair = PairModelField()
+    pair = PairModelField(Pair, on_delete=models.CASCADE)
     quantity = MoneyField()
     price = MoneyField()
     side = models.PositiveSmallIntegerField(default=SIDE_BUY, choices=SIDES)
@@ -106,7 +106,7 @@ class OrderMatch(models.Model):
 class OrderMatchStat(models.Model):
     created = models.DateTimeField(default=timezone.now)
     deals = models.PositiveIntegerField(default=0)
-    pair = PairModelField()
+    pair = PairModelField(Pair, on_delete=models.CASCADE)
     total_buy = MoneyField()
     total_sell = MoneyField()
     change = MoneyField()

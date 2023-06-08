@@ -19,8 +19,8 @@ from core.models.orders import Exchange, ExecutionResult
 from core.models.orders import MARKET
 from core.models.orders import EXCHANGE
 from core.models.orders import Order
-from core.pairs import PAIRS
-from core.pairs import PairSerialField
+from core.models.inouts.pairs import Pair
+from core.models.inouts.pairs import PairSerialField
 
 
 class OTCSerializer(serializers.Serializer):
@@ -172,7 +172,7 @@ class ExchangeRequestSerializer(serializers.Serializer):
         base_quote = '{}-{}'.format(base, quote)
         quote_base = '{}-{}'.format(quote, base)
 
-        for i in PAIRS:
+        for i in Pair.objects.all():
             if i.code == base_quote:
                 return i, True
 

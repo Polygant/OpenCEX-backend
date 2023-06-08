@@ -62,6 +62,7 @@ from core.models.inouts.dif_balance import DifBalance
 from core.models.inouts.disabled_coin import DisabledCoin
 from core.models.inouts.fees_and_limits import FeesAndLimits
 from core.models.inouts.fees_and_limits import WithdrawalFee
+from core.models.inouts.pairs import Pair
 from core.models.inouts.sci import GATES
 from core.models.inouts.sci import PayGateTopup
 from core.models.inouts.transaction import REASON_MANUAL_TOPUP
@@ -1081,6 +1082,13 @@ class UserWalletAdmin(ReadOnlyMixin, DefaultApiAdmin):
 @api_admin.register(PairSettings)
 class PairSettingsAdmin(DefaultApiAdmin):
     _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'precisions']
+    list_display = _fields
+    fields = _fields
+
+
+@api_admin.register(Pair)
+class PairAdmin(DefaultApiAdmin):
+    _fields = ['base', 'quote']
     list_display = _fields
     fields = _fields
 

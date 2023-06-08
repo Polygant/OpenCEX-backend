@@ -1,7 +1,7 @@
 from django.core.cache import cache
 from django.db import models
 
-from core.pairs import PairModelField, Pair, PAIRS
+from core.models.inouts.pairs import Pair, PairModelField
 from lib.fields import MoneyField
 from django.contrib.postgres.fields import ArrayField
 
@@ -17,7 +17,7 @@ class PairSettings(models.Model):
         (PRICE_SOURCE_CUSTOM, 'Custom'),
     )
 
-    pair = PairModelField(unique=True)
+    pair = PairModelField(Pair, on_delete=models.CASCADE, unique=True)
     is_enabled = models.BooleanField(default=True)
     is_autoorders_enabled = models.BooleanField(default=True)
     price_source = models.SmallIntegerField(choices=PRICE_SOURCES, default=PRICE_SOURCE_EXTERNAL)
@@ -65,7 +65,7 @@ class PairSettings(models.Model):
     def get_disabled_pairs(cls):
         data = cls._cache_data()
         enabled_pairs = [pair_code for pair_code, pair_data in data.items() if pair_data['is_enabled']]
-        return [p.code for p in PAIRS if p.code not in enabled_pairs]
+        return [p.code for p in Pair.objects.all() if p.code not in enabled_pairs]
 
     @classmethod
     def is_pair_enabled(cls, pair):

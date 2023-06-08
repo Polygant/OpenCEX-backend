@@ -13,13 +13,13 @@ from core.consts.orders import BUY
 from core.consts.orders import SELL
 from core.consts.currencies import ALL_CURRENCIES
 from core.models.inouts.balance import Balance
+from core.models.inouts.pairs import Pair
 from core.models.inouts.transaction import REASON_TOPUP
 from core.models.inouts.transaction import Transaction
 from core.models.inouts.withdrawal import COMPLETED
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.models.orders import ExecutionResult
 from core.models.orders import Order
-from core.pairs import PAIRS
 from core.utils.stats.lib import ExchangeQuerySetStats
 from core.utils.stats.lib import TradeVolumeForPeriod
 from core.utils.stats.lib import get_prices_in_usd
@@ -202,7 +202,7 @@ class TradeStats:
         volumes = list(tv.all_pairs(interval))
         total = tv.total_in_usd(interval, volumes)
 
-        result = {pair: {} for pair in PAIRS}
+        result = {pair: {} for pair in Pair.objects.all()}
 
         for i in volumes:
             result[i['pair']] = i
