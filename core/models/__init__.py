@@ -16,6 +16,7 @@ from core.models.inouts.balance import Balance
 from core.models.inouts.disabled_coin import DisabledCoin
 from core.models.inouts.fees_and_limits import FeesAndLimits
 from core.models.inouts.fees_and_limits import WithdrawalFee
+from core.models.inouts.pairs import Pair
 from core.models.inouts.pair_settings import PairSettings
 from core.models.inouts.sci import PayGateTopup
 from core.models.inouts.sci import PayGateTopupRevert
@@ -54,6 +55,7 @@ __all__ = [
     'DisabledCoin',
     'FeesAndLimits',
     'WithdrawalFee',
+    'Pair',
     'PairSettings',
     'PayGateTopup',
     'PayGateTopupRevert',
