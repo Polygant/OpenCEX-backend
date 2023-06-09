@@ -3,6 +3,7 @@ from string import printable
 from urllib.parse import urlparse
 
 from django.core.management.base import BaseCommand
+from django.db.models import Max
 from web3 import Web3
 
 from core.consts.currencies import BEP20_CURRENCIES, ERC20_CURRENCIES, TRC20_CURRENCIES, CURRENCIES_LIST, \
@@ -284,7 +285,11 @@ def get_available_currency_id():
 
 
 def get_available_pair_id():
-    return max(max(p.id for p in Pair.objects.all()), 1000) + 1
+    pairs = Pair.objects.all()
+    current_max_id = pairs.aggregate(Max('id'))['id__max']
+    if current_max_id is None:
+        current_max_id = 0
+    return max(current_max_id, 1000) + 1
 
 
 def is_token_exists(symbol, blockchain_symbol):

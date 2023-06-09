@@ -1,12 +1,13 @@
 import os.path
 import json
 
+import django
 from django.conf import settings
+from django.db import ProgrammingError
 
 from core.currency import TokenParams
 from cryptocoins.utils.register import register_token
 from dataclasses import dataclass
-from core.pairs import Pair
 
 tokens_config_fp = os.path.join(settings.BASE_DIR, 'tokens.json')
 
@@ -100,5 +101,21 @@ def register_tokens_and_pairs():
         register_token(token_currency_id, token_symbol, blockchains)
 
         # register pairs
-        for pair_data in token_data['pairs']:
-            _ = Pair(*pair_data)
+        from core.models.inouts.pairs import Pair
+
+        is_new_version = True
+        try:
+            Pair.objects.first()
+        except ProgrammingError:
+            is_new_version = False
+
+        if is_new_version:
+            for pair_data in token_data['pairs']:
+                _id, pair_name = pair_data[0], pair_data[1]
+                base, quote = pair_name.split('-')
+                Pair.objects.get_or_create(id=_id, base=base, quote=quote)
+        else:
+            from core.pairs import PAIRS_LIST
+            for pair_data in token_data['pairs']:
+                PAIRS_LIST.append(tuple(pair_data))
+                _ = Pair(*pair_data)
