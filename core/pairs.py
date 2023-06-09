@@ -1,11 +1,17 @@
 from deprecated import deprecated
 from django.db import models
 
+from core.consts.pairs import *
 from core.currency import Currency
 from core.currency import CurrencyNotFound
-from core.models.inouts.pairs import PAIRS_LIST
 
 PAIRS = []
+PAIRS_LIST = [
+    (BTC_USDT, 'BTC-USDT'),
+    (ETH_USDT, 'ETH-USDT'),
+    (TRX_USDT, 'TRX-USDT'),
+    (BNB_USDT, 'BNB-USDT'),
+]
 
 
 class PairNotFound(CurrencyNotFound):

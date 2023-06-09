@@ -4,9 +4,9 @@ import json
 from django.conf import settings
 
 from core.currency import TokenParams
-from core.models.inouts.pairs import PAIRS_LIST, Pair
 from cryptocoins.utils.register import register_token
 from dataclasses import dataclass
+from core.pairs import Pair
 
 tokens_config_fp = os.path.join(settings.BASE_DIR, 'tokens.json')
 
@@ -101,6 +101,4 @@ def register_tokens_and_pairs():
 
         # register pairs
         for pair_data in token_data['pairs']:
-            PAIRS_LIST.append(tuple(pair_data))
-            pair = Pair(*pair_data)
-            pair.save()
+            _ = Pair(*pair_data)
