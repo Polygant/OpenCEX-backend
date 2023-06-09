@@ -2,10 +2,17 @@ from django.db import migrations
 from django.db import connection, transaction
 from django.db.models import Max
 
+from core.models import Pair
+from core.pairs import PAIRS_LIST
+
 
 def transfer_data(apps, schema_editor):
     from cryptocoins.tokens_manager import register_tokens_and_pairs
     register_tokens_and_pairs()
+    for pair in PAIRS_LIST:
+        pair_id = pair[0]
+        base, quote = pair[1].split('-')
+        Pair.objects.get_or_create(id=pair_id, base=base, quote=quote)
 
 
 def auto_increment_start(apps, schema_editor):
