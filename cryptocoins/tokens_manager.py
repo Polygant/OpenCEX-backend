@@ -1,10 +1,11 @@
 import os.path
 import json
 
+import django
 from django.conf import settings
+from django.db import ProgrammingError
 
 from core.currency import TokenParams
-
 from cryptocoins.utils.register import register_token
 from dataclasses import dataclass
 
@@ -63,7 +64,7 @@ def get_tokens_backup_diffs():
             return Difference(token, blochchain_diffs.pop())
 
 
-def register_tokens():
+def register_tokens_and_pairs():
     """
     Basic stucture of tokens.json
     {
@@ -74,7 +75,13 @@ def register_tokens():
                     "contract": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                     "decimals": 6
                 }
-            }
+            },
+            "pairs": [
+                [
+                100, # pair id
+                "USDC-USDT", # pair symbol
+                ]
+            ]
        }
     }
     """
@@ -92,3 +99,23 @@ def register_tokens():
             )
 
         register_token(token_currency_id, token_symbol, blockchains)
+
+        # register pairs
+        from core.models.inouts.pairs import Pair
+
+        is_new_version = True
+        try:
+            Pair.objects.first()
+        except ProgrammingError:
+            is_new_version = False
+
+        if is_new_version:
+            for pair_data in token_data['pairs']:
+                _id, pair_name = pair_data[0], pair_data[1]
+                base, quote = pair_name.split('-')
+                Pair.objects.get_or_create(id=_id, base=base, quote=quote)
+        else:
+            from core.pairs import PAIRS_LIST
+            for pair_data in token_data['pairs']:
+                PAIRS_LIST.append(tuple(pair_data))
+                _ = Pair(*pair_data)

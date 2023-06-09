@@ -3,6 +3,7 @@ from string import printable
 from urllib.parse import urlparse
 
 from django.core.management.base import BaseCommand
+from django.db.models import Max
 from web3 import Web3
 
 from core.consts.currencies import BEP20_CURRENCIES, ERC20_CURRENCIES, TRC20_CURRENCIES, CURRENCIES_LIST, \
@@ -14,7 +15,7 @@ from core.models.stats import InoutsStats
 from core.models.inouts.pairs import Pair, PairNotFound
 from cryptocoins.data_sources.crypto import binance_data_source, kucoin_data_source
 from cryptocoins.tokens_manager import read_tokens_file, write_tokens_file, get_tokens_backup_diffs, \
-    restore_backup_file, register_tokens
+    restore_backup_file, register_tokens_and_pairs
 
 TOKENS_BLOCKCHAINS_MAP = {'ETH': ERC20_CURRENCIES, 'BNB': BEP20_CURRENCIES, 'TRX': TRC20_CURRENCIES}
 EXPLORERS_MAP = {'ETH': 'https://etherscan.io/', 'BNB': 'https://bscscan.com/', 'TRX': 'https://tronscan.org/'}
@@ -137,7 +138,7 @@ class Command(BaseCommand):
         # new blockchain is added to the existing token
         if only_blockchain_added:
             write_tokens_file(json.dumps(all_tokens_data, indent=2))
-            register_tokens()
+            register_tokens_and_pairs()
             create_withdrawal_fee(token_symbol, blockchain_symbol)
             print('Token successfully added. Restart the backend to complete installation.')
             return
@@ -157,7 +158,7 @@ class Command(BaseCommand):
         pair_id = get_available_pair_id()
         all_tokens_data[token_symbol]["pairs"].append([pair_id, pair_to_usdt])
         write_tokens_file(json.dumps(all_tokens_data, indent=2))
-        register_tokens()
+        register_tokens_and_pairs()
 
         pair_settings = {'pair': pair_to_usdt, 'precisions': precisions}
         if is_price_external:
@@ -284,7 +285,11 @@ def get_available_currency_id():
 
 
 def get_available_pair_id():
-    return max(max(p.id for p in Pair.objects.all()), 1000) + 1
+    pairs = Pair.objects.all()
+    current_max_id = pairs.aggregate(Max('id'))['id__max']
+    if current_max_id is None:
+        current_max_id = 0
+    return max(current_max_id, 1000) + 1
 
 
 def is_token_exists(symbol, blockchain_symbol):

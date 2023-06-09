@@ -1,23 +1,18 @@
 from django.db import migrations
 from django.db import connection, transaction
-
-from core.pairs import Pair
+from django.db.models import Max
 
 
 def transfer_data(apps, schema_editor):
-    NewPair = apps.get_model('core', 'Pair')
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pair FROM core_pairsettings")
-        for row in cursor.fetchall():
-            old_pair = Pair.get(row[0])
-            pair = NewPair(id=old_pair.id, base=old_pair.base, quote=old_pair.quote)
-            pair.save()
+    from cryptocoins.tokens_manager import register_tokens_and_pairs
+    register_tokens_and_pairs()
 
 
 def auto_increment_start(apps, schema_editor):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT max(id) FROM core_pair")
-        max_id = cursor.fetchone()[0]
+        Pair = apps.get_model('core', 'Pair')
+        pairs = Pair.objects.all()
+        max_id = pairs.aggregate(Max('id'))['id__max']
         if max_id:
             cursor.execute(f"""
                 SELECT setval(pg_get_serial_sequence('"core_pair"','id'), coalesce(max("id"), {max_id}), max("id") IS NOT null) FROM "core_pair";
