@@ -65,8 +65,8 @@ def get_pairs_24h_stats() -> dict:
         base_volume=Sum('quantity')
     )
 
-    volumes = {i['pair'].code: i['volume'] for i in qs}
-    base_volumes = {i['pair'].code: i['base_volume'] for i in qs}
+    volumes = {Pair.get(i['pair']).code: i['volume'] for i in qs}
+    base_volumes = {Pair.get(i['pair']).code: i['base_volume'] for i in qs}
 
     last_prices = get_last_prices()
     prices_24h = get_last_prices(ts_24h_ago)

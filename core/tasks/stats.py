@@ -127,7 +127,7 @@ def plan_trades_aggregation(period):
     for pair in Pair.objects.all():
         if DisabledCoin.is_coin_disabled(pair.base.code) or DisabledCoin.is_coin_disabled(pair.quote.code):
             continue
-        do_trades_aggregation_for_pair.apply_async((pair.code, period))
+        do_trades_aggregation_for_pair.apply_async((pair, period))
 
 
 @shared_task
