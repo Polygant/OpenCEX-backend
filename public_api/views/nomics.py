@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models.orders import ExecutionResult
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.views.orders import StackView
 from lib.helpers import get_iso_dt
 from lib.throttling import RedisCacheAnonRateThrottle, RedisCacheUserRateThrottle

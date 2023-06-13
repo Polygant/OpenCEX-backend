@@ -33,7 +33,7 @@ VUE_ADMIN_SIDE_MENU = [
     {'icon': 'mdi-settings-transfer', 'model': 'core.withdrawallimitlevel', 'text': 'Withdrawal Limit Level'},
     {'icon': 'mdi-settings-transfer', 'model': 'core.withdrawaluserlimit', 'text': 'Withdrawal User Limit'},
     {'icon': 'mdi-settings-transfer', 'model': 'core.pairsettings', 'text': 'Pair Settings'},
-    {'icon': 'mdi-settings-transfer', 'model': 'core.pairs', 'text': 'Pairs'},
+    {'icon': 'mdi-settings-transfer', 'model': 'core.pair', 'text': 'Pairs'},
     {'icon': 'mdi-bank-transfer', 'model': 'cryptocoins.depositswithdrawalsstats', 'text': 'TopUps and Withdrawals'},
     {'icon': 'mdi-swap-horizontal', 'model': 'core.inoutsstats', 'text': 'In/Out Currency Stats'},
     {'icon': 'mdi-incognito', 'model': 'core.accesslog', 'text': 'Access logs'},

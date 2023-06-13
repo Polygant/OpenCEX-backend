@@ -12,7 +12,7 @@ from tablib import Dataset
 
 from core.currency import Currency
 from core.models import Order, Transaction, ExecutionResult
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 
 log = logging.getLogger(__name__)
 

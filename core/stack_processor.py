@@ -15,7 +15,7 @@ from core.consts.orders import ORDER_OPENED
 from core.models.orders import Exchange
 from core.models.orders import Order
 from core.orderbook.book import OrderBook
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.serializers.orders import ExchangeResultSerialzier
 from core.serializers.orders import OrderSerializer
 

@@ -4,7 +4,7 @@ from typing import Dict
 
 from core.cache import external_exchanges_pairs_price_cache
 from core.models import PairSettings, ExternalPricesHistory, Settings
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from cryptocoins.default_settings import ALERT_ON_MISSING_EXTERNAL_PAIR_PRICE
 from cryptocoins.interfaces.datasources import BaseDataSource
 from lib.helpers import calc_relative_percent_difference

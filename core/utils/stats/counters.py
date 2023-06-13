@@ -13,7 +13,7 @@ from core.consts.orders import BUY
 from core.consts.orders import SELL
 from core.consts.currencies import ALL_CURRENCIES
 from core.models.inouts.balance import Balance
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.models.inouts.transaction import REASON_TOPUP
 from core.models.inouts.transaction import Transaction
 from core.models.inouts.withdrawal import COMPLETED

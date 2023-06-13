@@ -19,8 +19,8 @@ from core.models.orders import Exchange, ExecutionResult
 from core.models.orders import MARKET
 from core.models.orders import EXCHANGE
 from core.models.orders import Order
-from core.models.inouts.pairs import Pair
-from core.models.inouts.pairs import PairSerialField
+from core.models.inouts.pair import Pair
+from core.models.inouts.pair import PairSerialField
 
 
 class OTCSerializer(serializers.Serializer):

@@ -19,7 +19,7 @@ from core.cache import external_exchanges_pairs_price_cache
 from core.consts.orders import EXTERNAL
 from core.consts.orders import BUY
 from core.models import PairSettings
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from lib.helpers import calc_relative_percent_difference
 from lib.helpers import to_decimal
 

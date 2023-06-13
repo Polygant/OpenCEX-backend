@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from core.models.orders import ExecutionResult
-from core.models.inouts.pairs import PairSerialField
+from core.models.inouts.pair import PairSerialField
 
 
 class PairLimitValidationSerializer(serializers.Serializer):

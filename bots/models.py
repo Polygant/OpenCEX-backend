@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from lib.fields import MoneyField
-from core.models.inouts.pairs import Pair, PairModelField
+from core.models.inouts.pair import Pair, PairModelField
 from lib.cipher import AESCoderDecoder
 from django.conf import settings
 

@@ -32,7 +32,7 @@ from core.models.facade import CoinInfo
 from core.models.inouts.balance import Balance
 from core.models.inouts.disabled_coin import DisabledCoin
 from core.models.orders import ExecutionResult
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.serializers.orders import LimitOnlyOrderSerializer, UpdateOrderSerializer
 from core.utils.stats.daily import get_filtered_pairs_24h_stats
 from core.views.orders import StackView, OrdersView, OrderUpdateView

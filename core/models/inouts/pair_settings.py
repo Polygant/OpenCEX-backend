@@ -1,7 +1,7 @@
 from django.core.cache import cache
 from django.db import models
 
-from core.models.inouts.pairs import Pair, PairModelField
+from core.models.inouts.pair import Pair, PairModelField
 from lib.fields import MoneyField
 from django.contrib.postgres.fields import ArrayField
 

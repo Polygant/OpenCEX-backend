@@ -6,7 +6,7 @@ from binance.client import Client as BinanceClient
 from requests.exceptions import ConnectionError
 
 from core.consts.orders import LIMIT
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from lib.helpers import pretty_decimal
 from lib.helpers import to_decimal
 

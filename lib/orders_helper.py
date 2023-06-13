@@ -2,7 +2,7 @@ from lib.helpers import to_decimal
 from core.consts.orders import BUY, SELL
 from core.orderbook.helpers import get_stack_by_pair
 from core.orderbook.book import PreMatch
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 
 
 def prepare_market_data(user, data, serializer):
