@@ -33,7 +33,7 @@ from core.models.orders import Exchange
 from core.models.orders import ExecutionResult
 from core.models.orders import Order
 from core.otcupdater import OtcOrdersUpdater
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.permissions import BotsOnly
 from core.serializers.orders import ExchangeRequestSerializer, StopLimitOrderSerializer, AllOrdersSimpleSerializer
 from core.serializers.orders import ExchangeResultSerialzier

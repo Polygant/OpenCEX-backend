@@ -51,7 +51,7 @@ from core.models import AccessLog, Message, WithdrawalFee, FeesAndLimits, Wallet
     Exchange, ExecutionResult, OrderStateChangeHistory, ExternalPricesHistory, TradesAggregatedStats, UserPairDailyStat, \
     WalletHistoryItem, UserRestrictions, PayGateTopup, DisabledCoin, PairSettings
 from core.models.inouts.dif_balance import DifBalance
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from cryptocoins.models.stats import DepositsWithdrawalsStats
 from cryptocoins.tasks import calculate_topups_and_withdrawals
 from cryptocoins.utils.stats import generate_stats_fields

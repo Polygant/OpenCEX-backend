@@ -15,7 +15,7 @@ sys.path.append(os.path.join(sys.path[0], '..'))
 
 from exchange.celery_app import app
 app.autodiscover_tasks(['core'])
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from lib.oneinstlock import MultiLock, AutoLock
 
 

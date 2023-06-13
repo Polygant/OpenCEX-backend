@@ -10,7 +10,7 @@ from core.consts.orders import (
 )
 from core.currency import Currency, CurrencyModelField
 from core.models import Exchange
-from core.models.inouts.pairs import PairModelField
+from core.models.inouts.pair import PairModelField
 from core.models.orders import Order
 
 

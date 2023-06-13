@@ -13,7 +13,7 @@ from admin_rest.restful_admin import DefaultApiAdmin
 from core.consts.currencies import ALL_CURRENCIES
 from core.enums.profile import UserTypeEnum
 from core.models import Order
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.utils.stats.counters import CurrencyStats
 from core.utils.stats.lib import get_prices_in_usd
 from dashboard_rest.models import CommonInouts, CommonUsersStats, TradeVolume

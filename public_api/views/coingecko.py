@@ -21,7 +21,7 @@ from rest_framework.views import APIView
 
 from core.models import PairSettings
 from core.models.orders import ExecutionResult
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.utils.stats.daily import get_filtered_pairs_24h_stats
 from core.views.orders import StackView
 from lib.throttling import RedisCacheAnonRateThrottle, RedisCacheUserRateThrottle

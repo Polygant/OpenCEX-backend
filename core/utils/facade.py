@@ -13,7 +13,7 @@ from core.cache import API_CALLBACK_CACHE_KEY
 from core.cache import facade_cache
 from core.cache import orders_app_cache
 from core.models.facade import Profile
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 
 log = logging.getLogger(__name__)
 User = get_user_model()

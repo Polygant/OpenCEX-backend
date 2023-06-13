@@ -62,7 +62,7 @@ from core.models.inouts.dif_balance import DifBalance
 from core.models.inouts.disabled_coin import DisabledCoin
 from core.models.inouts.fees_and_limits import FeesAndLimits
 from core.models.inouts.fees_and_limits import WithdrawalFee
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.models.inouts.sci import GATES
 from core.models.inouts.sci import PayGateTopup
 from core.models.inouts.transaction import REASON_MANUAL_TOPUP

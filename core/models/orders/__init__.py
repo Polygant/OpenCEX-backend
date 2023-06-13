@@ -49,7 +49,7 @@ from core.models.inouts.transaction import REASON_ORDER_EXTRA_CHARGE
 from core.models.inouts.transaction import REASON_ORDER_OPENED
 from core.models.inouts.transaction import TRANSACTION_COMPLETED
 from core.models.inouts.transaction import Transaction
-from core.models.inouts.pairs import Pair, PairModelField
+from core.models.inouts.pair import Pair, PairModelField
 from core.signals.orders import order_changed
 from core.utils.inouts import is_coin_disabled
 from core.utils.limits import OrderLimitChecker

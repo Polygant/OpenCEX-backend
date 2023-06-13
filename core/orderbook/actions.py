@@ -59,7 +59,7 @@ class Actions(object):
     @threaded_daemon
     def stack_cache_updater(self):
         from core.consts.pairs import BTC_USDT
-        from core.models.inouts.pairs import Pair
+        from core.models.inouts.pair import Pair
         while True:
             time.sleep(self.UPDATER_SLEEP)
 

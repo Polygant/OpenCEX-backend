@@ -4,7 +4,7 @@ from django_filters.rest_framework.backends import DjangoFilterBackend
 
 from admin_rest.filters import PairModelFilter
 from core.currency import CurrencyModelField
-from core.models.inouts.pairs import PairModelField
+from core.models.inouts.pair import PairModelField
 
 
 class FilterSet(filterset.FilterSet):

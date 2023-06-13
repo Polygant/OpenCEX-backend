@@ -11,7 +11,7 @@ from qsstats.utils import get_bounds
 
 from core.currency import Currency
 from core.models.stats import TradesAggregatedStats, MINUTE
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.utils.stats.daily import get_last_prices
 
 

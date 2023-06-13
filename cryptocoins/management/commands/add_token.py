@@ -12,7 +12,7 @@ from core.currency import Currency, CurrencyNotFound
 from core.models import PairSettings, FeesAndLimits, WithdrawalFee
 from core.models.facade import CoinInfo
 from core.models.stats import InoutsStats
-from core.models.inouts.pairs import Pair, PairNotFound
+from core.models.inouts.pair import Pair, PairNotFound
 from cryptocoins.data_sources.crypto import binance_data_source, kucoin_data_source
 from cryptocoins.tokens_manager import read_tokens_file, write_tokens_file, get_tokens_backup_diffs, \
     restore_backup_file, register_tokens_and_pairs

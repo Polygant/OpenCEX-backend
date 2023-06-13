@@ -101,7 +101,7 @@ def register_tokens_and_pairs():
         register_token(token_currency_id, token_symbol, blockchains)
 
         # register pairs
-        from core.models.inouts.pairs import Pair
+        from core.models.inouts.pair import Pair
 
         is_new_version = True
         try:

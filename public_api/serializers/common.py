@@ -6,7 +6,7 @@ from core.consts.orders import LIMIT
 from core.consts.orders import EXTERNAL
 from core.consts.orders import BUY
 from core.models.orders import ExecutionResult
-from core.models.inouts.pairs import PairSerialField
+from core.models.inouts.pair import PairSerialField
 from lib.fields import JSDatetimeField
 from lib.helpers import to_decimal
 

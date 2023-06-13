@@ -23,7 +23,7 @@ from core.models.orders import ExecutionResult
 from core.models.stats import ExternalPricesHistory
 from core.models.stats import TradesAggregatedStats
 from core.models.stats import UserPairDailyStat
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.tasks.orders import run_otc_orders_price_update
 from core.utils.stats.trades_aggregate import TradesAggregator
 from lib.batch import BatchProcessor

@@ -5,7 +5,7 @@ from django.utils import timezone
 from core.cache import PAIRS_VOLUME_CACHE_KEY
 from core.cache import last_pair_price_cache
 from core.cache import orders_app_cache
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 
 
 def get_pair_last_price(pair):

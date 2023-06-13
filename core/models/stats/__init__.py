@@ -7,7 +7,7 @@ from django.db.models import Sum, Q
 from core.consts.currencies import ALL_CURRENCIES
 from core.currency import CurrencyModelField
 from core.enums.profile import UserTypeEnum
-from core.models.inouts.pairs import Pair, PairModelField
+from core.models.inouts.pair import Pair, PairModelField
 from exchange.models import BaseModel
 from exchange.models import UserMixinModel
 from lib.fields import MoneyField

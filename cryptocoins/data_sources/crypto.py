@@ -6,7 +6,7 @@ from binance.client import Client as BinanceClient
 from django.conf import settings
 
 from core.cache import cryptocompare_pairs_price_cache
-from core.models.inouts.pairs import Pair
+from core.models.inouts.pair import Pair
 from cryptocoins.interfaces.datasources import BaseDataSource
 from lib.helpers import to_decimal
 

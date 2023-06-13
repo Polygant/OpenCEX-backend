@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from core.models.inouts.pairs import PAIRS_LIST
+from core.models.inouts.pair import PAIRS_LIST
 from .client import Client
 
 
