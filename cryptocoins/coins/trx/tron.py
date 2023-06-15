@@ -19,7 +19,7 @@ from tronpy.providers import HTTPProvider
 from core.consts.currencies import TRC20_CURRENCIES
 from core.currency import Currency
 from core.models import WalletTransactions
-from core.models.inouts.withdrawal import PENDING as WR_PENDING
+from core.models.inouts.withdrawal import PENDING as WR_PENDING, FAILED_RESULTS
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_withdrawal_fee, get_min_accumulation_balance
 from core.utils.withdrawal import get_withdrawal_requests_pending
@@ -573,13 +573,24 @@ class TronHandler(BaseEVMCoinHandler):
         if not res.get('result') or not txid:
             log.error('Unable to send withdrawal TX')
 
-        withdrawal_request.state = WR_PENDING
-        withdrawal_request.txid = txid
-        withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
-        withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
         receipt = res.wait()
+
+        if (
+                "receipt" in receipt
+                and "result" in receipt["receipt"]
+                and receipt["receipt"]["result"] in FAILED_RESULTS
+        ):
+            withdrawal_request.fail()
+            log.error('Failed - %s', receipt['receipt']['result'])
+        else:
+            withdrawal_request.state = WR_PENDING
+            withdrawal_request.txid = txid
+            withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
+            withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+
         log.info(receipt)
         log.info('TRX withdrawal TX %s sent', txid)
+
 
     @classmethod
     def withdraw_tokens(cls, withdrawal_request_id, password, old_tx_data=None, prev_tx_hash=None):
@@ -618,13 +629,24 @@ class TronHandler(BaseEVMCoinHandler):
         if not res.get('result') or not txid:
             log.error('Unable to send TRX TX')
 
-        withdrawal_request.state = WR_PENDING
-        withdrawal_request.txid = txid
-        withdrawal_request.our_fee_amount = token.get_amount_from_base_denomination(withdrawal_fee_sun)
-        withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
         receipt = res.wait()
+
+        if (
+                "receipt" in receipt
+                and "result" in receipt["receipt"]
+                and receipt["receipt"]["result"] in FAILED_RESULTS
+        ):
+            withdrawal_request.fail()
+            log.error('Failed - %s', receipt['receipt']['result'])
+        else:
+            withdrawal_request.state = WR_PENDING
+            withdrawal_request.txid = txid
+            withdrawal_request.our_fee_amount = token.get_amount_from_base_denomination(withdrawal_fee_sun)
+            withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+
         log.info(receipt)
         log.info('%s withdrawal TX %s sent', currency, txid)
+
 
     @classmethod
     def check_balance(cls, wallet_transaction_id):
