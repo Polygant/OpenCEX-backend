@@ -13,7 +13,7 @@ from core.cache import API_CALLBACK_CACHE_KEY
 from core.cache import facade_cache
 from core.cache import orders_app_cache
 from core.models.facade import Profile
-from core.pairs import PAIRS
+from core.models.inouts.pair import Pair
 
 log = logging.getLogger(__name__)
 User = get_user_model()
@@ -76,7 +76,7 @@ def generate_sitemap():
             make_entry('/account/fees'),
         ]
 
-        for pair in PAIRS:
+        for pair in Pair.objects.all():
             entries.append(make_entry(f'/account/trade/{pair.code}'))
 
         from seo.models import CoinStaticPage

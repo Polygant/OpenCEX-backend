@@ -3,6 +3,7 @@ from string import printable
 from urllib.parse import urlparse
 
 from django.core.management.base import BaseCommand
+from django.db.models import Max
 from web3 import Web3
 
 from core.consts.currencies import BEP20_CURRENCIES, ERC20_CURRENCIES, TRC20_CURRENCIES, CURRENCIES_LIST, \
@@ -11,7 +12,7 @@ from core.currency import Currency, CurrencyNotFound
 from core.models import PairSettings, FeesAndLimits, WithdrawalFee
 from core.models.facade import CoinInfo
 from core.models.stats import InoutsStats
-from core.pairs import PAIRS_LIST, PairNotFound
+from core.models.inouts.pair import Pair, PairNotFound
 from cryptocoins.data_sources.crypto import binance_data_source, kucoin_data_source
 from cryptocoins.tokens_manager import read_tokens_file, write_tokens_file, get_tokens_backup_diffs, \
     restore_backup_file, register_tokens_and_pairs
@@ -284,7 +285,11 @@ def get_available_currency_id():
 
 
 def get_available_pair_id():
-    return max(max(p[0] for p in PAIRS_LIST), 1000) + 1
+    pairs = Pair.objects.all()
+    current_max_id = pairs.aggregate(Max('id'))['id__max']
+    if current_max_id is None:
+        current_max_id = 0
+    return max(current_max_id, 1000) + 1
 
 
 def is_token_exists(symbol, blockchain_symbol):

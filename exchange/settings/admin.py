@@ -6,7 +6,7 @@ ADMIN_TOOLS_MENU = 'admin_panel.menu.CustomMenu'
 ADMIN_TOOLS_INDEX_DASHBOARD = 'admin_panel.dashboard.CustomIndexDashboard'
 ADMIN_TOOLS_APP_INDEX_DASHBOARD = 'admin_panel.dashboard.CustomAppIndexDashboard'
 
-ENABLE_OTP_ADMIN = True
+ENABLE_OTP_ADMIN = False
 ADMIN_MASTERPASS = env('ADMIN_MASTERPASS')
 ADMIN_BASE_URL = env('ADMIN_BASE_URL', default='control-panel')
 
@@ -33,6 +33,7 @@ VUE_ADMIN_SIDE_MENU = [
     {'icon': 'mdi-settings-transfer', 'model': 'core.withdrawallimitlevel', 'text': 'Withdrawal Limit Level'},
     {'icon': 'mdi-settings-transfer', 'model': 'core.withdrawaluserlimit', 'text': 'Withdrawal User Limit'},
     {'icon': 'mdi-settings-transfer', 'model': 'core.pairsettings', 'text': 'Pair Settings'},
+    {'icon': 'mdi-settings-transfer', 'model': 'core.pair', 'text': 'Pairs'},
     {'icon': 'mdi-bank-transfer', 'model': 'cryptocoins.depositswithdrawalsstats', 'text': 'TopUps and Withdrawals'},
     {'icon': 'mdi-swap-horizontal', 'model': 'core.inoutsstats', 'text': 'In/Out Currency Stats'},
     {'icon': 'mdi-incognito', 'model': 'core.accesslog', 'text': 'Access logs'},

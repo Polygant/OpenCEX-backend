@@ -7,7 +7,7 @@ from django.db.models import Sum, Q
 from core.consts.currencies import ALL_CURRENCIES
 from core.currency import CurrencyModelField
 from core.enums.profile import UserTypeEnum
-from core.pairs import PairModelField
+from core.models.inouts.pair import Pair, PairModelField
 from exchange.models import BaseModel
 from exchange.models import UserMixinModel
 from lib.fields import MoneyField
@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 class UserPairDailyStat(UserMixinModel, BaseModel):
 
-    pair = PairModelField()
+    pair = PairModelField(Pair, on_delete=models.CASCADE)
 
     day = models.DateField()
 
@@ -65,7 +65,7 @@ class TradesAggregatedStats(models.Model):
     ]
 
     created = models.DateTimeField(auto_now_add=True)
-    pair = PairModelField()
+    pair = PairModelField(Pair, on_delete=models.CASCADE)
     ts = models.DateTimeField()
     period = models.PositiveSmallIntegerField(choices=[(k[1], k[0]) for k in PERIODS.items()])
 
@@ -89,7 +89,7 @@ class TradesAggregatedStats(models.Model):
 
 class ExternalPricesHistory(models.Model):
     created = models.DateTimeField(auto_now_add=True)
-    pair = PairModelField()
+    pair = PairModelField(Pair, on_delete=models.CASCADE)
     price = MoneyField(null=True, blank=True)
 
 

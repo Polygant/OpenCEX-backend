@@ -12,8 +12,8 @@ from rest_framework.views import APIView
 
 from core.models.orders import ExecutionResult
 from core.models.stats import TradesAggregatedStats
-from core.pairs import Pair
-from core.pairs import PairSerialField
+from core.models.inouts.pair import Pair
+from core.models.inouts.pair import PairSerialField
 from core.serializers.stats import StatsSerializer
 from core.utils.stats.chart import ChartTool
 from core.utils.stats.chart import TimelineGenerator
@@ -106,7 +106,7 @@ class PairTradeChartData:
             qs=qs,
             period=self.period,
             aggregates=TradesAggregator.aggregates(),
-            group_by=['pair'],
+            group_by=['pair_id'],
         )
         return pda.aggregate()
 

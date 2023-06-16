@@ -5,7 +5,7 @@ from django.utils import timezone
 from core.cache import PAIRS_VOLUME_CACHE_KEY
 from core.cache import last_pair_price_cache
 from core.cache import orders_app_cache
-from core.pairs import PAIRS, Pair
+from core.models.inouts.pair import Pair
 
 
 def get_pair_last_price(pair):
@@ -33,7 +33,7 @@ def get_last_prices(ts=None):
     from core.models.orders import ExecutionResult
 
     resultq = {}
-    for pair in PAIRS:
+    for pair in Pair.objects.all():
         q = ExecutionResult.objects.filter(pair=pair, cancelled=False)
         if ts:
             q = q.filter(created__lte=ts)
@@ -65,14 +65,14 @@ def get_pairs_24h_stats() -> dict:
         base_volume=Sum('quantity')
     )
 
-    volumes = {i['pair'].code: i['volume'] for i in qs}
-    base_volumes = {i['pair'].code: i['base_volume'] for i in qs}
+    volumes = {Pair.get(i['pair']).code: i['volume'] for i in qs}
+    base_volumes = {Pair.get(i['pair']).code: i['base_volume'] for i in qs}
 
     last_prices = get_last_prices()
     prices_24h = get_last_prices(ts_24h_ago)
 
     result = []
-    for pair in PAIRS:
+    for pair in Pair.objects.all():
         price = last_prices.get(str(pair), None)
         price24 = prices_24h.get(str(pair), None)
         price_24_value = 0

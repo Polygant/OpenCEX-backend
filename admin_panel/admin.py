@@ -35,7 +35,6 @@ from admin_panel.filters import CurrencyFilter, CurrencyFieldFilter, WalletTrans
     WalletTransactionStatusFilter, OrderTypeFilter
 from admin_panel.filters import FeeRateFilter
 from admin_panel.filters import GateFilter
-from admin_panel.filters import PairsFilter
 from admin_panel.filters import TopupReasonFilter
 from admin_panel.models import AllOrder, EmailAddressVerified
 from admin_panel.models import AllOrderNoBot
@@ -52,6 +51,7 @@ from core.models import AccessLog, Message, WithdrawalFee, FeesAndLimits, Wallet
     Exchange, ExecutionResult, OrderStateChangeHistory, ExternalPricesHistory, TradesAggregatedStats, UserPairDailyStat, \
     WalletHistoryItem, UserRestrictions, PayGateTopup, DisabledCoin, PairSettings
 from core.models.inouts.dif_balance import DifBalance
+from core.models.inouts.pair import Pair
 from cryptocoins.models.stats import DepositsWithdrawalsStats
 from cryptocoins.tasks import calculate_topups_and_withdrawals
 from cryptocoins.utils.stats import generate_stats_fields
@@ -448,7 +448,7 @@ class UserPairDailyStatAdmin(BaseModelAdmin):
         title = 'currency2'
         parameter_name = 'currency2'
 
-    list_filter = ['day', PairsFilter, C2, C1]
+    list_filter = ['day', 'pair', C2, C1]
     search_fields = ['user__email']
     list_display = ['user', 'pair', 'day', 'currency1', 'currency2', 'volume_got1', 'volume_got2', 'fee_amount_paid1', 'fee_amount_paid2', 'volume_spent1', 'volume_spent2']
     readonly_fields = list_display
@@ -865,7 +865,7 @@ class OrderStateChangeHistoryAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin
 @admin.register(ExternalPricesHistory)
 class ExternalPricesHistoryAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
     list_display = ['created', 'pair', 'price']
-    list_filter = [('created', DateRangeFilter), PairsFilter]
+    list_filter = [('created', DateRangeFilter), 'pair']
 
 
 @admin.register(TradesAggregatedStats)
@@ -885,7 +885,7 @@ class TradesAggregatedStatsAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
         'fee_base',
         'fee_quoted',
     ]
-    list_filter = [PairsFilter, ('period', DateRangeFilter), ]
+    list_filter = ['pair', ('period', DateRangeFilter), ]
 
 
 @admin.register(UserPairDailyStat)
@@ -1145,7 +1145,7 @@ class AllOrderAdmin(ReadOnlyMixin, ImmutableMixIn, BaseModelAdmin):
                     'state_colored', 'executed', 'state_changed_at']
     fields = ['id', 'user', 'pair', 'state', 'stop', 'in_stack', ]
     ordering = ('-created',)
-    list_filter = [PairsFilter, 'operation', 'state', 'executed', 'in_stack', OrderTypeFilter, ('created', DateRangeFilter), ]
+    list_filter = ['pair', 'operation', 'state', 'executed', 'in_stack', OrderTypeFilter, ('created', DateRangeFilter), ]
     actions = [
         'cancel_order',
         # 'revert_orders',
@@ -1281,7 +1281,7 @@ class TopupsAdmin(ReadOnlyMixin, BaseModelAdmin):
 class MatchAdmin(ReadOnlyMixin, ImmutableMixIn, BaseModelAdmin):
     list_display = ['created', 'pair', 'user1', 'operation',
                     'user2', 'quantity', 'price', 'total', 'fee', ]
-    list_filter = ['order__operation', FeeRateFilter, PairsFilter, ('created', DateRangeFilter), ]
+    list_filter = ['order__operation', FeeRateFilter, 'pair', ('created', DateRangeFilter), ]
     search_fields = ['order__user__email', 'matched_order__user__email']
     ordering = ('-created',)
     paginator = MyPaginator
@@ -1624,6 +1624,14 @@ class UserWalletAdmin(ImmutableMixIn, ReadOnlyMixin, BaseModelAdmin):
 @admin.register(PairSettings)
 class PairSettingsAdmin(BaseModelAdmin):
     _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'enable_alerts', 'precisions']
+    list_display = _fields
+    fields = _fields
+    no_delete = False
+
+
+@admin.register(Pair)
+class PairAdmin(BaseModelAdmin):
+    _fields = ['base', 'quote']
     list_display = _fields
     fields = _fields
     no_delete = False

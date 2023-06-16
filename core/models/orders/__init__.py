@@ -49,7 +49,7 @@ from core.models.inouts.transaction import REASON_ORDER_EXTRA_CHARGE
 from core.models.inouts.transaction import REASON_ORDER_OPENED
 from core.models.inouts.transaction import TRANSACTION_COMPLETED
 from core.models.inouts.transaction import Transaction
-from core.pairs import PairModelField, Pair
+from core.models.inouts.pair import Pair, PairModelField
 from core.signals.orders import order_changed
 from core.utils.inouts import is_coin_disabled
 from core.utils.limits import OrderLimitChecker
@@ -125,7 +125,7 @@ class Order(UserMixinModel, BaseModel):
     status = models.PositiveSmallIntegerField(default=STATUS_NOT_SET, choices=STATUS_LIST)
     in_transaction = models.ForeignKey(
         Transaction, related_name='order_in_transaction', on_delete=models.CASCADE)
-    pair = PairModelField()
+    pair = PairModelField(Pair, on_delete=models.CASCADE)
 
     executed = models.BooleanField(default=False)
 
@@ -1086,7 +1086,7 @@ class Exchange(UserMixinModel, BaseModel):
 class ExecutionResult(UserMixinModel, BaseModel):
     # TODO: do we really need a user here?
     order = models.ForeignKey(Order, on_delete=models.CASCADE, db_constraint=False)
-    pair = PairModelField()
+    pair = PairModelField(Pair, on_delete=models.CASCADE)
     matched_order = models.ForeignKey(
         Order, null=True, on_delete=models.CASCADE, related_name='+', db_constraint=False)
 

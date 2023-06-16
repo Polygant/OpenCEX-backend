@@ -19,7 +19,7 @@ from core.cache import external_exchanges_pairs_price_cache
 from core.consts.orders import EXTERNAL
 from core.consts.orders import BUY
 from core.models import PairSettings
-from core.pairs import Pair
+from core.models.inouts.pair import Pair
 from lib.helpers import calc_relative_percent_difference
 from lib.helpers import to_decimal
 
@@ -37,8 +37,11 @@ class OtcOrdersUpdater:
     def SUPPORTED_PAIRS(self):
         return PairSettings.get_autoorders_enabled_pairs()
 
-    def __init__(self, orders, pair=Pair.get('BTC-USDT')):
-        pair = Pair.get(pair)
+    def __init__(self, orders, pair=None):
+        if pair is None:
+            pair = Pair.get('BTC-USDT')
+        else:
+            pair = Pair.get(pair)
 
         if pair.code.upper() not in self.SUPPORTED_PAIRS:
             raise NotSupportedPairs(_(f'Only {self.SUPPORTED_PAIRS} supported.'))

@@ -6,8 +6,7 @@ from binance.client import Client as BinanceClient
 from requests.exceptions import ConnectionError
 
 from core.consts.orders import LIMIT
-from core.pairs import Pair
-from core.pairs import PAIRS_LIST
+from core.models.inouts.pair import Pair
 from lib.helpers import pretty_decimal
 from lib.helpers import to_decimal
 
@@ -214,7 +213,7 @@ class ExchangeClientSession(BaseHttpSession):
             return r.json()[cur2]
 
     def get_pairs_prices(self):
-        pairs = list([Pair.get(pt[1]) for pt in PAIRS_LIST])
+        pairs = Pair.objects.all()
         binance_client = BinanceClient(api_key='', api_secret='')
         # bitstamp_client = BitstampClient()
         binance_pairs_data = {bc['symbol']: bc['price'] for bc in binance_client.get_all_tickers()}

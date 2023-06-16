@@ -95,7 +95,7 @@ class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
 
         if command == 'add_stack':
             await self.join_group(stack_notificator.gen_channel(**params))
-            data = stack_notificator.get_data(**params)
+            data = await sync_to_async(stack_notificator.get_data)(**params)
             data = stack_notificator.prepare_data(data, **params)
             await self.send_json(data)
         elif command == 'del_stack':

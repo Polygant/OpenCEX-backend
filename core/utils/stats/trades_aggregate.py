@@ -17,7 +17,7 @@ from lib.batch import BatchProcessor
 from core.consts.orders import BUY
 from core.consts.orders import SELL
 from core.models.orders import ExecutionResult
-from core.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.models.stats import TradesAggregatedStats
 from core.utils.stats.periodic_data_aggregator import PeriodicDataAggregator
 from lib.fields import MoneyField
@@ -160,7 +160,7 @@ class TradesAggregator(BatchProcessor):
             qs=qs,
             period=self.period,
             aggregates=self.aggregates(),
-            group_by=['pair']
+            group_by=['pair_id']
         )
 
         return pda.aggregate(filters=filters)

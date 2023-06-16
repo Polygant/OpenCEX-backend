@@ -29,7 +29,7 @@ from core.models.inouts.transaction import Transaction
 from core.models.orders import ExecutionResult
 from core.models.orders import Order
 from core.models.orders import OrderChangeHistory
-from core.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.serializers.orders import OrderSerializer, ExecutionResultApiSerializer
 from core.stack_processor import StackProcessor
 from core.utils.cleanup_utils import get_orders_to_delete_ids, strip_orders
