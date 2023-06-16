@@ -160,7 +160,7 @@ class TradesAggregator(BatchProcessor):
             qs=qs,
             period=self.period,
             aggregates=self.aggregates(),
-            group_by=['pair']
+            group_by=['pair_id']
         )
 
         return pda.aggregate(filters=filters)
