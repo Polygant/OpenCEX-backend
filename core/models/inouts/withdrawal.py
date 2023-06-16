@@ -36,6 +36,8 @@ STATES = {CREATED: 'Created',
           VERIFYING: 'Verifying'
           }
 
+FAILED_RESULTS = ('OUT_OF_ENERGY', )
+
 
 class PayoutsFreezed(BaseError):
     default_detail = 'Payouts freezed'
