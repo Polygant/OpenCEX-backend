@@ -33,7 +33,7 @@ class BaseEVMCoinHandler:
     TOKEN_CONTRACT_ADDRESSES = None
     BLOCK_GENERATION_TIME = 15
     ACCUMULATION_PERIOD = 60
-    COLLECT_DUST_PERIOD = 1 * 60 * 60  # TODO: return from 1 hour to 24 hours
+    COLLECT_DUST_PERIOD = 24 * 60 * 60  # TODO: return from 1 hour to 24 hours
     IS_ENABLED = True
 
     @classmethod
