@@ -236,7 +236,6 @@ pytest-django==4.4.0
 python-binance==1.0.12
 python-bitcoinrpc==1.0
 python-dateutil==2.8.2
-python-dotenv==1.0.0
 python-Levenshtein==0.12.2
 python-memcached==1.59
 python-ripple-lib==1.0.11
