@@ -23,7 +23,7 @@ from rest_framework.decorators import action as base_action
 from rest_framework.fields import ImageField
 from rest_framework.fields import SkipField
 from rest_framework.metadata import SimpleMetadata
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.relations import PrimaryKeyRelatedField, PKOnlyObject, ManyRelatedField
 from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
@@ -35,7 +35,7 @@ from admin_rest.fields import ForeignSerialField
 from admin_rest.filters import GenericAllFieldsFilter
 from admin_rest.utils import get_user_permissions
 from core.currency import CurrencyModelField
-from core.pairs import PairModelField, PairSerialRestField
+from core.models.inouts.pair import PairModelField, PairSerialRestField
 from lib.fields import JSDatetimeField, RichTextField, RichTextSerialField, ImageSerialField, TextSerialField, \
     JsonSerialField, SVGAndImageField
 

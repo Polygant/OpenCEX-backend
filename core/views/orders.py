@@ -33,8 +33,7 @@ from core.models.orders import Exchange
 from core.models.orders import ExecutionResult
 from core.models.orders import Order
 from core.otcupdater import OtcOrdersUpdater
-from core.pairs import PAIRS
-from core.pairs import Pair
+from core.models.inouts.pair import Pair
 from core.permissions import BotsOnly
 from core.serializers.orders import ExchangeRequestSerializer, StopLimitOrderSerializer, AllOrdersSimpleSerializer
 from core.serializers.orders import ExchangeResultSerialzier
@@ -290,7 +289,7 @@ class PairsListView(APIView):
     )
     def get(self, request, currency=None, format=None):
         res = []
-        for p in PAIRS:
+        for p in Pair.objects.all():
             if p.code in PairSettings.get_disabled_pairs():
                 continue
             pair_data = p.to_dict()

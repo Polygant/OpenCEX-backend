@@ -1,22 +1,16 @@
 from django.db import models
-from rest_framework.fields import Field
 
+from core.consts.pairs import *
 from core.currency import Currency
 from core.currency import CurrencyNotFound
-from core.consts.pairs import *
-
 
 PAIRS = []
-
-
 PAIRS_LIST = [
     (BTC_USDT, 'BTC-USDT'),
     (ETH_USDT, 'ETH-USDT'),
     (TRX_USDT, 'TRX-USDT'),
     (BNB_USDT, 'BNB-USDT'),
 ]
-
-pairs_ids_values = [(p[0], p[1]) for p in PAIRS_LIST]
 
 
 class PairNotFound(CurrencyNotFound):
@@ -75,21 +69,3 @@ class PairModelField(models.Field):
 
     def get_prep_value(self, value):
         return Pair.get(value).id
-
-
-class PairSerialField(Field):
-    def to_representation(self, obj):
-        return obj.code
-
-    def to_internal_value(self, value):
-        return Pair.get(value)
-
-
-class PairSerialRestField(PairSerialField):
-    def to_representation(self, obj):
-        return obj.id
-
-    @property
-    def choices(self):
-        """for OPTIONS action"""
-        return dict(PAIRS_LIST)

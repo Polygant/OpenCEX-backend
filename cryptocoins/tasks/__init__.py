@@ -22,4 +22,5 @@ __all__ = (
     'accumulate_coin_task',
     'accumulate_tokens_task',
     'send_gas_task',
+    'accumulate_dust_task',
 )

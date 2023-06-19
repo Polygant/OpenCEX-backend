@@ -69,6 +69,7 @@ daphne==3.0.2
 dateparser==1.1.7
 decorator==5.0.9
 defusedxml==0.7.1
+Deprecated==1.2.14
 diff-match-patch==20200713
 distlib==0.3.2
 dj-rest-auth==2.2.6
@@ -204,7 +205,7 @@ prettytable==2.2.0
 prometheus-client==0.11.0
 prompt-toolkit==3.0.37
 protobuf==4.22.3
-psycopg2-binary==2.9.1
+psycopg2-binary==2.9.6
 ptyprocess==0.7.0
 pure-eval==0.2.2
 py==1.11.0

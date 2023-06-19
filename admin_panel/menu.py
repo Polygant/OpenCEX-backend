@@ -65,6 +65,7 @@ MENU_ITEMS = [
         _('Fees and Limits'),
         children=[
             items.MenuItem('Fee & Limit', f'/{ADMIN_BASE_URL}/core/feesandlimits/'),
+            items.MenuItem('Pairs', f'/{ADMIN_BASE_URL}/core/pair/'),
             items.MenuItem('Pair Settings', f'/{ADMIN_BASE_URL}/core/pairsettings/'),
             items.MenuItem('Withdrawal Fee', f'/{ADMIN_BASE_URL}/core/withdrawalfee/'),
             items.MenuItem('Withdrawal Level', f'/{ADMIN_BASE_URL}/core/withdrawallimitlevel/'),

@@ -8,8 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.rest_framework.filterset import FilterSet, FILTER_FOR_DBFIELD_DEFAULTS
 
 from core.currency import Currency, CurrencyModelField
-from core.pairs import Pair
-from core.pairs import PairModelField
+from core.models.inouts.pair import Pair, PairModelField
 
 
 class CurrencyModelFilter(CharFilter):

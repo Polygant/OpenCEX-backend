@@ -46,11 +46,12 @@ class ERC20Token(Web3Token):
 
 class EthereumManager(Web3Manager):
     CURRENCY: Currency = ETH_CURRENCY
+    GAS_CURRENCY = settings.ETH_TX_GAS
     TOKEN_CURRENCIES: Dict[Currency, TokenParams] = ERC20_CURRENCIES
     TOKEN_CLASS: Type[Token] = ERC20Token
     GAS_PRICE_CACHE_CLASS: Type[GasPriceCache] = EthGasPriceCache
     CHAIN_ID = settings.ETH_CHAIN_ID
-    MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.002')
+    MIN_BALANCE_TO_ACCUMULATE_DUST = Decimal('0.001')
     COLD_WALLET_ADDRESS = settings.ETH_SAFE_ADDR
 
 

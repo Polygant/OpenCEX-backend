@@ -1,6 +1,6 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.utils import email_address_exists
-from django.contrib.sites.shortcuts import get_current_site
+from django.utils import translation
 from rest_framework.exceptions import ValidationError
 
 
@@ -13,24 +13,16 @@ class AccountAdapter(DefaultAccountAdapter):
             })
         return email
 
-    def send_confirmation_mail(self, request, emailconfirmation, signup):
-        current_site = get_current_site(request)
-
-        activate_url = self.get_email_confirmation_url(
-            request,
-            emailconfirmation)
-        ctx = {
-            "user": emailconfirmation.email_address.user,
-            "activate_url": activate_url,
-            "current_site": current_site,
-            "key": emailconfirmation.key,
-            "lang": getattr(request, 'lang', None) or 'en'
-        }
-        if signup:
-            email_template = 'account/email/email_confirmation_signup'
+    def __get_lang(self):
+        if hasattr(self.request, "data") and "lang" in self.request.data:
+            return self.request.data["lang"]
+        elif hasattr(self.request, "lang"):
+            return self.request.lang
         else:
-            email_template = 'account/email/email_confirmation'
+            return "en"
 
-        self.send_mail(email_template,
-                       emailconfirmation.email_address.email,
-                       ctx)
+    def render_mail(self, template_prefix, email, context, headers=None):
+        lang = self.__get_lang()
+        context.update({"lang": lang})
+        with translation.override(lang):
+            return super().render_mail(template_prefix, email, context, headers)

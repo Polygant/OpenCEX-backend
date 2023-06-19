@@ -19,7 +19,7 @@ from tronpy.providers import HTTPProvider
 from core.consts.currencies import TRC20_CURRENCIES
 from core.currency import Currency
 from core.models import WalletTransactions
-from core.models.inouts.withdrawal import PENDING as WR_PENDING
+from core.models.inouts.withdrawal import PENDING as WR_PENDING, FAILED_RESULTS
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_withdrawal_fee, get_min_accumulation_balance
 from core.utils.withdrawal import get_withdrawal_requests_pending
@@ -141,6 +141,7 @@ class TRC20Token(Token):
 
 class TronManager(BlockchainManager):
     CURRENCY: Currency = TRX_CURRENCY
+    GAS_CURRENCY = settings.TRX_NET_FEE
     TOKEN_CURRENCIES = TRC20_CURRENCIES
     TOKEN_CLASS: Type[Token] = TRC20Token
     BASE_DENOMINATION_DECIMALS: int = 6
@@ -179,33 +180,26 @@ class TronManager(BlockchainManager):
         return txn.broadcast()
 
     def accumulate_dust(self):
-        from core.models import WalletTransactions
-
         to_address = self.get_gas_keeper_wallet().address
 
-        addresses = WalletTransactions.objects.filter(
-            currency__in=self.registered_token_currencies,
-            wallet__blockchain_currency=self.CURRENCY.code,
-            created__gt=timezone.now() - datetime.timedelta(days=1),
+        from_addresses = self.get_currency_and_addresses_for_accumulation_dust()
 
-        ).values_list('wallet__address', flat=True).distinct()
-
-        for address in addresses:
+        for address, currency in from_addresses:
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
                 log.info(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
 
-                withdrawal_amount = amount_sun - settings.TRX_NET_FEE
+                withdrawal_amount = amount_sun - self.GAS_CURRENCY
 
                 # in debug mode values can be very small
                 if withdrawal_amount <= 0:
-                    log.error(f'{self.CURRENCY} withdrawal amount invalid: '
+                    log.error(f'{currency} withdrawal amount invalid: '
                               f'{self.get_amount_from_base_denomination(withdrawal_amount)}')
                     return
 
                 # prepare tx
-                wallet = self.get_user_wallet(self.CURRENCY, address)
+                wallet = self.get_user_wallet(currency, address)
                 res = tron_manager.send_tx(wallet.private_key, to_address, withdrawal_amount)
                 tx_hash = res.get('txid')
 
@@ -213,7 +207,7 @@ class TronManager(BlockchainManager):
                     log.error('Unable to send dust accumulation TX')
                     return
 
-                log.info(f'Accumulation TX {tx_hash.hex()} sent from {address} to {to_address}')
+                log.info(f'Accumulation TX {tx_hash} sent from {address} to {to_address}')
 
 
 tron_manager = TronManager(tron_client)
@@ -567,7 +561,7 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.fail()
             return
 
-        if amount_to_send_sun - TRX_NET_FEE < 0:
+        if amount_to_send_sun - cls.GAS_CURRENCY < 0:
             log.error('Keeper balance too low')
             return
 
@@ -579,13 +573,24 @@ class TronHandler(BaseEVMCoinHandler):
         if not res.get('result') or not txid:
             log.error('Unable to send withdrawal TX')
 
-        withdrawal_request.state = WR_PENDING
-        withdrawal_request.txid = txid
-        withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
-        withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
         receipt = res.wait()
+
+        if (
+                "receipt" in receipt
+                and "result" in receipt["receipt"]
+                and receipt["receipt"]["result"] in FAILED_RESULTS
+        ):
+            withdrawal_request.fail()
+            log.error('Failed - %s', receipt['receipt']['result'])
+        else:
+            withdrawal_request.state = WR_PENDING
+            withdrawal_request.txid = txid
+            withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
+            withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+
         log.info(receipt)
         log.info('TRX withdrawal TX %s sent', txid)
+
 
     @classmethod
     def withdraw_tokens(cls, withdrawal_request_id, password, old_tx_data=None, prev_tx_hash=None):
@@ -608,7 +613,7 @@ class TronHandler(BaseEVMCoinHandler):
         keeper_trx_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
         keeper_token_balance = token.get_base_denomination_balance(keeper.address)
 
-        if keeper_trx_balance < TRX_NET_FEE:
+        if keeper_trx_balance < cls.GAS_CURRENCY:
             log.warning('Keeper not enough TRX, skipping')
             return
 
@@ -624,13 +629,24 @@ class TronHandler(BaseEVMCoinHandler):
         if not res.get('result') or not txid:
             log.error('Unable to send TRX TX')
 
-        withdrawal_request.state = WR_PENDING
-        withdrawal_request.txid = txid
-        withdrawal_request.our_fee_amount = token.get_amount_from_base_denomination(withdrawal_fee_sun)
-        withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
         receipt = res.wait()
+
+        if (
+                "receipt" in receipt
+                and "result" in receipt["receipt"]
+                and receipt["receipt"]["result"] in FAILED_RESULTS
+        ):
+            withdrawal_request.fail()
+            log.error('Failed - %s', receipt['receipt']['result'])
+        else:
+            withdrawal_request.state = WR_PENDING
+            withdrawal_request.txid = txid
+            withdrawal_request.our_fee_amount = token.get_amount_from_base_denomination(withdrawal_fee_sun)
+            withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+
         log.info(receipt)
         log.info('%s withdrawal TX %s sent', currency, txid)
+
 
     @classmethod
     def check_balance(cls, wallet_transaction_id):
@@ -665,7 +681,7 @@ class TronHandler(BaseEVMCoinHandler):
                  address, amount, cls.COIN_MANAGER.accumulation_min_balance)
 
         # minus coins to be burnt
-        withdrawal_amount = amount_sun - TRX_NET_FEE
+        withdrawal_amount = amount_sun - cls.GAS_CURRENCY
 
         # in debug mode values can be very small
         if withdrawal_amount <= 0:

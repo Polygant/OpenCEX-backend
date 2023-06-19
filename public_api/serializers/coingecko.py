@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from lib.helpers import to_decimal
 from core.models.orders import ExecutionResult
-from core.pairs import PairSerialField
+from core.models.inouts.pair import PairSerialField
 
 
 class PairLimitValidationSerializer(serializers.Serializer):

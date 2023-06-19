@@ -15,8 +15,7 @@ from core.consts.orders import ORDER_OPENED
 from core.models.orders import Exchange
 from core.models.orders import Order
 from core.orderbook.book import OrderBook
-from core.pairs import Pair
-from core.pairs import PAIRS as defined_pairs
+from core.models.inouts.pair import Pair
 from core.serializers.orders import ExchangeResultSerialzier
 from core.serializers.orders import OrderSerializer
 
@@ -29,7 +28,7 @@ class StackProcessor:
     _place_order_delay: int = getattr(settings, 'PLACE_ORDER_DELAY', 300)
 
     def __init__(self, loglevel=logging.INFO, pairs=None):
-        self.pairs = [i.code.upper() for i in pairs or defined_pairs]
+        self.pairs = [i.code.upper() for i in pairs or Pair.objects.all()]
         self.books = {}
         self.loglevel = loglevel
         self.setup_books()

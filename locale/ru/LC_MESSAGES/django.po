@@ -2,12 +2,12 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# 
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-09-12 11:26+0300\n"
+"POT-Creation-Date: 2023-05-11 18:54+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,440 +19,517 @@ msgstr ""
 "%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n"
 "%100>=11 && n%100<=14)? 2 : 3);\n"
 
-#: .\admin_rest\admin.py:929
+#: admin_panel/admin.py:1514
 msgid "Gate"
 msgstr ""
 
-#: .\admin_rest\admin.py:943
+#: admin_panel/admin.py:1528
 msgid "State"
 msgstr ""
 
-#: .\admin_rest\admin.py:955
+#: admin_panel/admin.py:1540
 msgid "Status"
 msgstr ""
 
-#: .\core\exceptions\facade.py:8
+#: admin_panel/dashboard.py:36 admin_panel/menu.py:130
+msgid "Applications"
+msgstr ""
+
+#: admin_panel/dashboard.py:44 admin_panel/dashboard.py:62
+msgid "Recent Actions"
+msgstr ""
+
+#: admin_panel/menu.py:23
+msgid "Users Management"
+msgstr ""
+
+#: admin_panel/menu.py:34
+msgid "Users trade info"
+msgstr ""
+
+#: admin_panel/menu.py:48
+msgid "Top-ups and Withdrawals"
+msgstr ""
+
+#: admin_panel/menu.py:56
+msgid "Coins Management"
+msgstr ""
+
+#: admin_panel/menu.py:65
+msgid "Fees and Limits"
+msgstr ""
+
+#: admin_panel/menu.py:75
+msgid "Bots"
+msgstr ""
+
+#: admin_panel/menu.py:81
+msgid "Admin info"
+msgstr ""
+
+#: admin_panel/menu.py:98
+msgid "KYT"
+msgstr ""
+
+#: admin_panel/menu.py:105
+msgid "Other"
+msgstr ""
+
+#: admin_panel/menu.py:128
+msgid "Dashboard"
+msgstr ""
+
+#: admin_panel/menu.py:134
+msgid "Service"
+msgstr ""
+
+#: admin_panel/menu.py:137
+msgid "Withdrawal Approve"
+msgstr ""
+
+#: admin_panel/menu.py:149
+msgid "Administration"
+msgstr ""
+
+#: admin_panel/modules.py:69
+msgid "Links"
+msgstr ""
+
+#: admin_panel/templates/admin/actions.html:17
+msgid "Run the selected action"
+msgstr ""
+
+#: admin_panel/templates/admin/actions.html:17
+msgid "Go"
+msgstr ""
+
+#: admin_panel/templates/admin/actions.html:25
+msgid "Click here to select the objects across all pages"
+msgstr ""
+
+#: admin_panel/templates/admin/actions.html:25
+#, python-format
+msgid "Select all %(total_count)s %(module_name)s"
+msgstr ""
+
+#: admin_panel/templates/admin/actions.html:27
+msgid "Clear selection"
+msgstr ""
+
+#: core/exceptions/facade.py:9
 msgid "Already set."
 msgstr ""
 
-#: .\core\exceptions\facade.py:13
+#: core/exceptions/facade.py:14
 msgid "You must set all fields."
 msgstr ""
 
-#: .\core\exceptions\facade.py:18
+#: core/exceptions/facade.py:19
 msgid "Bad secret"
 msgstr ""
 
-#: .\core\exceptions\facade.py:23
+#: core/exceptions/facade.py:24
 msgid "User block."
 msgstr ""
 
-#: .\core\exceptions\facade.py:28
+#: core/exceptions/facade.py:29
 msgid "Wrong input 2fa code too many times. Please login again."
 msgstr ""
 
-#: .\core\exceptions\facade.py:37
+#: core/exceptions/facade.py:38
 msgid "SMS sending error"
 msgstr ""
 
-#: .\core\exceptions\orders.py:28
+#: core/exceptions/facade.py:48
+msgid "You do not have permission to perform this action."
+msgstr ""
+
+#: core/exceptions/orders.py:28
 #, python-brace-format
 msgid ""
 "Max order size is {limit} {currency}, current size: {actual_cost} {currency}."
 msgstr ""
 
-#: .\core\exceptions\orders.py:46
+#: core/exceptions/orders.py:46
 #, python-brace-format
 msgid "Minimal quantity: {min_quantity} {currency}."
 msgstr ""
 
-#: .\core\exceptions\orders.py:59
+#: core/exceptions/orders.py:59
 msgid "Invalid price."
 msgstr ""
 
-#: .\core\exceptions\orders.py:64
+#: core/exceptions/orders.py:64
+msgid "Invalid stop price."
+msgstr ""
+
+#: core/exceptions/orders.py:69
 msgid "Invalid stop."
 msgstr ""
 
-#: .\core\exceptions\orders.py:68
+#: core/exceptions/orders.py:74
 msgid "Invalid quantity."
 msgstr ""
 
-#: .\core\exceptions\orders.py:73
+#: core/exceptions/orders.py:79
 msgid "Order not found."
 msgstr "Страница не найдена"
 
-#: .\core\exceptions\orders.py:78
+#: core/exceptions/orders.py:84
 msgid "Order executed or cancelled."
 msgstr ""
 
-#: .\core\exceptions\orders.py:85
+#: core/exceptions/orders.py:91
 msgid "Order closed."
 msgstr ""
 
-#: .\core\exceptions\orders.py:88
+#: core/exceptions/orders.py:94
 msgid "Order cancelled."
 msgstr ""
 
-#: .\core\exceptions\orders.py:94
+#: core/exceptions/orders.py:100
 msgid "Order type unknown."
 msgstr ""
 
-#: .\core\exceptions\orders.py:99
+#: core/exceptions/orders.py:105
 msgid "Price deviation too much"
 msgstr ""
 
-#: .\core\exceptions\orders.py:106
+#: core/exceptions/orders.py:112
 #, python-brace-format
 msgid "Max deviation for pair {pair} is {deviation:.2f}%"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:52
+#: core/models/facade/__init__.py:53
 msgid "Advance"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:53
+#: core/models/facade/__init__.py:54
 msgid "Simple"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:299
+#: core/models/facade/__init__.py:308
 msgid "Green"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:300
+#: core/models/facade/__init__.py:309
 msgid "Red"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:308
+#: core/models/facade/__init__.py:317
 msgid "Final"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:309
+#: core/models/facade/__init__.py:318
 msgid "Retry"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:310 .\core\models\orders\__init__.py:104
+#: core/models/facade/__init__.py:319 core/models/orders/__init__.py:104
 msgid "External"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:392
+#: core/models/facade/__init__.py:401
 msgid "Private company employee"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:393
+#: core/models/facade/__init__.py:402
 msgid "State employee"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:394
+#: core/models/facade/__init__.py:403
 msgid "Business owner"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:395
+#: core/models/facade/__init__.py:404
 msgid "Professional"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:396
+#: core/models/facade/__init__.py:405
 msgid "Agriculturist"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:397
+#: core/models/facade/__init__.py:406
 msgid "Retired"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:398
+#: core/models/facade/__init__.py:407
 msgid "Housewife"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:399
+#: core/models/facade/__init__.py:408
 msgid "Student"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:400
+#: core/models/facade/__init__.py:409
 msgid "Trader"
 msgstr "Торговать"
 
-#: .\core\models\facade\__init__.py:412
+#: core/models/facade/__init__.py:421
 msgid "Employment Income"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:413
+#: core/models/facade/__init__.py:422
 msgid "Savings / deposits"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:414
+#: core/models/facade/__init__.py:423
 msgid "Property Sale"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:415
+#: core/models/facade/__init__.py:424
 msgid "Sale of shares or other investment"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:416
+#: core/models/facade/__init__.py:425
 msgid "Loan"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:417
+#: core/models/facade/__init__.py:426
 msgid "Company Sale"
 msgstr ""
 
-#: .\core\models\facade\__init__.py:418
+#: core/models/facade/__init__.py:427
 msgid "Company Profits / Dividends"
 msgstr ""
 
-#: .\core\models\inouts\sci.py:39 .\core\models\inouts\wallet.py:33
-#: .\core\models\orders\__init__.py:113
+#: core/models/inouts/sci.py:39 core/models/inouts/wallet.py:32
+#: core/models/orders/__init__.py:113
 msgid "Not set"
 msgstr ""
 
-#: .\core\models\inouts\sci.py:40 .\core\models\inouts\wallet.py:34
-#: .\core\models\orders\__init__.py:114
-#: .\core\models\wallet_history\__init__.py:30
+#: core/models/inouts/sci.py:40 core/models/inouts/wallet.py:33
+#: core/models/orders/__init__.py:114 core/models/wallet_history/__init__.py:30
 msgid "Reverted"
 msgstr ""
 
-#: .\core\models\inouts\wallet.py:45
+#: core/models/inouts/wallet.py:43
 msgid "Not checked"
 msgstr ""
 
-#: .\core\models\inouts\wallet.py:46
+#: core/models/inouts/wallet.py:44
 msgid "Accumulated"
 msgstr ""
 
-#: .\core\models\inouts\wallet.py:47
+#: core/models/inouts/wallet.py:45
 msgid "Not accumulated"
 msgstr ""
 
-#: .\core\models\inouts\wallet.py:48
+#: core/models/inouts/wallet.py:46
 msgid "Wrong amount"
 msgstr ""
 
-#: .\core\models\inouts\wallet.py:49
+#: core/models/inouts/wallet.py:47
 msgid "Wrong accumulation"
 msgstr ""
 
-#: .\core\models\inouts\wallet.py:50
-msgid "Bad deposit"
-msgstr ""
-
-#: .\core\models\inouts\withdrawal.py:55
+#: core/models/inouts/withdrawal.py:55
 msgid "Created"
 msgstr ""
 
-#: .\core\models\inouts\withdrawal.py:56
-#: .\core\models\wallet_history\__init__.py:24
+#: core/models/inouts/withdrawal.py:56
+#: core/models/wallet_history/__init__.py:24
 msgid "Pending"
 msgstr ""
 
-#: .\core\models\inouts\withdrawal.py:57
+#: core/models/inouts/withdrawal.py:57
 msgid "Completed"
 msgstr ""
 
-#: .\core\models\inouts\withdrawal.py:58
-#: .\core\models\wallet_history\__init__.py:28
+#: core/models/inouts/withdrawal.py:58
+#: core/models/wallet_history/__init__.py:28
 msgid "Failed"
 msgstr ""
 
-#: .\core\models\inouts\withdrawal.py:59
+#: core/models/inouts/withdrawal.py:59
 msgid "Cancelled"
 msgstr ""
 
-#: .\core\models\inouts\withdrawal.py:60
-#: .\core\models\wallet_history\__init__.py:31
+#: core/models/inouts/withdrawal.py:60
+#: core/models/wallet_history/__init__.py:31
 msgid "Verifying"
 msgstr ""
 
-#: .\core\models\orders\__init__.py:77
+#: core/models/orders/__init__.py:77
 msgid "Buy"
 msgstr "Покупка"
 
-#: .\core\models\orders\__init__.py:78
+#: core/models/orders/__init__.py:78
 msgid "Sell"
 msgstr "Продажа"
 
-#: .\core\models\orders\__init__.py:102
+#: core/models/orders/__init__.py:102
 msgid "Limit"
 msgstr ""
 
-#: .\core\models\orders\__init__.py:103
+#: core/models/orders/__init__.py:103
 msgid "Market"
 msgstr ""
 
-#: .\core\models\orders\__init__.py:105
+#: core/models/orders/__init__.py:105
 msgid "Exchange"
 msgstr "Биржа"
 
-#: .\core\models\orders\__init__.py:106
+#: core/models/orders/__init__.py:106
 msgid "Stop limit"
 msgstr ""
 
-#: .\core\models\orders\__init__.py:572
+#: core/models/orders/__init__.py:572
 #, python-brace-format
 msgid "`Minimal quantity: {min_quantity} {currency.code}."
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:25
+#: core/models/wallet_history/__init__.py:25
 msgid "To be sent"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:26
+#: core/models/wallet_history/__init__.py:26
 msgid "Done"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:27
+#: core/models/wallet_history/__init__.py:27
 msgid "Canceled"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:29
+#: core/models/wallet_history/__init__.py:29
 msgid "Unknown"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:48
+#: core/models/wallet_history/__init__.py:48
 msgid "Deposit"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:49
+#: core/models/wallet_history/__init__.py:49
 msgid "Withdrawal"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:50
+#: core/models/wallet_history/__init__.py:50
 msgid "Merchant"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:51
+#: core/models/wallet_history/__init__.py:51
 msgid "Revert"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:52
+#: core/models/wallet_history/__init__.py:52
 msgid "Revert Return"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:53
+#: core/models/wallet_history/__init__.py:53
 msgid "Revert Charge"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:54
+#: core/models/wallet_history/__init__.py:54
 msgid "Stake"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:55
+#: core/models/wallet_history/__init__.py:55
 msgid "Unstake"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:56
+#: core/models/wallet_history/__init__.py:56
 msgid "Lock"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:57
+#: core/models/wallet_history/__init__.py:57
 msgid "Unlock"
 msgstr ""
 
-#: .\core\models\wallet_history\__init__.py:58
+#: core/models/wallet_history/__init__.py:58
 #, fuzzy
 #| msgid "Risk warning"
 msgid "Stake Earnings"
 msgstr "Уведомления о рисках"
 
-#: .\core\otcupdater.py:44
+#: core/otcupdater.py:44
 #, python-brace-format
 msgid "Only {self.SUPPORTED_PAIRS} supported."
 msgstr ""
 
-#: .\core\otcupdater.py:55
+#: core/otcupdater.py:55
 #, python-brace-format
 msgid "Only {cls.SUPPORTED_PAIRS} supported."
 msgstr ""
 
-#: .\core\serializers\auth.py:235
+#: core/serializers/auth.py:244
 msgid "Unable to log in with provided credentials."
 msgstr ""
 
-#: .\core\serializers\auth.py:244
+#: core/serializers/auth.py:253
 msgid "User account is disabled."
 msgstr ""
 
-#: .\core\serializers\auth.py:328
+#: core/serializers/auth.py:336
 msgid "similar username was recently used"
 msgstr ""
 
-#: .\core\serializers\auth.py:356
+#: core/serializers/auth.py:364
 msgid "Country required!"
 msgstr ""
 
-#: .\core\serializers\auth.py:363
+#: core/serializers/auth.py:370
 #, fuzzy
 #| msgid "Customer support"
 msgid "Country not supported!"
 msgstr "Поддержка"
 
-#: .\core\serializers\auth.py:370
+#: core/serializers/auth.py:376
 msgid "Incorrect country!"
 msgstr ""
 
-#: .\core\tasks\facade.py:110
+#: core/tasks/facade.py:110
 msgid "SoF verification requested"
 msgstr ""
 
-#: .\core\tasks\facade.py:111
+#: core/tasks/facade.py:111
 #, python-brace-format
 msgid "User {username} requested SoF verification."
 msgstr ""
 
-#: .\core\tasks\facade.py:131
+#: core/tasks/facade.py:131
 msgid "Source of funds verification request"
 msgstr ""
 
-#: .\core\tasks\facade.py:132
+#: core/tasks/facade.py:132
 msgid "Your Source of funds request is being processed."
 msgstr ""
 
-#: .\core\tasks\facade.py:149
+#: core/tasks/facade.py:149
 msgid "Source of funds status"
 msgstr ""
 
-#: .\core\tasks\facade.py:150
+#: core/tasks/facade.py:150
 msgid "Your Source of funds status has been updated."
 msgstr ""
 
-#: .\core\tasks\inouts.py:144
+#: core/tasks/inouts.py:144
 msgid "Withdrawal request confirmation"
 msgstr ""
 
-#: .\core\templates\404.html:13
+#: core/templates/404.html:13
 msgid "Error 404"
 msgstr "Ошибка 404"
 
-#: .\core\templates\404.html:14
+#: core/templates/404.html:14
 msgid "Page not found"
 msgstr "Страница не найдена"
 
-#: .\core\templates\404.html:16
+#: core/templates/404.html:16
 msgid "To main page"
 msgstr "На главную"
 
-#: .\core\templates\503.html:13
+#: core/templates/503.html:13
 msgid "Exchange is under the maintance now, we will be back soon"
 msgstr ""
 
-#: .\core\templates\account\email\email_confirmation_message.ru.txt:3
-#, python-format
-msgid ""
-"\n"
-"\n"
-"Здравствуйте, %(user_display)s !\n"
-"\n"
-"Ваш адрес электронной почты был указан при регистрации аккаунта на "
-"%(site_name)s.\n"
-"Для того, чтобы подтвердить аккаунт, пожалуйста, перейдите по ссылке:\n"
-"\n"
-"https://%(site_domain)s/account/email-verify/%(key)s\n"
-"\n"
-"Если Вы получили это письмо ошибочно, просто проигнорируйте его.\n"
-"\n"
-"С уважением, %(site_name)s\n"
-"\n"
-msgstr ""
+#: core/templates/account/email/base_message.txt:3
+msgid "Hello, "
+msgstr "Здравствуйте, "
 
-#: .\core\templates\account\email\email_confirmation_message.txt:6
+#: core/templates/account/email/base_message.txt:7
+msgid "Yours faithfully, "
+msgstr "C уважением, "
+
+#: core/templates/account/email/email_confirmation_message.txt:3
 #, python-format
 msgid ""
 "\n"
@@ -470,12 +547,59 @@ msgid ""
 "If you received this email by mistake, just ignore it.\n"
 "\n"
 "Yours faithfully, %(site_name)s\n"
-"\n"
-"\n"
-"\t"
 msgstr ""
+"\n"
+"\n"
+"\n"
+"Здравствуйте, %(user_display)s!\n"
+"\n"
+"Ваш адрес электронной почты был указан при регистрации аккаунта на "
+"%(site_name)s\n"
+"Для того, чтобы подтвердить аккаунт, пожалуйста, перейдите по ссылке:\n"
+"\n"
+"\n"
+"https://%(site_domain)s/account/email-verify/%(key)s\n"
+"\n"
+"Если Вы получили это письмо ошибочно, просто проигнорируйте его.\n"
+"\n"
+"С уважением, %(site_name)s\n"
+"\n"
+"\n"
 
-#: .\core\templates\base_layout.html:10 .\core\templates\base_layout.html:74
+#: core/templates/account/email/email_confirmation_subject.txt:4
+msgid "Account activation"
+msgstr "Активация аккаунта"
+
+#: core/templates/account/email/password_reset_key_message.txt:5
+#, python-format
+msgid ""
+"\n"
+"    You sent a request for password recovery from the account on "
+"%(site_name)s.\n"
+"    In order to change the password, please click on the link below:\n"
+"\n"
+"    %(password_reset_url)s\n"
+"\n"
+"    Ignore this email if you did not send a password recovery request or it "
+"was accidentally sent to you.\n"
+"    "
+msgstr ""
+"\n"
+"    Вы отправили запрос на восстановление пароля от аккаунта на "
+"%(site_name)s.\n"
+"    Для того, чтобы изменить пароль, пожалуйста, перейдите по ссылке:\n"
+"\n"
+"    %(password_reset_url)s\n"
+"\n"
+"    Проигнорируйте данное письмо, если Вы не отправляли запрос на "
+"восстановление пароля или оно попало к Вам случайно.\n"
+"    "
+
+#: core/templates/account/email/password_reset_key_subject.txt:3
+msgid "Password recovery"
+msgstr "Восстановление пароля"
+
+#: core/templates/base_layout.html:10 core/templates/base_layout.html:74
 msgid ""
 "Crypto Exchange - store, trade and accept Cryptocurrency. Buy and sell "
 "Bitcoin (BTC), Ethereum (ETH)."
@@ -483,7 +607,7 @@ msgstr ""
 "Exchange - криптовалютная биржа. Купить и продать Биткоин (BTC), Эфириум "
 "(ETH), Tether (USDT)."
 
-#: .\core\templates\base_layout.html:71 .\core\templates\base_layout.html:75
+#: core/templates/base_layout.html:71 core/templates/base_layout.html:75
 msgid ""
 "Crypto Exchange - secure platform that makes it easy to buy, sell, accept "
 "and store cryptocurrency like Bitcoin, Ethereum, and more. Exchange for "
@@ -495,7 +619,7 @@ msgstr ""
 "альткоины. На нашей криптовалютной бирже можно купить и продать BTC, ETH, "
 "XRP, BCH, LTC, EOS, USDT."
 
-#: .\core\templates\mailing\email\message.ru.txt:5
+#: core/templates/mailing/email/message.ru.txt:5
 #, python-format
 msgid ""
 "\n"
@@ -503,25 +627,60 @@ msgid ""
 "\n"
 msgstr ""
 
-#: .\core\templates\mailing\email\message.txt:10
+#: core/templates/mailing/email/message.txt:10
 #, python-format
 msgid ""
 "\n"
 "Yours faithfully, %(site_name)s\n"
 msgstr ""
 
-#: .\core\utils\auth.py:36
-msgid "Signature has expired."
-msgstr ""
-
-#: .\core\utils\auth.py:39
-msgid "Error decoding signature."
-msgstr ""
-
-#: .\cryptocoins\exceptions.py:6
+#: cryptocoins/exceptions.py:6
 msgid "Something went wrong."
 msgstr "Что-то пошло не так."
 
-#: .\seo\validators.py:22
+#: lib/admin.py:145
+msgid "Database error"
+msgstr ""
+
+#: lib/admin.py:167
+msgid ""
+"Items must be selected in order to perform actions on them. No items have "
+"been changed."
+msgstr ""
+
+#: lib/admin.py:214
+#, python-format
+msgid "%(count)s %(name)s was changed successfully."
+msgid_plural "%(count)s %(name)s were changed successfully."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: lib/admin.py:261
+#, python-format
+msgid "%(total_count)s selected"
+msgid_plural "All %(total_count)s selected"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: lib/admin.py:269
+#, python-format
+msgid "0 of %(cnt)s selected"
+msgstr ""
+
+#: lib/exceptions.py:44
+msgid "Unknown error."
+msgstr ""
+
+#: lib/fields.py:79
+msgid ""
+"Upload a valid image. The file you uploaded was either not an image or a "
+"corrupted image."
+msgstr ""
+
+#: seo/validators.py:22
 msgid "This field can only have the format [png, jpg, jpeg]"
 msgstr ""
