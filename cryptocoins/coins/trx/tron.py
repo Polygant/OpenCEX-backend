@@ -194,12 +194,12 @@ class TronManager(BlockchainManager):
 
                 # in debug mode values can be very small
                 if withdrawal_amount <= 0:
-                    log.error(f'{self.CURRENCY} withdrawal amount invalid: '
+                    log.error(f'{currency} withdrawal amount invalid: '
                               f'{self.get_amount_from_base_denomination(withdrawal_amount)}')
                     return
 
                 # prepare tx
-                wallet = self.get_user_wallet(self.CURRENCY, address)
+                wallet = self.get_user_wallet(currency, address)
                 res = tron_manager.send_tx(wallet.private_key, to_address, withdrawal_amount)
                 tx_hash = res.get('txid')
 
@@ -207,7 +207,7 @@ class TronManager(BlockchainManager):
                     log.error('Unable to send dust accumulation TX')
                     return
 
-                log.info(f'Accumulation TX {tx_hash.hex()} sent from {address} to {to_address}')
+                log.info(f'Accumulation TX {tx_hash} sent from {address} to {to_address}')
 
 
 tron_manager = TronManager(tron_client)
