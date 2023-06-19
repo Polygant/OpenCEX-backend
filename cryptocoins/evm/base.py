@@ -26,7 +26,6 @@ accumulation_manager = AccumulationManager()
 class BaseEVMCoinHandler:
     CURRENCY = None
     COIN_MANAGER = None
-    GAS_CURRENCY = None
     TRANSACTION_CLASS = None
     DEFAULT_BLOCK_ID_DELTA = 1000
     SAFE_ADDR = None

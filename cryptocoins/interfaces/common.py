@@ -193,6 +193,7 @@ class GasPriceCache:
 
 class BlockchainManager:
     CURRENCY: Currency = None
+    GAS_CURRENCY = None
     TOKEN_CURRENCIES: Dict[Currency, TokenParams] = None
     TOKEN_CLASS: Type[Token] = None
     BASE_DENOMINATION_DECIMALS: int = None
