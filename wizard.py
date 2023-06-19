@@ -2,6 +2,8 @@ import json
 import os
 from datetime import datetime
 
+import dotenv
+
 from core.enums.profile import UserTypeEnum
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'exchange.settings')
@@ -51,6 +53,7 @@ BACKUP_PATH = os.path.join(settings.BASE_DIR, 'backup')
 
 
 def main():
+    save_trx_settings_in_env_file()
 
     IS_TRON = True if env('COMMON_TASKS_TRON', default=True) else False
     IS_BSC = True if env('COMMON_TASKS_BNB', default=True) else False
@@ -707,6 +710,16 @@ def keeper_create(currency, is_gas_keeper=False):
     keeper = create_keeper(new_keeper_wallet, KeeperModel)
     return password, keeper
 
+
+def save_trx_settings_in_env_file():
+    dotenv_file = dotenv.find_dotenv()
+    dotenv.load_dotenv(dotenv_file)
+
+    list_of_keys = ['TRX_NET_FEE', 'TRC20_FEE_LIMIT', 'TRX_BLOCK_GENERATION_TIME', 'TRX_TRC20_ACCUMULATION_PERIOD']
+
+    for key in list_of_keys:
+        if key not in os.environ:
+            dotenv.set_key(dotenv_file, key, str(getattr(settings, key)), quote_mode="never")
 
 
 if __name__ == '__main__':
