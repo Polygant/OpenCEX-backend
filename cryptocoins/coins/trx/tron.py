@@ -141,6 +141,7 @@ class TRC20Token(Token):
 
 class TronManager(BlockchainManager):
     CURRENCY: Currency = TRX_CURRENCY
+    GAS_CURRENCY = settings.TRX_NET_FEE
     TOKEN_CURRENCIES = TRC20_CURRENCIES
     TOKEN_CLASS: Type[Token] = TRC20Token
     BASE_DENOMINATION_DECIMALS: int = 6
@@ -183,7 +184,7 @@ class TronManager(BlockchainManager):
 
         from_addresses = self.get_currency_and_addresses_for_accumulation_dust()
 
-        for currency, address in from_addresses:
+        for address, currency in from_addresses:
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
@@ -193,12 +194,12 @@ class TronManager(BlockchainManager):
 
                 # in debug mode values can be very small
                 if withdrawal_amount <= 0:
-                    log.error(f'{self.CURRENCY} withdrawal amount invalid: '
+                    log.error(f'{currency} withdrawal amount invalid: '
                               f'{self.get_amount_from_base_denomination(withdrawal_amount)}')
                     return
 
                 # prepare tx
-                wallet = self.get_user_wallet(self.CURRENCY, address)
+                wallet = self.get_user_wallet(currency, address)
                 res = tron_manager.send_tx(wallet.private_key, to_address, withdrawal_amount)
                 tx_hash = res.get('txid')
 
@@ -206,7 +207,7 @@ class TronManager(BlockchainManager):
                     log.error('Unable to send dust accumulation TX')
                     return
 
-                log.info(f'Accumulation TX {tx_hash.hex()} sent from {address} to {to_address}')
+                log.info(f'Accumulation TX {tx_hash} sent from {address} to {to_address}')
 
 
 tron_manager = TronManager(tron_client)
@@ -215,7 +216,6 @@ tron_manager = TronManager(tron_client)
 @register_evm_handler
 class TronHandler(BaseEVMCoinHandler):
     CURRENCY = TRX_CURRENCY
-    GAS_CURRENCY = settings.TRX_NET_FEE
     COIN_MANAGER = tron_manager
     TOKEN_CURRENCIES = tron_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = tron_manager.registered_token_addresses

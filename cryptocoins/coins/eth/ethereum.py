@@ -46,6 +46,7 @@ class ERC20Token(Web3Token):
 
 class EthereumManager(Web3Manager):
     CURRENCY: Currency = ETH_CURRENCY
+    GAS_CURRENCY = settings.ETH_TX_GAS
     TOKEN_CURRENCIES: Dict[Currency, TokenParams] = ERC20_CURRENCIES
     TOKEN_CLASS: Type[Token] = ERC20Token
     GAS_PRICE_CACHE_CLASS: Type[GasPriceCache] = EthGasPriceCache
@@ -60,7 +61,6 @@ ethereum_manager = EthereumManager(client=w3)
 @register_evm_handler
 class EthereumHandler(Web3CommonHandler):
     CURRENCY = ETH_CURRENCY
-    GAS_CURRENCY = settings.ETH_TX_GAS
     COIN_MANAGER = ethereum_manager
     TOKEN_CURRENCIES = ethereum_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = ethereum_manager.registered_token_addresses

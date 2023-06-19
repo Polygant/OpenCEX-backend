@@ -26,7 +26,6 @@ accumulation_manager = AccumulationManager()
 class BaseEVMCoinHandler:
     CURRENCY = None
     COIN_MANAGER = None
-    GAS_CURRENCY = None
     TRANSACTION_CLASS = None
     DEFAULT_BLOCK_ID_DELTA = 1000
     SAFE_ADDR = None
@@ -34,7 +33,7 @@ class BaseEVMCoinHandler:
     TOKEN_CONTRACT_ADDRESSES = None
     BLOCK_GENERATION_TIME = 15
     ACCUMULATION_PERIOD = 60
-    COLLECT_DUST_PERIOD = 1 * 60 * 60  # TODO: return from 1 hour to 24 hours
+    COLLECT_DUST_PERIOD = 24 * 60 * 60
     IS_ENABLED = True
 
     @classmethod
