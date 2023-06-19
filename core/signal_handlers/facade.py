@@ -14,7 +14,10 @@ from core.models.inouts.withdrawal import WithdrawalUserLimit
 @receiver(post_save, sender=User)
 def create_or_save_user(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance)
+        Profile.objects.create(
+            user=instance,
+            user_type=Profile.USER_TYPE_STAFF if instance.is_staff else Profile.USER_TYPE_DEFAULT
+        )
         SourceOfFunds.objects.create(user=instance)
         UserRestrictions.objects.create(user=instance)  # TODO get default data from settings
         WithdrawalUserLimit.get_limits(user=instance)
@@ -42,4 +45,9 @@ def notify_sof_updated(sender, instance, *args, **kwargs):
             user=instance.user,
             withdrawals_sms_confirmation=instance.withdrawals_sms_confirmation,
             phone=instance.phone
+        )
+
+    if old_instance.user_type != instance.user_type:
+        User.objects.filter(id=instance.user.id).update(
+            is_staff=bool(instance.user_type == Profile.USER_TYPE_STAFF)
         )
