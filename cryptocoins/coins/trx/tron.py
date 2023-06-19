@@ -194,7 +194,7 @@ class TronManager(BlockchainManager):
 
                 # in debug mode values can be very small
                 if withdrawal_amount <= 0:
-                    log.error(f'{self.CURRENCY} withdrawal amount invalid: '
+                    log.error(f'{currency} withdrawal amount invalid: '
                               f'{self.get_amount_from_base_denomination(withdrawal_amount)}')
                     return
 
