@@ -42,7 +42,7 @@ class UserStatsBatchProcessor(BatchProcessor):
         for k, v in obj.items():
             if v is None:
                 obj[k] = 0
-        item = UserPairDailyStat(currency1=obj['pair'].base, currency2=obj['pair'].quote, **obj)
+        item = UserPairDailyStat(currency1=obj['pair_id'].base, currency2=obj['pair_id'].quote, **obj)
 
         if item.is_empty():
             return None
@@ -63,7 +63,7 @@ class UserStatsBatchProcessor(BatchProcessor):
         qs = qs.values(
             'user_id',
             'day',
-            'pair'
+            'pair_id'
         )
         qs = qs.annotate(
             volume_got1=Sum(Case(When(order__operation=BUY, then=F('quantity')))),
@@ -77,7 +77,7 @@ class UserStatsBatchProcessor(BatchProcessor):
         qs = qs.values(
             'user_id',
             'day',
-            'pair',
+            'pair_id',
             'volume_got1',
             'volume_got2',
             'fee_amount_paid1',
