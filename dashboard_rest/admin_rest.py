@@ -223,7 +223,7 @@ class TradeVolumeAdmin(ReadOnlyMixin, NonPaginatedListMixin, DefaultApiAdmin):
         volumes = []
         for pair in Pair.objects.all():
             volumes.append({
-                'pair': pair,
+                'pair': pair.code,
                 'base_volume': round(volumes_dict.get(pair, {}).get('base_volume', 0), 8),
                 'quote_volume': round(volumes_dict.get(pair, {}).get('quote_volume', 0), 8),
             })
@@ -232,7 +232,7 @@ class TradeVolumeAdmin(ReadOnlyMixin, NonPaginatedListMixin, DefaultApiAdmin):
         prices_in_usd = get_prices_in_usd()
 
         for i in volumes:
-            pair = i['pair']
+            pair = Pair.get(i['pair'])
             if pair.quote.code == 'USDT':
                 vol = i['quote_volume']
             elif pair.base.code == 'USDT':
