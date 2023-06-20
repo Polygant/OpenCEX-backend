@@ -42,7 +42,7 @@ class UserStatsBatchProcessor(BatchProcessor):
         for k, v in obj.items():
             if v is None:
                 obj[k] = 0
-        item = UserPairDailyStat(currency1=obj['pair_id'].base, currency2=obj['pair_id'].quote, **obj)
+        item = UserPairDailyStat(currency1=Pair.get(obj['pair_id']).base, currency2=Pair.get(obj['pair_id']).quote, **obj)
 
         if item.is_empty():
             return None
