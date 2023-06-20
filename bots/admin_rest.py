@@ -22,29 +22,8 @@ class BotConfigApiAdmin(DefaultApiAdmin):
               'use_custom_price', 'custom_price',
               'low_orders_match', 'low_orders_max_match_size', 'low_orders_spread_size',
               'low_orders_min_order_size', 'low_orders_match_greater_order',
-              'binance_apikey', 'binance_secret',
               'low_spread_alert',)
     list_display = ('name', 'bot_info')
-    readonly_fields = ['binance_apikey', 'binance_secret']
 
     def bot_info(self, obj):
         return f'{obj.user.email}: {obj.pair.code} {obj.min_period}-{obj.max_period}s; Enabled: {obj.enabled}'
-
-    def binance_apikey(self, obj):
-        try:
-            if obj.binance_api_key:
-                binance_api_key = AESCoderDecoder(
-                    settings.CRYPTO_KEY).decrypt(
-                    obj.binance_api_key)
-                return binance_api_key[:5] + '...' + binance_api_key[-5:]
-        except Exception as e:
-            log.exception(e)
-
-    def binance_secret(self, obj):
-        try:
-            if obj.binance_secret_key:
-                binance_secret_key = AESCoderDecoder(
-                    settings.CRYPTO_KEY).decrypt(obj.binance_secret_key)
-                return binance_secret_key[:5] + '...' + binance_secret_key[-5:]
-        except Exception as e:
-            log.exception(e)
