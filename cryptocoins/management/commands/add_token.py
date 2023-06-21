@@ -145,6 +145,7 @@ class Command(BaseCommand):
 
         # STEP 2. Pair data
         print(STEP2_HEADER)
+
         pair_to_usdt = f'{token_symbol}-USDT'
         is_price_external = binance_data_source.is_pair_exists(pair_to_usdt) or kucoin_data_source.is_pair_exists(pair_to_usdt)
         yes_no = False
@@ -160,7 +161,8 @@ class Command(BaseCommand):
         write_tokens_file(json.dumps(all_tokens_data, indent=2))
         register_tokens_and_pairs()
 
-        pair_settings = {'pair': pair_to_usdt, 'precisions': precisions}
+        pair = Pair.get(pair_to_usdt)
+        pair_settings = {'pair': pair, 'precisions': precisions}
         if is_price_external:
             pair_settings['price_source'] = PairSettings.PRICE_SOURCE_EXTERNAL
         else:
@@ -270,8 +272,11 @@ def revert():
         if is_entry_exists(InoutsStats, {'currency': diff.token}):
             InoutsStats.objects.filter(currency=diff.token).delete()
 
-        if is_entry_exists(PairSettings, {'pair': f'{diff.token}-USDT'}):
-            PairSettings.objects.filter(pair=f'{diff.token}-USDT').delete()
+        if is_entry_exists(PairSettings, {'pair': Pair.get(f'{diff.token}-USDT')}):
+            PairSettings.objects.filter(pair=Pair.get(f'{diff.token}-USDT')).delete()
+
+        if is_entry_exists(Pair, {'base': diff.token, 'quote': 'USDT'}):
+            Pair.objects.filter(base=diff.token, quote='USDT').delete()
 
     elif diff.token and diff.blockchain:
         print('[*] WithdrawalFee entry will be deleted')
@@ -370,8 +375,6 @@ def is_entry_exists(model, fields):
     try:
         res = model.objects.filter(**fields).exists()
     except CurrencyNotFound:
-        return False
-    except PairNotFound:
         return False
     return res
 
