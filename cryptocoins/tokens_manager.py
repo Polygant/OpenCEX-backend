@@ -110,6 +110,7 @@ def register_tokens_and_pairs():
             is_new_version = False
 
         if is_new_version:
+            # add pairs
             for pair_data in token_data['pairs']:
                 _id, pair_name = pair_data[0], pair_data[1]
                 base, quote = pair_name.split('-')
