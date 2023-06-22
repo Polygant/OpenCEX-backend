@@ -1,4 +1,5 @@
 import copy
+import logging
 from decimal import Decimal
 from typing import Dict
 
@@ -10,6 +11,7 @@ from cryptocoins.interfaces.datasources import BaseDataSource
 from lib.helpers import calc_relative_percent_difference
 from lib.notifications import send_telegram_message
 
+log = logging.getLogger(__name__)
 
 class DataSourcesManager:
     def __init__(self, main_source: BaseDataSource, reserve_source: BaseDataSource):
@@ -43,77 +45,83 @@ class DataSourcesManager:
             return {}
 
     def update_prices(self):
-        self._get_main_source_data()
-        self._get_reserve_source_data()
+        try:
+            from django.conf import settings
+            log.error(f"TELEGRAM_BOT_TOKEN: {settings.TELEGRAM_BOT_TOKEN}")
+            self._get_main_source_data()
+            self._get_reserve_source_data()
 
-        main_source = self.main_source
-        reserve_source = self.reserve_source
+            main_source = self.main_source
+            reserve_source = self.reserve_source
 
-        new_data: Dict[Pair, Decimal] = copy.copy(self._data)
+            new_data: Dict[Pair, Decimal] = copy.copy(self._data)
 
-        # alerts
-        if not main_source.data:
-            if not self.reserve_source.data:
-                send_telegram_message(f'{main_source.NAME} and {reserve_source.NAME} not available!')
-                self._update_cached_prices()
-                return new_data
+            # alerts
+            if not main_source.data:
+                if not self.reserve_source.data:
+                    send_telegram_message(f'{main_source.NAME} and {reserve_source.NAME} not available!')
+                    self._update_cached_prices()
+                    return new_data
 
-            # switch to reserve datasource
-            main_source = reserve_source
-            reserve_source = None
+                # switch to reserve datasource
+                main_source = reserve_source
+                reserve_source = None
 
-        # check deviation
-        for pair, old_price in self._data.items():
-            #  skip pairs with custom price
-            custom_price = PairSettings.get_custom_price(pair)
-            if custom_price:
-                new_data[pair] = custom_price
-                continue
-
-            new_price = main_source.data.get(pair)
-            if new_price:
-                if not old_price:
-                    new_data[pair] = new_price
+            # check deviation
+            for pair, old_price in self._data.items():
+                #  skip pairs with custom price
+                custom_price = PairSettings.get_custom_price(pair)
+                if custom_price:
+                    new_data[pair] = custom_price
                     continue
 
-                if calc_relative_percent_difference(old_price, new_price) < main_source.MAX_DEVIATION:
-                    new_data[pair] = new_price
+                new_price = main_source.data.get(pair)
+                if new_price:
+                    if not old_price:
+                        new_data[pair] = new_price
+                        continue
+
+                    if calc_relative_percent_difference(old_price, new_price) < main_source.MAX_DEVIATION:
+                        new_data[pair] = new_price
+                    else:
+                        if reserve_source:
+                            reserve_price = reserve_source.data.get(pair)
+                            if calc_relative_percent_difference(new_price, reserve_price) < reserve_source.MAX_DEVIATION:
+                                new_data[pair] = new_price
+                                continue
+                        send_telegram_message(f'{pair.code} price changes more than {main_source.MAX_DEVIATION}%.'
+                                              f'\nCurrent price is {old_price}, new price: {new_price}')
                 else:
-                    if reserve_source:
-                        reserve_price = reserve_source.data.get(pair)
-                        if calc_relative_percent_difference(new_price, reserve_price) < reserve_source.MAX_DEVIATION:
-                            new_data[pair] = new_price
-                            continue
-                    send_telegram_message(f'{pair.code} price changes more than {main_source.MAX_DEVIATION}%.'
-                                          f'\nCurrent price is {old_price}, new price: {new_price}')
-            else:
-                # # global external prices alerts switch
-                # if not Settings.get_value(ALERT_ON_MISSING_EXTERNAL_PAIR_PRICE):
-                #     continue
-                # by pair external prices alerts switch
-                if PairSettings.is_alerts_enabled(pair):
-                    send_telegram_message(f'{main_source.NAME} {pair.code} price is not available!')
+                    # # global external prices alerts switch
+                    # if not Settings.get_value(ALERT_ON_MISSING_EXTERNAL_PAIR_PRICE):
+                    #     continue
+                    # by pair external prices alerts switch
+                    if PairSettings.is_alerts_enabled(pair):
+                        send_telegram_message(f'{main_source.NAME} {pair.code} price is not available!')
 
-        from core.tasks.orders import run_otc_orders_price_update
-        history = []
-        for pair in new_data:
-            new_price = new_data[pair]
-            custom_price = PairSettings.get_custom_price(pair.code)
-            price = custom_price or new_price
-            if price:
-                new_data[pair] = price
-                previous_price = self._data[pair]
-                if previous_price:
-                    percent_difference = calc_relative_percent_difference(price, previous_price)
-                    if percent_difference > 0.3:
-                        run_otc_orders_price_update.apply_async([pair.code], queue=f'orders.{pair.code}')
+            from core.tasks.orders import run_otc_orders_price_update
+            history = []
+            for pair in new_data:
+                new_price = new_data[pair]
+                custom_price = PairSettings.get_custom_price(pair.code)
+                price = custom_price or new_price
+                if price:
+                    new_data[pair] = price
+                    previous_price = self._data[pair]
+                    if previous_price:
+                        percent_difference = calc_relative_percent_difference(price, previous_price)
+                        if percent_difference > 0.3:
+                            run_otc_orders_price_update.apply_async([pair.code], queue=f'orders.{pair.code}')
 
-                if pair.code in ['BTC-USDT', 'ETH-USDT']:
-                    history.append(ExternalPricesHistory(pair=pair, price=price))
-        if history:
-            ExternalPricesHistory.objects.bulk_create(history)
+                    if pair.code in ['BTC-USDT', 'ETH-USDT']:
+                        history.append(ExternalPricesHistory(pair=pair, price=price))
+            if history:
+                ExternalPricesHistory.objects.bulk_create(history)
 
-        self._update_cached_prices(new_data)
-        return self._data
+            self._update_cached_prices(new_data)
+            return self._data
+        except Exception:
+            log.exception("update_prices")
+            raise
 
 
