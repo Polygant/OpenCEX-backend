@@ -10,6 +10,10 @@ def send_telegram_message(message, logger=None, chat_id=None, bot_token=None):
     try:
         token = bot_token or settings.TELEGRAM_BOT_TOKEN
         chat_id = chat_id or settings.TELEGRAM_CHAT_ID
+
+        if not token or not chat_id:
+            return
+
         bot = telegram.Bot(token=token)
         bot.send_message(chat_id, f'Instance: {settings.INSTANCE_NAME}\n' + message)
     except Exception as e:
