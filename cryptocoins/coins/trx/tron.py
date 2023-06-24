@@ -216,6 +216,7 @@ tron_manager = TronManager(tron_client)
 @register_evm_handler
 class TronHandler(BaseEVMCoinHandler):
     CURRENCY = TRX_CURRENCY
+    GAS_CURRENCY = settings.TRX_NET_FEE
     COIN_MANAGER = tron_manager
     TOKEN_CURRENCIES = tron_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = tron_manager.registered_token_addresses
