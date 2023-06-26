@@ -32,9 +32,9 @@ def cache_bitcoin_sat_per_byte(logger=None):
         )
         total_txs_count = len(spb_list)
         # Достаем 1500е значение или последнее
-        if total_txs_count < 1500:
+        if 0 < total_txs_count <= 1500:
             s_p_b = spb_list[-1]
-        else:
+        elif total_txs_count > 1500:
             s_p_b = spb_list[1500]
         s_p_b = round(to_decimal(s_p_b) * to_decimal(settings.SAT_PER_BYTES_RATIO))
     except Exception as e:
