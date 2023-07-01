@@ -15,6 +15,7 @@ from tronpy.contract import Contract
 from tronpy.exceptions import BlockNotFound
 from tronpy.keys import PrivateKey
 from tronpy.providers import HTTPProvider
+from tronpy.tron import Transaction
 
 from core.consts.currencies import TRC20_CURRENCIES
 from core.currency import Currency
@@ -26,7 +27,7 @@ from core.utils.withdrawal import get_withdrawal_requests_pending
 from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.coins.trx import TRX_CURRENCY
 from cryptocoins.coins.trx.consts import TRC20_ABI
-from cryptocoins.coins.trx.utils import is_valid_tron_address
+from cryptocoins.coins.trx.utils import is_valid_tron_address, get_bandwidth_fee, get_fee_limit
 from cryptocoins.evm.base import BaseEVMCoinHandler
 from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import Token, BlockchainManager, BlockchainTransaction
@@ -50,8 +51,6 @@ log = logging.getLogger(__name__)
 
 DEFAULT_BLOCK_ID_DELTA = 1000
 TRX_SAFE_ADDR = settings.TRX_SAFE_ADDR
-TRX_NET_FEE = settings.TRX_NET_FEE
-TRC20_FEE_LIMIT = settings.TRC20_FEE_LIMIT
 
 # tron_client = Tron(network='shasta')
 tron_client = Tron(HTTPProvider(api_key=settings.TRONGRID_API_KEY))
@@ -118,6 +117,15 @@ class TRC20Token(Token):
         )
         return cntr
 
+    @staticmethod
+    def build_tx(private_key: Union[bytes, PrivateKey, str], to_address, amount, **kwargs) -> Transaction:
+        if isinstance(private_key, bytes):
+            private_key = PrivateKey(private_key)
+        elif isinstance(private_key, str):
+            private_key = PrivateKey(bytes.fromhex(private_key))
+        from_address = private_key.public_key.to_base58check_address()
+        return tron_client.trx.transfer(from_address, to_address, amount).memo("").build().sign(private_key)
+
     def send_token(self, private_key, to_address, amount, **kwargs):
         if isinstance(private_key, bytes):
             private_key = PrivateKey(private_key)
@@ -125,11 +133,13 @@ class TRC20Token(Token):
             private_key = PrivateKey(bytes.fromhex(private_key))
 
         from_address = private_key.public_key.to_base58check_address()
+        tx = tron_manager.build_tx(private_key, to_address, amount)
+        fee_limit = get_fee_limit(tx.to_json(), to_address, from_address, amount, self.params.contract_address)
 
         txn = (
             self.contract.functions.transfer(to_address, amount)
                 .with_owner(from_address)  # address of the private key
-                .fee_limit(settings.TRC20_FEE_LIMIT)
+                .fee_limit(fee_limit)
                 .build()
                 .sign(private_key)
         )
@@ -163,21 +173,20 @@ class TronManager(BlockchainManager):
     def is_valid_address(self, address: str) -> bool:
         return is_valid_tron_address(address)
 
-    def send_tx(self, private_key: Union[bytes, PrivateKey, str], to_address, amount, **kwargs):
+    def owner_address(self, private_key: Union[bytes, PrivateKey, str]):
         if isinstance(private_key, bytes):
             private_key = PrivateKey(private_key)
         elif isinstance(private_key, str):
             private_key = PrivateKey(bytes.fromhex(private_key))
+        return private_key.public_key.to_base58check_address()
 
-        from_address = private_key.public_key.to_base58check_address()
-
-        txn = (
-            tron_client.trx.transfer(from_address, to_address, amount)
-                .memo("")
-                .build()
-                .sign(private_key)
-        )
+    def send_tx(self, private_key: Union[bytes, PrivateKey, str], to_address, amount, **kwargs):
+        txn = (self.build_tx(private_key, to_address, amount, **kwargs))
         return txn.broadcast()
+
+    def build_tx(self, private_key: Union[bytes, PrivateKey, str], to_address, amount, **kwargs) -> Transaction:
+        from_address = self.owner_address(private_key)
+        return tron_client.trx.transfer(from_address, to_address, amount).memo("").build().sign(private_key)
 
     def accumulate_dust(self):
         to_address = self.get_gas_keeper_wallet().address
@@ -189,8 +198,12 @@ class TronManager(BlockchainManager):
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
                 log.info(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
+                wallet = self.get_user_wallet(self.CURRENCY, address)
+                tx = tron_manager.build_tx(wallet.private_key, to_address, amount_sun)
+                owner_address = self.owner_address(wallet.private_key)
+                bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
 
-                withdrawal_amount = amount_sun - self.GAS_CURRENCY
+                withdrawal_amount = amount_sun - bandwidth_fee
 
                 # in debug mode values can be very small
                 if withdrawal_amount <= 0:
@@ -199,7 +212,6 @@ class TronManager(BlockchainManager):
                     return
 
                 # prepare tx
-                wallet = self.get_user_wallet(currency, address)
                 res = tron_manager.send_tx(wallet.private_key, to_address, withdrawal_amount)
                 tx_hash = res.get('txid')
 
@@ -561,7 +573,10 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.fail()
             return
 
-        if amount_to_send_sun - cls.GAS_CURRENCY < 0:
+        tx = cls.COIN_MANAGER.build_tx(keeper.private_key, address, amount_to_send_sun)
+        owner_address = cls.COIN_MANAGER.owner_address(keeper.private_key)
+        bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
+        if amount_to_send_sun - bandwidth_fee < 0:
             log.error('Keeper balance too low')
             return
 
@@ -591,7 +606,6 @@ class TronHandler(BaseEVMCoinHandler):
         log.info(receipt)
         log.info('TRX withdrawal TX %s sent', txid)
 
-
     @classmethod
     def withdraw_tokens(cls, withdrawal_request_id, password, old_tx_data=None, prev_tx_hash=None):
         withdrawal_request = WithdrawalRequest.objects.get(id=withdrawal_request_id)
@@ -613,7 +627,10 @@ class TronHandler(BaseEVMCoinHandler):
         keeper_trx_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
         keeper_token_balance = token.get_base_denomination_balance(keeper.address)
 
-        if keeper_trx_balance < cls.GAS_CURRENCY:
+        tx = cls.COIN_MANAGER.build_tx(keeper.private_key, address, amount_to_send_sun)
+        owner_address = cls.COIN_MANAGER.owner_address(keeper.private_key)
+        bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
+        if keeper_trx_balance < bandwidth_fee:
             log.warning('Keeper not enough TRX, skipping')
             return
 
@@ -622,7 +639,6 @@ class TronHandler(BaseEVMCoinHandler):
             return
 
         private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
-
         res = token.send_token(private_key, address, amount_to_send_sun)
         txid = res.get('txid')
 
@@ -646,7 +662,6 @@ class TronHandler(BaseEVMCoinHandler):
 
         log.info(receipt)
         log.info('%s withdrawal TX %s sent', currency, txid)
-
 
     @classmethod
     def check_balance(cls, wallet_transaction_id):
@@ -680,8 +695,12 @@ class TronHandler(BaseEVMCoinHandler):
         log.info('Accumulation TRX from: %s; Balance: %s; Min acc balance:%s',
                  address, amount, cls.COIN_MANAGER.accumulation_min_balance)
 
+        wallet = cls.COIN_MANAGER.get_user_wallet('TRX', address)
         # minus coins to be burnt
-        withdrawal_amount = amount_sun - cls.GAS_CURRENCY
+        tx = cls.COIN_MANAGER.build_tx(wallet.private_key, address, amount_sun)
+        owner_address = cls.COIN_MANAGER.owner_address(wallet.private_key)
+        bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
+        withdrawal_amount = amount_sun - bandwidth_fee
 
         # in debug mode values can be very small
         if withdrawal_amount <= 0:
@@ -693,8 +712,6 @@ class TronHandler(BaseEVMCoinHandler):
             amount)
 
         # prepare tx
-        wallet = cls.COIN_MANAGER.get_user_wallet('TRX', address)
-
         res = cls.COIN_MANAGER.send_tx(wallet.private_key, accumulation_address, withdrawal_amount)
         txid = res.get('txid')
 
@@ -737,9 +754,14 @@ class TronHandler(BaseEVMCoinHandler):
 
         gas_keeper = cls.COIN_MANAGER.get_gas_keeper_wallet()
 
+        tx = cls.COIN_MANAGER.build_tx(gas_keeper.private_key, address, token_amount_sun)
+        owner_address = cls.COIN_MANAGER.owner_address(gas_keeper.private_key)
+        contract_address = cls.COIN_MANAGER.TOKEN_CURRENCIES[cls.CURRENCY].contract_address
+        fee_limit = get_fee_limit(tx.to_json(), owner_address, address, token_amount_sun, contract_address)
+
         # send trx from gas keeper to send tokens
         log.info('Trying to send token fee from GasKeeper')
-        res = cls.COIN_MANAGER.send_tx(gas_keeper.private_key, address, TRC20_FEE_LIMIT)
+        res = cls.COIN_MANAGER.send_tx(gas_keeper.private_key, address, fee_limit)
         gas_txid = res.get('txid')
 
         if not res.get('result') or not gas_txid:
@@ -747,7 +769,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         acc_transaction = AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
-            amount=cls.COIN_MANAGER.get_amount_from_base_denomination(TRC20_FEE_LIMIT),
+            amount=cls.COIN_MANAGER.get_amount_from_base_denomination(fee_limit),
             tx_type=AccumulationTransaction.TX_TYPE_GAS_DEPOSIT,
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=gas_txid,
