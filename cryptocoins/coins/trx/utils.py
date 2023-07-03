@@ -6,7 +6,6 @@ import trontxsize
 from django.conf import settings
 from tronpy import Tron
 from tronpy.abi import trx_abi
-from tron import tron_client
 
 
 log = logging.getLogger(__name__)
@@ -37,6 +36,8 @@ def get_energy_fee(energy_needed: float, energy_limit: float, energy_used: float
 
 def get_bandwidth_fee(tx: Dict[str, Any], address: str) -> int:
     try:
+        from cryptocoins.coins.trx.tron import tron_client
+
         account_info = tron_client.get_account_resource(addr=address)
         free_net_limit = account_info.get('freeNetLimit', 0)
         net_limit = account_info.get('NetLimit', 0)
@@ -60,6 +61,8 @@ def get_fee_limit(tx: Dict[str, Any], owner_address: str, to_address: str, amoun
     """
 
     try:
+        from cryptocoins.coins.trx.tron import tron_client
+
         parameter = trx_abi.encode_abi(['address', 'uint256'], [to_address, amount]).hex()
         account_info = tron_client.get_account_resource(addr=owner_address)
         energy_data = tron_client.trigger_constant_contract(
