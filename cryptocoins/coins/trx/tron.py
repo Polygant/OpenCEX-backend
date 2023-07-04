@@ -573,14 +573,13 @@ class TronHandler(BaseEVMCoinHandler):
             withdrawal_request.fail()
             return
 
-        tx = cls.COIN_MANAGER.build_tx(keeper.private_key, address, amount_to_send_sun)
+        private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
+        tx = cls.COIN_MANAGER.build_tx(private_key, address, amount_to_send_sun)
         owner_address = cls.COIN_MANAGER.owner_address(keeper.private_key)
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         if amount_to_send_sun - bandwidth_fee < 0:
             log.error('Keeper balance too low')
             return
-
-        private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
 
         res = cls.COIN_MANAGER.send_tx(private_key, address, amount_to_send_sun)
         txid = res.get('txid')
@@ -626,8 +625,9 @@ class TronHandler(BaseEVMCoinHandler):
         keeper = cls.COIN_MANAGER.get_keeper_wallet()
         keeper_trx_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
         keeper_token_balance = token.get_base_denomination_balance(keeper.address)
+        private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
 
-        tx = cls.COIN_MANAGER.build_tx(keeper.private_key, address, amount_to_send_sun)
+        tx = cls.COIN_MANAGER.build_tx(private_key, address, amount_to_send_sun)
         owner_address = cls.COIN_MANAGER.owner_address(keeper.private_key)
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         if keeper_trx_balance < bandwidth_fee:
@@ -638,7 +638,6 @@ class TronHandler(BaseEVMCoinHandler):
             log.warning('Keeper not enough %s, skipping', currency)
             return
 
-        private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
         res = token.send_token(private_key, address, amount_to_send_sun)
         txid = res.get('txid')
 
