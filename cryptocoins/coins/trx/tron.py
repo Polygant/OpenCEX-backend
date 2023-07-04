@@ -201,7 +201,7 @@ class TronManager(BlockchainManager):
                 log.info(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
                 wallet = self.get_user_wallet(self.CURRENCY, address)
                 tx = tron_manager.build_tx(wallet.private_key, to_address, amount_sun)
-                owner_address = self.owner_address(wallet.private_key)
+                owner_address = self.owner_address(wallet.private_key).public_key.to_base58check_address()
                 bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
 
                 withdrawal_amount = amount_sun - bandwidth_fee
@@ -576,7 +576,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
         tx = cls.COIN_MANAGER.build_tx(private_key, address, amount_to_send_sun)
-        owner_address = cls.COIN_MANAGER.owner_address(keeper.private_key)
+        owner_address = cls.COIN_MANAGER.owner_address(private_key).public_key.to_base58check_address()
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         if amount_to_send_sun - bandwidth_fee < 0:
             log.error('Keeper balance too low')
@@ -629,7 +629,7 @@ class TronHandler(BaseEVMCoinHandler):
         private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
 
         tx = cls.COIN_MANAGER.build_tx(private_key, address, amount_to_send_sun)
-        owner_address = cls.COIN_MANAGER.owner_address(keeper.private_key)
+        owner_address = cls.COIN_MANAGER.owner_address(private_key).public_key.to_base58check_address()
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         if keeper_trx_balance < bandwidth_fee:
             log.warning('Keeper not enough TRX, skipping')
@@ -698,7 +698,7 @@ class TronHandler(BaseEVMCoinHandler):
         wallet = cls.COIN_MANAGER.get_user_wallet('TRX', address)
         # minus coins to be burnt
         tx = cls.COIN_MANAGER.build_tx(wallet.private_key, address, amount_sun)
-        owner_address = cls.COIN_MANAGER.owner_address(wallet.private_key)
+        owner_address = cls.COIN_MANAGER.owner_address(wallet.private_key).public_key.to_base58check_address()
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         withdrawal_amount = amount_sun - bandwidth_fee
 
@@ -755,7 +755,7 @@ class TronHandler(BaseEVMCoinHandler):
         gas_keeper = cls.COIN_MANAGER.get_gas_keeper_wallet()
 
         tx = cls.COIN_MANAGER.build_tx(gas_keeper.private_key, address, token_amount_sun)
-        owner_address = cls.COIN_MANAGER.owner_address(gas_keeper.private_key)
+        owner_address = cls.COIN_MANAGER.owner_address(gas_keeper.private_key).public_key.to_base58check_address()
         contract_address = cls.COIN_MANAGER.TOKEN_CURRENCIES[cls.CURRENCY].contract_address
         fee_limit = get_fee_limit(tx.to_json(), owner_address, address, token_amount_sun, contract_address)
 
