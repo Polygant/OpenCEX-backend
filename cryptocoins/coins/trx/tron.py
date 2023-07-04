@@ -173,19 +173,19 @@ class TronManager(BlockchainManager):
     def is_valid_address(self, address: str) -> bool:
         return is_valid_tron_address(address)
 
-    def owner_address(self, private_key: Union[bytes, PrivateKey, str]):
+    def owner_address(self, private_key: Union[bytes, PrivateKey, str]) -> PrivateKey:
         if isinstance(private_key, bytes):
             private_key = PrivateKey(private_key)
         elif isinstance(private_key, str):
             private_key = PrivateKey(bytes.fromhex(private_key))
-        return private_key.public_key.to_base58check_address()
+        return private_key
 
     def send_tx(self, private_key: Union[bytes, PrivateKey, str], to_address, amount, **kwargs):
         txn = (self.build_tx(private_key, to_address, amount, **kwargs))
         return txn.broadcast()
 
     def build_tx(self, private_key: Union[bytes, PrivateKey, str], to_address, amount, **kwargs) -> Transaction:
-        from_address = self.owner_address(private_key)
+        from_address = self.owner_address(private_key).public_key.to_base58check_address()
         return tron_client.trx.transfer(from_address, to_address, amount).memo("").build().sign(private_key)
 
     def accumulate_dust(self):
