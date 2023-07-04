@@ -186,7 +186,7 @@ class TronManager(BlockchainManager):
 
     def build_tx(self, private_key: Union[bytes, PrivateKey, str], to_address, amount, **kwargs) -> Transaction:
         _private_key: PrivateKey = self.owner_address(private_key)
-        from_address: str = private_key.public_key.to_base58check_address()
+        from_address: str = _private_key.public_key.to_base58check_address()
         return tron_client.trx.transfer(from_address, to_address, amount).memo("").build().sign(_private_key)
 
     def accumulate_dust(self):
