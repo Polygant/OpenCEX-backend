@@ -84,6 +84,9 @@ class Pair(models.Model):
     def __repr__(self):
         return str(self)
 
+    def __json__(self):
+        return self.to_dict()
+
     class Meta:
         UniqueConstraint(fields=['base', 'quote'], name='unique_base_quote')
 
