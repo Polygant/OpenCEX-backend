@@ -628,7 +628,7 @@ class TronHandler(BaseEVMCoinHandler):
         keeper_token_balance = token.get_base_denomination_balance(keeper.address)
         private_key = AESCoderDecoder(password).decrypt(keeper.private_key)
 
-        tx = cls.COIN_MANAGER.build_tx(private_key, address, amount_to_send_sun)
+        tx = cls.COIN_MANAGER.build_tx(private_key, address, withdrawal_request.amount)
         owner_address = cls.COIN_MANAGER.owner_address(private_key).public_key.to_base58check_address()
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         log.error(f'withdraw_tokens: {bandwidth_fee} {keeper_trx_balance}')

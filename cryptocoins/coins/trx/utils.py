@@ -11,6 +11,7 @@ from tronpy.abi import trx_abi
 log = logging.getLogger(__name__)
 
 TRC20_FEE_LIMIT = settings.TRC20_FEE_LIMIT
+TRX_NET_FEE = settings.TRX_NET_FEE
 TRC20_ENERGY_UNIT_PRICE = settings.TRC20_ENERGY_UNIT_PRICE
 TRC20_FEE_LIMIT_FACTOR = settings.TRC20_FEE_LIMIT_FACTOR
 
@@ -48,11 +49,12 @@ def get_bandwidth_fee(tx: Dict[str, Any], address: str) -> int:
         current_account_bandwidth = total_bandwidth - total_bandwidth_used
 
         how_many_bandwidth_need = trontxsize.get_tx_size({'signature': tx['signature'], 'raw_data': tx['raw_data']})
-        bandwidth_fee = (how_many_bandwidth_need - current_account_bandwidth) * 1000 + 3
+        bandwidth_fee = max(how_many_bandwidth_need - current_account_bandwidth * 1000 + 3, 0)
         log.error(f"get_bandwidth_fee: {account_info}, {how_many_bandwidth_need}")
         return math.ceil(bandwidth_fee * TRC20_FEE_LIMIT_FACTOR)  # TRX_NET_FEE
     except Exception:
         log.exception('An error occurred while calculating bandwidth_fee')
+        return TRX_NET_FEE
 
 
 def get_fee_limit(tx: Dict[str, Any], owner_address: str, to_address: str, amount: int, contract_address: str) -> int:
