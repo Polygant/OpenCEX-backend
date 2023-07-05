@@ -49,12 +49,13 @@ def get_bandwidth_fee(tx: Dict[str, Any], address: str) -> int:
 
         how_many_bandwidth_need = trontxsize.get_tx_size({'signature': tx['signature'], 'raw_data': tx['raw_data']})
         bandwidth_fee = (how_many_bandwidth_need - current_account_bandwidth) * 1000 + 3
+        log.error(f"get_bandwidth_fee: {account_info}, {how_many_bandwidth_need}")
         return math.ceil(bandwidth_fee * TRC20_FEE_LIMIT_FACTOR)  # TRX_NET_FEE
     except Exception:
         log.exception('An error occurred while calculating bandwidth_fee')
 
 
-def get_fee_limit(tx: Dict[str, Any], owner_address: str, to_address: str, amount: float, contract_address: str) -> int:
+def get_fee_limit(tx: Dict[str, Any], owner_address: str, to_address: str, amount: int, contract_address: str) -> int:
     """
     Calculations are based on an article from Stack Overflow
     (https://stackoverflow.com/questions/67172564/how-to-estimate-trc20-token-transfer-gas-fee)
