@@ -147,6 +147,9 @@ class Order(UserMixinModel, BaseModel):
     def save(self, *args, **kwargs):
         if self.price is not None and self.price <= 0:
             raise OrderPriceInvalidError()
+        from inspect import currentframe, getframeinfo
+        frameinfo = getframeinfo(currentframe())
+        log.error(f"OC-211: save order: {frameinfo.filename}:{frameinfo.lineno}")
 
         if not self.id:
             return self.create_order(*args, **kwargs)
@@ -742,6 +745,9 @@ class Order(UserMixinModel, BaseModel):
         return result
 
     def execute(self, order):
+        from inspect import currentframe, getframeinfo
+        frameinfo = getframeinfo(currentframe())
+        log.error(f"OC-211: execute: {frameinfo.filename}:{frameinfo.lineno}")
         from core.tasks.orders import send_api_callback
 
         # transaction.set_autocommit(False)
