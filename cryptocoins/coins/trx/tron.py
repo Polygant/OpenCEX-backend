@@ -198,8 +198,8 @@ class TronManager(BlockchainManager):
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
-                log.info(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
-                wallet = self.get_user_wallet(self.CURRENCY, address)
+                log.info(f'Accumulation {currency} dust from: {address}; Balance: {address_balance}')
+                wallet = self.get_user_wallet(currency, address)
                 tx = tron_manager.build_tx(wallet.private_key, to_address, amount_sun)
                 owner_address = self.owner_address(wallet.private_key).public_key.to_base58check_address()
                 bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
