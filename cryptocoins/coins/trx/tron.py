@@ -134,7 +134,7 @@ class TRC20Token(Token):
 
         from_address = private_key.public_key.to_base58check_address()
         tx = tron_manager.build_tx(private_key, to_address, amount)
-        fee_limit = get_fee_limit(tx.to_json(), to_address, from_address, amount, self.params.contract_address)
+        fee_limit = get_fee_limit(tx.to_json(), from_address, to_address, amount, self.params.contract_address)
 
         txn = (
             self.contract.functions.transfer(to_address, amount)
@@ -687,6 +687,7 @@ class TronHandler(BaseEVMCoinHandler):
 
     @classmethod
     def accumulate_coin(cls, wallet_transaction_id):
+        log.error(f"OC-125 3: {wallet_transaction_id}")
         wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
         address = wallet_transaction.wallet.address
 
@@ -702,7 +703,7 @@ class TronHandler(BaseEVMCoinHandler):
         owner_address = cls.COIN_MANAGER.owner_address(wallet.private_key).public_key.to_base58check_address()
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         withdrawal_amount = amount_sun - bandwidth_fee
-
+        log.error(f"OC-125 4: {withdrawal_amount}")
         # in debug mode values can be very small
         if withdrawal_amount <= 0:
             log.error(f'TRX withdrawal amount invalid: {withdrawal_amount}')
@@ -715,10 +716,11 @@ class TronHandler(BaseEVMCoinHandler):
         # prepare tx
         res = cls.COIN_MANAGER.send_tx(wallet.private_key, accumulation_address, withdrawal_amount)
         txid = res.get('txid')
-
+        log.error(f"OC-125 5: {txid}")
         if not res.get('result') or not txid:
             log.error('Unable to send withdrawal TX')
 
+        log.error(f"OC-125 6: {txid}")
         AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
             amount=cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_amount),
@@ -726,6 +728,7 @@ class TronHandler(BaseEVMCoinHandler):
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=txid,
         )
+        log.error(f"OC-125 7: {txid}")
         wallet_transaction.set_accumulation_in_progress()
         # AccumulationDetails.objects.create(
         #     currency=TRX_CURRENCY,
@@ -736,10 +739,12 @@ class TronHandler(BaseEVMCoinHandler):
 
         reciept = res.wait()
         log.info(reciept)
+        log.error(f"OC-125 8: {reciept}")
         log.info(f'Accumulation TX {txid} sent from {wallet.address} to {accumulation_address}')
 
     @classmethod
     def accumulate_tokens(cls, wallet_transaction_id):
+        log.error(f"{wallet_transaction_id}")
         wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
         address = wallet_transaction.wallet.address
         currency = wallet_transaction.currency
@@ -748,7 +753,7 @@ class TronHandler(BaseEVMCoinHandler):
         token_amount = wallet_transaction.amount
         token_amount_sun = token.get_base_denomination_from_amount(token_amount)
 
-        log.info(f'Accumulation {currency} from: {address}; Balance: {token_amount};')
+        log.error(f'Accumulation {currency} from: {address}; Balance: {token_amount};')
 
         accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(
             token_amount)
@@ -761,13 +766,14 @@ class TronHandler(BaseEVMCoinHandler):
         fee_limit = get_fee_limit(tx.to_json(), owner_address, address, token_amount_sun, contract_address)
 
         # send trx from gas keeper to send tokens
-        log.info('Trying to send token fee from GasKeeper')
+        log.error('Trying to send token fee from GasKeeper')
         res = cls.COIN_MANAGER.send_tx(gas_keeper.private_key, address, fee_limit)
         gas_txid = res.get('txid')
 
         if not res.get('result') or not gas_txid:
             log.error('Unable to send fee TX')
 
+        log.error(f"OC-125 1: {gas_txid}")
         acc_transaction = AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
             amount=cls.COIN_MANAGER.get_amount_from_base_denomination(fee_limit),
@@ -775,11 +781,12 @@ class TronHandler(BaseEVMCoinHandler):
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=gas_txid,
         )
+        log.error(f"OC-125 1.1: {gas_txid}")
         wallet_transaction.set_waiting_for_gas()
 
         receipt = res.wait()
         log.info(receipt)
-
+        log.error(f"OC-125 1.2: {receipt}")
         acc_transaction.complete(is_gas=True)
 
         wallet = cls.COIN_MANAGER.get_user_wallet(currency, address)
@@ -788,7 +795,7 @@ class TronHandler(BaseEVMCoinHandler):
 
         if not res.get('result') or not txid:
             log.error('Unable to send withdrawal token TX')
-
+        log.error(f"OC-125 2: {txid}")
         AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
             amount=token.get_amount_from_base_denomination(token_amount_sun),
@@ -796,8 +803,10 @@ class TronHandler(BaseEVMCoinHandler):
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=txid,
         )
+        log.error(f"OC-125 2.1: {txid}")
         wallet_transaction.set_accumulation_in_progress()
 
         receipt = res.wait()
         log.info(receipt)
+        log.error(f"OC-125 2.3: {receipt}")
         log.info('Token accumulation TX %s sent from %s to: %s', txid, wallet.address, accumulation_address)
