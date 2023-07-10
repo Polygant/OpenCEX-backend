@@ -2,6 +2,7 @@ import logging
 import time
 
 from django.conf import settings
+from django.utils.timezone import now
 
 from core.consts.orders import BUY
 from core.models.orders import EXCHANGE
@@ -133,6 +134,9 @@ class OrderProcessor(object):
 
     def execute_order_with(self, order: Order):
         self.logger.debug('matched order {}'.format(order))
+        from inspect import currentframe, getframeinfo
+        frameinfo = getframeinfo(currentframe())
+        self.logger.error(f"OC-211: execute_order_with: {frameinfo.filename}:{frameinfo.lineno} {now()}")
         self.order.execute(order)
 
         if order.state == ORDER_CLOSED:
