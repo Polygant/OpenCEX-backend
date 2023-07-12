@@ -504,6 +504,7 @@ class TronHandler(BaseEVMCoinHandler):
         if token_to_addr in [TRX_SAFE_ADDR, trx_keeper.address] + external_accumulation_addresses:
             log.info(f'TX {tx.hash} is {token_amount} {token.currency} accumulation')
 
+            transaction = tron_client.get_transaction_info(tx.hash)
             accumulation_transaction = AccumulationTransaction.objects.filter(
                 tx_hash=tx.hash,
             ).first()
@@ -512,8 +513,17 @@ class TronHandler(BaseEVMCoinHandler):
                 log.error('Token accumulation TX %s not exist', tx.hash)
                 return
 
-            accumulation_transaction.complete()
-            return
+            if (
+                    'receipt' in transaction
+                    and 'result' in transaction['receipt']
+                    and transaction['receipt']['result'] in FAILED_RESULTS
+            ):
+                accumulation_transaction.fail()
+                log.error('Failed - %s', transaction['receipt']['result'])
+                return
+            else:
+                accumulation_transaction.complete()
+                return
 
         db_wallet = cls.COIN_MANAGER.get_wallet_db_instance(token.currency, token_to_addr)
         if db_wallet is None:
