@@ -47,3 +47,7 @@ class AccumulationTransaction(models.Model):
             self.wallet_transaction.set_ready_for_accumulation()
         else:
             self.wallet_transaction.set_accumulated()
+
+    def fail(self):
+        self.tx_state = AccumulationTransaction.STATE_FAILED
+        self.save(update_fields=['tx_state', 'updated'])
