@@ -91,9 +91,12 @@ class BnbHandler(Web3CommonHandler):
     TOKEN_CURRENCIES = bnb_manager.registered_token_currencies
     TOKEN_CONTRACT_ADDRESSES = bnb_manager.registered_token_addresses
     TRANSACTION_CLASS = BnbTransaction
-    SAFE_ADDR = w3.to_checksum_address(settings.BNB_SAFE_ADDR)
+    IS_ENABLED = env('COMMON_TASKS_BNB', default=True)
+
+    if IS_ENABLED:
+        SAFE_ADDR = w3.to_checksum_address(settings.BNB_SAFE_ADDR)
+
     CHAIN_ID = settings.BNB_CHAIN_ID
     BLOCK_GENERATION_TIME = settings.BNB_BLOCK_GENERATION_TIME
     ACCUMULATION_PERIOD = settings.BNB_BEP20_ACCUMULATION_PERIOD
-    IS_ENABLED = env('COMMON_TASKS_BNB', default=True)
     W3_CLIENT = w3
