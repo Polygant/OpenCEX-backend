@@ -14,7 +14,6 @@ from django.db.transaction import atomic
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
 from django.utils import timezone
-from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from rest_framework.exceptions import ValidationError
 
@@ -150,7 +149,7 @@ class Order(UserMixinModel, BaseModel):
             raise OrderPriceInvalidError()
         from inspect import currentframe, getframeinfo
         frameinfo = getframeinfo(currentframe())
-        log.error(f"OC-211: save order: {frameinfo.filename}:{frameinfo.lineno} {now()}")
+        log.error(f"OC-211: save order: {frameinfo.filename}:{frameinfo.lineno}")
 
         if not self.id:
             return self.create_order(*args, **kwargs)
@@ -748,7 +747,7 @@ class Order(UserMixinModel, BaseModel):
     def execute(self, order):
         from inspect import currentframe, getframeinfo
         frameinfo = getframeinfo(currentframe())
-        log.error(f"OC-211: execute: {frameinfo.filename}:{frameinfo.lineno} {now()}")
+        log.error(f"OC-211: execute: {frameinfo.filename}:{frameinfo.lineno}")
         from core.tasks.orders import send_api_callback
 
         # transaction.set_autocommit(False)
