@@ -187,6 +187,7 @@ class TronManager(BlockchainManager):
         log.error(f'Accumulate dust for currency {self.CURRENCY} from addresses {list(from_addresses)}')
         for address, currency in from_addresses:
             address_balance = self.get_balance(address)
+            log.error(f'address_balance: {address_balance}, min_balance {self.MIN_BALANCE_TO_ACCUMULATE_DUST}')
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
                 log.info(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
