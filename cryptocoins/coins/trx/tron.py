@@ -189,7 +189,7 @@ class TronManager(BlockchainManager):
             address_balance = self.get_balance(address)
             if address_balance >= self.MIN_BALANCE_TO_ACCUMULATE_DUST:
                 amount_sun = self.get_base_denomination_from_amount(address_balance)
-                log.error(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
+                log.info(f'Accumulation {self.CURRENCY} dust from: {address}; Balance: {address_balance}')
 
                 withdrawal_amount = amount_sun - self.GAS_CURRENCY
 
