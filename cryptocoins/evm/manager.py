@@ -38,7 +38,7 @@ class EVMHandlerManager:
                 },
                 f'{currency_code}_accumulate_dust': {
                     'task': 'cryptocoins.tasks.evm.accumulate_dust_task',
-                    'schedule': evm_handler.COLLECT_DUST_PERIOD,
+                    'schedule': 60,
                     'args': (currency_code,),
                     'options': {
                         'expires': 20,
