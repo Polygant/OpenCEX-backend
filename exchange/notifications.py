@@ -1,3 +1,5 @@
+import logging
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.core.cache import cache
@@ -25,6 +27,8 @@ from lib.helpers import normalize_data
 
 channel_layer = get_channel_layer()
 MSG_TYPE = 'exchange.message'
+
+log = logging.getLogger(__name__)
 
 
 class BaseNotificator:
@@ -289,6 +293,9 @@ class BasePaginatedNotificator(BaseNotificator):
         new_kwargs['delete'] = kwargs.get('delete', False)
         data = self.get_paginated_data(entry, **new_kwargs)
         if data:
+            from inspect import currentframe, getframeinfo
+            frameinfo = getframeinfo(currentframe())
+            log.error(f"OC-211: notify: {frameinfo.filename}:{frameinfo.lineno}")
             self.notify(data, **new_kwargs)
 
 
