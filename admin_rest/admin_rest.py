@@ -527,11 +527,12 @@ class UserApiAdmin(DefaultApiAdmin):
         return obj.orders_count
 
     def email_verified(self, obj):
-        exists = EmailAddress.objects.filter(
+        email_address = EmailAddress.objects.filter(
             user=obj,
             email=obj.email
-        ).exists()
-        return exists
+        ).first()
+
+        return email_address and email_address.verified
 
     def phone_verified(self, obj):
         return bool(obj.profile.phone)

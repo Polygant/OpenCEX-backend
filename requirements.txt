@@ -277,6 +277,7 @@ toolz==0.11.1
 tornado==6.1
 traitlets==5.1.0
 tronpy==0.4.0
+trontxsize==1.0.4
 twilio==6.50.1
 Twisted==22.10.0
 txaio==21.2.1

@@ -534,7 +534,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             return
 
         keeper_balance = cls.COIN_MANAGER.get_balance_in_base_denomination(keeper.address)
-        if keeper_balance < (amount_to_send_wei + (gas_price * cls.GAS_CURRENCY)):
+        if keeper_balance < (amount_to_send_wei + (gas_price * cls.COIN_MANAGER.GAS_CURRENCY)):
             log.warning(f'Keeper not enough {cls.CURRENCY}, skipping')
             return
 
@@ -550,7 +550,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             tx_data = {
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': cls.GAS_CURRENCY,
+                'gas': cls.COIN_MANAGER.GAS_CURRENCY,
                 'from': Web3.to_checksum_address(keeper.address),
                 'to': Web3.to_checksum_address(address),
                 'value': amount_to_send_wei,

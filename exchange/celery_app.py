@@ -190,6 +190,13 @@ if is_section_enabled('utils'):
                 'queue': 'utils',
             }
         },
+        'cryptocoins.tasks.trx.get_trc20_unit_price': {
+            'task': 'cryptocoins.tasks.trx.get_trc20_unit_price',
+            'schedule': crontab(minute=0),  # every hour
+            'options': {
+                'queue': 'utils',
+            }
+        },
     })
     app.conf.task_queues += (Queue('utils'),)
 
@@ -410,7 +417,8 @@ if is_section_enabled('stats'):
             'options': {
                 'queue': 'stats',
             },
-        }
+
+        },
     })
     app.conf.task_queues += (Queue('stats'),)
 

@@ -65,7 +65,7 @@ class UserSerializer(UserDetailsSerializer):
         user_fee = UserFee.objects.filter(user_id=obj.id).first()
         if user_fee and user_fee.fee_rate:
             return user_fee.fee_rate
-        return 0
+        return None
 
     def get_user_exchange_fee(self, obj):
         user_exchange_fee = UserExchangeFee.objects.filter(user_id=obj.id).first()
