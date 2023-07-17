@@ -49,7 +49,11 @@ def get_bandwidth_fee(tx: Dict[str, Any], address: str) -> int:
         current_account_bandwidth = total_bandwidth - total_bandwidth_used
 
         how_many_bandwidth_need = trontxsize.get_tx_size({'signature': tx['signature'], 'raw_data': tx['raw_data']})
-        bandwidth_fee = max((how_many_bandwidth_need - current_account_bandwidth) * 1000 + 3, 0)
+        if current_account_bandwidth < how_many_bandwidth_need:
+            bandwidth_fee = (how_many_bandwidth_need + 3) * 1000
+        else:
+            bandwidth_fee = 0
+        # bandwidth_fee = max((how_many_bandwidth_need - current_account_bandwidth) * 1000, 0)
         return math.ceil(bandwidth_fee * TRC20_FEE_LIMIT_FACTOR)  # TRX_NET_FEE
     except Exception:
         log.exception('An error occurred while calculating bandwidth_fee')
