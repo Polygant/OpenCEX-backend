@@ -1,5 +1,6 @@
 from functools import wraps
 
+from allauth.account.models import EmailAddress
 from rest_framework.fields import BooleanField
 from rest_framework.relations import RelatedField
 
@@ -38,7 +39,7 @@ class WithdrawalSmsConfirmationField(BooleanField):
         super().__init__(*args, **kwargs, label='SMS Confirm')
 
     def get_attribute(self, instance):
-        return super().get_attribute(instance.profile.withdrawals_sms_confirmation)
+        return super().get_attribute(instance.profile)
 
 
 def serial_field(serial_class):
