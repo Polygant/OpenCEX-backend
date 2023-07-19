@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import User, Group
 from django.db import transaction, models
-from django.db.models import F, OuterRef, Subquery, Sum, Count, When, Value, Case, ExpressionWrapper
+from django.db.models import Exists, F, OuterRef, Subquery, Sum, Count, When, Value, Case, ExpressionWrapper
 from django.db.models import Q
 from django.db.transaction import atomic
 from django.http import HttpResponse
@@ -24,7 +24,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.fields import BooleanField
 
 from admin_rest import restful_admin as api_admin
-from admin_rest.fields import EmailVerifiedField, WithdrawalSmsConfirmationField, serial_field, CurrencySerialRestField
+from admin_rest.fields import WithdrawalSmsConfirmationField, serial_field, CurrencySerialRestField
 from admin_rest.mixins import JsonListApiViewMixin
 from admin_rest.mixins import NoDeleteMixin, NoCreateMixin
 from admin_rest.mixins import ReadOnlyMixin
@@ -490,19 +490,6 @@ class UserApiAdmin(DefaultApiAdmin):
 
     def get_queryset(self):
         qs = super(UserApiAdmin, self).get_queryset()
-        # email_verified = (EmailAddress.objects.filter(
-        #     user_id=OuterRef("id"),
-        #     email=OuterRef("email")
-        # ).first().verified
-        # )
-
-        # (
-        #     Client.objects.filter(
-        # ...account_type=OuterRef("account_type"),
-        # ...     )
-        # ....exclude(pk=OuterRef("pk"))
-        #     values("pk")
-        # )
         return qs.annotate(
             withdrawals_count=Count('withdrawalrequest', distinct=True),
             orders_count=Count('order', distinct=True),
@@ -523,11 +510,19 @@ class UserApiAdmin(DefaultApiAdmin):
                 default=Value(''),
                 output_field=models.CharField(),
             ),
-            email_verified=Subquery(
-                EmailAddress.objects.filter(
-                    user_id=OuterRef("id"),
-                    email=OuterRef("email")
-                ).values('verified'))
+            email_verified=Case(
+                When(
+                    Subquery(
+                        EmailAddress.objects.filter(
+                            user_id=OuterRef("id"),
+                            email=OuterRef("email")
+                        ).values("verified")
+                    ), then=Value(True)
+                ),
+                default=Value(False),
+                output_field=models.BooleanField(),
+            )
+
         ).prefetch_related('withdrawalrequest_set', 'order_set', 'twofactorsecrettokens_set', 'userkyc')
 
     def kyc(self, obj):
