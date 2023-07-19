@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import User, Group
 from django.db import transaction, models
-from django.db.models import Exists, F, OuterRef, Subquery, Sum, Count, When, Value, Case, ExpressionWrapper
+from django.db.models import F, OuterRef, Subquery, Sum, Count, When, Value, Case, ExpressionWrapper
 from django.db.models import Q
 from django.db.transaction import atomic
 from django.http import HttpResponse
@@ -21,7 +21,6 @@ from django.utils.translation import ugettext_lazy
 from django_otp.conf import settings
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import BooleanField
 
 from admin_rest import restful_admin as api_admin
 from admin_rest.fields import BooleanReadOnlyField, WithdrawalSmsConfirmationField, serial_field, \
@@ -492,6 +491,7 @@ class UserApiAdmin(DefaultApiAdmin):
     def get_queryset(self):
         qs = super(UserApiAdmin, self).get_queryset()
         return qs.annotate(
+            withdrawals_sms_confirmation=F("profile__withdrawals_sms_confirmation"),
             withdrawals_count=Count('withdrawalrequest', distinct=True),
             orders_count=Count('order', distinct=True),
             two_fa=Case(
@@ -522,9 +522,8 @@ class UserApiAdmin(DefaultApiAdmin):
                 ),
                 default=Value(False),
                 output_field=models.BooleanField(),
-            )
-
-        ).prefetch_related('withdrawalrequest_set', 'order_set', 'twofactorsecrettokens_set', 'userkyc')
+            ),
+        ).prefetch_related('withdrawalrequest_set', 'order_set', 'twofactorsecrettokens_set', 'userkyc', 'profile')
 
     def kyc(self, obj):
         return obj.kyc
@@ -536,10 +535,6 @@ class UserApiAdmin(DefaultApiAdmin):
     def two_fa(self, obj):
         return obj.two_fa
 
-    @serial_field(serial_class=WithdrawalSmsConfirmationField)
-    def withdrawals_sms_confirmation(self, obj):
-        return obj
-
     def withdrawals_count(self, obj):
         return obj.withdrawals_count
 
@@ -550,12 +545,12 @@ class UserApiAdmin(DefaultApiAdmin):
     def email_verified(self, obj):
         return obj.email_verified
 
-    @serial_field(WithdrawalSmsConfirmationField)
-    def withdrawals_sms_confirmation(self, obj):
-        return bool(obj.profile.withdrawals_sms_confirmation)
-
     def user_type(self, obj):
         return obj.profile.get_user_type_display()
+
+    @serial_field(serial_class=WithdrawalSmsConfirmationField)
+    def withdrawals_sms_confirmation(self, obj):
+        return obj.withdrawals_sms_confirmation
 
     @api_admin.action(permissions=[IsSuperAdminUser])
     def topup(self, request, queryset):
