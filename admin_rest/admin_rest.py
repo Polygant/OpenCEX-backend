@@ -523,7 +523,6 @@ class UserApiAdmin(DefaultApiAdmin):
                 default=Value(False),
                 output_field=models.BooleanField(),
             )
-
         ).prefetch_related('withdrawalrequest_set', 'order_set', 'twofactorsecrettokens_set', 'userkyc')
 
     def kyc(self, obj):
