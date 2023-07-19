@@ -1,6 +1,7 @@
 from functools import wraps
 
 from allauth.account.models import EmailAddress
+from rest_framework import serializers
 from rest_framework.fields import BooleanField
 from rest_framework.relations import RelatedField
 
@@ -33,13 +34,13 @@ class CurrencySerialRestField(CurrencySerialField):
         return dict(CURRENCIES_LIST)
 
 
-class BooleanReadOnlyField(BooleanField):
+class BooleanReadOnlyField(serializers.BooleanField):
     def __init__(self, **kwargs):
         kwargs['read_only'] = True
         super().__init__(**kwargs)
 
 
-class WithdrawalSmsConfirmationField(BooleanField):
+class WithdrawalSmsConfirmationField(serializers.BooleanField):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, label='SMS Confirm')
