@@ -24,7 +24,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.fields import BooleanField
 
 from admin_rest import restful_admin as api_admin
-from admin_rest.fields import WithdrawalSmsConfirmationField, serial_field, CurrencySerialRestField
+from admin_rest.fields import BooleanReadOnlyField, WithdrawalSmsConfirmationField, serial_field, \
+    CurrencySerialRestField
 from admin_rest.mixins import JsonListApiViewMixin
 from admin_rest.mixins import NoDeleteMixin, NoCreateMixin
 from admin_rest.mixins import ReadOnlyMixin
@@ -531,7 +532,7 @@ class UserApiAdmin(DefaultApiAdmin):
     def kyc_reject_type(self, obj):
         return obj.kyc_reject_type
 
-    @serial_field(serial_class=BooleanField)
+    @serial_field(serial_class=BooleanReadOnlyField)
     def two_fa(self, obj):
         return obj.two_fa
 
@@ -545,7 +546,7 @@ class UserApiAdmin(DefaultApiAdmin):
     def orders_count(self, obj):
         return obj.orders_count
 
-    @serial_field(serial_class=BooleanField)
+    @serial_field(serial_class=BooleanReadOnlyField)
     def email_verified(self, obj):
         return obj.email_verified
 

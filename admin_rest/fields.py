@@ -33,6 +33,12 @@ class CurrencySerialRestField(CurrencySerialField):
         return dict(CURRENCIES_LIST)
 
 
+class BooleanReadOnlyField(BooleanField):
+    def __init__(self, **kwargs):
+        kwargs['read_only'] = True
+        super().__init__(**kwargs)
+
+
 class WithdrawalSmsConfirmationField(BooleanField):
 
     def __init__(self, *args, **kwargs):
