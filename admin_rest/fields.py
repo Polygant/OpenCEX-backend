@@ -1,5 +1,6 @@
 from functools import wraps
 
+from rest_framework.fields import BooleanField
 from rest_framework.relations import RelatedField
 
 from core.consts.currencies import CURRENCIES_LIST
@@ -29,6 +30,15 @@ class CurrencySerialRestField(CurrencySerialField):
     @property
     def choices(self):
         return dict(CURRENCIES_LIST)
+
+
+class WithdrawalSmsConfirmationField(BooleanField):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, label='SMS Confirm')
+
+    def get_attribute(self, instance):
+        return super().get_attribute(instance.profile.withdrawals_sms_confirmation)
 
 
 def serial_field(serial_class):
