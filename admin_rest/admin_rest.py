@@ -799,7 +799,7 @@ class MatchApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
 
 # TODO optimize
 @api_admin.register(WithdrawalRequest)
-class WithdrawalRequestAdmin(ReadOnlyMixin, RestFulModelAdmin):
+class WithdrawalRequestAdmin(RestFulModelAdmin):
     list_display = (
         'created', 'user', 'approved', 'confirmed', 'currency', 'blockchain', 'amount',
         'state', 'details', 'sci_gate', 'txid', 'is_freezed',)
@@ -807,7 +807,9 @@ class WithdrawalRequestAdmin(ReadOnlyMixin, RestFulModelAdmin):
     filterset_fields = ['currency', 'approved', 'confirmed', 'state']
     search_fields = ['user__email', 'data__destination']
     ordering = ('-created', )
-
+    readonly_fields = [
+        'created', 'user', 'currency', 'blockchain', 'amount', 'state', 'details', 'sci_gate', 'txid', 'is_freezed',
+    ]
     actions = [
         'cancel_withdrawal_request',
         'pause',
