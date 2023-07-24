@@ -20,14 +20,14 @@ from tronpy.tron import Transaction
 from core.consts.currencies import TRC20_CURRENCIES
 from core.currency import Currency
 from core.models import WalletTransactions
-from core.models.inouts.withdrawal import PENDING as WR_PENDING, FAILED_RESULTS
+from core.models.inouts.withdrawal import PENDING as WR_PENDING, FAILED_RESULTS, UNKNOWN
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_withdrawal_fee, get_min_accumulation_balance
-from core.utils.withdrawal import get_withdrawal_requests_pending
+from core.utils.withdrawal import get_withdrawal_requests_by_status
 from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.coins.trx import TRX_CURRENCY
 from cryptocoins.coins.trx.consts import TRC20_ABI
-from cryptocoins.coins.trx.utils import is_valid_tron_address, get_bandwidth_fee, get_fee_limit
+from cryptocoins.coins.trx.utils import is_valid_tron_address, get_bandwidth_fee, get_fee_limit, wait_receipt
 from cryptocoins.evm.base import BaseEVMCoinHandler
 from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import Token, BlockchainManager, BlockchainTransaction
@@ -266,9 +266,9 @@ class TronHandler(BaseEVMCoinHandler):
         coin_deposit_jobs = []
         tokens_deposit_jobs = []
 
-        coin_withdrawal_requests_pending = get_withdrawal_requests_pending([cls.CURRENCY])
-        tokens_withdrawal_requests_pending = get_withdrawal_requests_pending(
-            cls.TOKEN_CURRENCIES, blockchain_currency=cls.CURRENCY.code)
+        coin_withdrawal_requests_pending = get_withdrawal_requests_by_status([cls.CURRENCY], status=WR_PENDING)
+        tokens_withdrawal_requests_pending = get_withdrawal_requests_by_status(
+            cls.TOKEN_CURRENCIES, blockchain_currency=cls.CURRENCY.code, status=WR_PENDING)
 
         coin_withdrawal_requests_pending_txs = [i.txid for i in coin_withdrawal_requests_pending]
         tokens_withdrawal_requests_pending_txs = [i.txid for i in tokens_withdrawal_requests_pending]
@@ -600,20 +600,23 @@ class TronHandler(BaseEVMCoinHandler):
         if not res.get('result') or not txid:
             log.error('Unable to send withdrawal TX')
 
-        receipt = res.wait()
+        withdrawal_request.state = UNKNOWN
+        withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
+        withdrawal_request.txid = txid
+        withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+
+        receipt = wait_receipt(res)
 
         if (
-                "receipt" in receipt
-                and "result" in receipt["receipt"]
-                and receipt["receipt"]["result"] in FAILED_RESULTS
+            "receipt" in receipt
+            and "result" in receipt["receipt"]
+            and receipt["receipt"]["result"] in FAILED_RESULTS
         ):
             withdrawal_request.fail()
             log.error('Failed - %s', receipt['receipt']['result'])
         else:
             withdrawal_request.state = WR_PENDING
-            withdrawal_request.txid = txid
-            withdrawal_request.our_fee_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_fee_sun)
-            withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+            withdrawal_request.save(update_fields=['state', 'updated'])
 
         log.info(receipt)
         log.info('TRX withdrawal TX %s sent', txid)
@@ -658,20 +661,23 @@ class TronHandler(BaseEVMCoinHandler):
         if not res.get('result') or not txid:
             log.error('Unable to send TRX TX')
 
-        receipt = res.wait()
+        withdrawal_request.state = UNKNOWN
+        withdrawal_request.our_fee_amount = token.get_amount_from_base_denomination(withdrawal_fee_sun)
+        withdrawal_request.txid = txid
+        withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+
+        receipt = wait_receipt(res)
 
         if (
-                "receipt" in receipt
-                and "result" in receipt["receipt"]
-                and receipt["receipt"]["result"] in FAILED_RESULTS
+            "receipt" in receipt
+            and "result" in receipt["receipt"]
+            and receipt["receipt"]["result"] in FAILED_RESULTS
         ):
             withdrawal_request.fail()
             log.error('Failed - %s', receipt['receipt']['result'])
         else:
             withdrawal_request.state = WR_PENDING
-            withdrawal_request.txid = txid
-            withdrawal_request.our_fee_amount = token.get_amount_from_base_denomination(withdrawal_fee_sun)
-            withdrawal_request.save(update_fields=['state', 'txid', 'updated', 'our_fee_amount'])
+            withdrawal_request.save(update_fields=['state', 'updated'])
 
         log.info(receipt)
         log.info('%s withdrawal TX %s sent', currency, txid)
@@ -699,7 +705,6 @@ class TronHandler(BaseEVMCoinHandler):
 
     @classmethod
     def accumulate_coin(cls, wallet_transaction_id):
-        log.error(f"OC-125 3: {wallet_transaction_id}")
         wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
         address = wallet_transaction.wallet.address
 
@@ -715,7 +720,6 @@ class TronHandler(BaseEVMCoinHandler):
         owner_address = cls.COIN_MANAGER.owner_address(wallet.private_key).public_key.to_base58check_address()
         bandwidth_fee = get_bandwidth_fee(tx.to_json(), owner_address)
         withdrawal_amount = amount_sun - bandwidth_fee
-        log.error(f"OC-125 4: {withdrawal_amount}")
         # in debug mode values can be very small
         if withdrawal_amount <= 0:
             log.error(f'TRX withdrawal amount invalid: {withdrawal_amount}')
@@ -728,11 +732,9 @@ class TronHandler(BaseEVMCoinHandler):
         # prepare tx
         res = cls.COIN_MANAGER.send_tx(wallet.private_key, accumulation_address, withdrawal_amount)
         txid = res.get('txid')
-        log.error(f"OC-125 5: {txid}")
         if not res.get('result') or not txid:
             log.error('Unable to send withdrawal TX')
 
-        log.error(f"OC-125 6: {txid}")
         AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
             amount=cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_amount),
@@ -740,7 +742,6 @@ class TronHandler(BaseEVMCoinHandler):
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=txid,
         )
-        log.error(f"OC-125 7: {txid}")
         wallet_transaction.set_accumulation_in_progress()
         # AccumulationDetails.objects.create(
         #     currency=TRX_CURRENCY,
@@ -749,14 +750,17 @@ class TronHandler(BaseEVMCoinHandler):
         #     to_address=accumulation_address
         # )
 
-        reciept = res.wait()
-        log.info(reciept)
-        log.error(f"OC-125 8: {reciept}")
+        receipt = wait_receipt(res)
+        log.info(receipt)
         log.info(f'Accumulation TX {txid} sent from {wallet.address} to {accumulation_address}')
 
     @classmethod
     def accumulate_tokens(cls, wallet_transaction_id):
-        log.error(f"{wallet_transaction_id}")
+        cls.send_gas_for_token(wallet_transaction_id)
+        cls.send_token(wallet_transaction_id)
+
+    @classmethod
+    def send_gas_for_token(cls, wallet_transaction_id):
         wallet_transaction = accumulation_manager.get_wallet_transaction_by_id(wallet_transaction_id)
         address = wallet_transaction.wallet.address
         currency = wallet_transaction.currency
@@ -764,8 +768,6 @@ class TronHandler(BaseEVMCoinHandler):
         token = cls.COIN_MANAGER.get_token_by_symbol(currency)
         token_amount = wallet_transaction.amount
         token_amount_sun = token.get_base_denomination_from_amount(token_amount)
-
-        log.error(f'Accumulation {currency} from: {address}; Balance: {token_amount};')
 
         accumulation_address = wallet_transaction.external_accumulation_address or token.get_accumulation_address(
             token_amount)
@@ -778,14 +780,12 @@ class TronHandler(BaseEVMCoinHandler):
         fee_limit = get_fee_limit(tx.to_json(), owner_address, address, token_amount_sun, contract_address)
 
         # send trx from gas keeper to send tokens
-        log.error('Trying to send token fee from GasKeeper')
         res = cls.COIN_MANAGER.send_tx(gas_keeper.private_key, address, fee_limit)
         gas_txid = res.get('txid')
 
         if not res.get('result') or not gas_txid:
             log.error('Unable to send fee TX')
 
-        log.error(f"OC-125 1: {gas_txid}")
         acc_transaction = AccumulationTransaction.objects.create(
             wallet_transaction=wallet_transaction,
             amount=cls.COIN_MANAGER.get_amount_from_base_denomination(fee_limit),
@@ -793,12 +793,10 @@ class TronHandler(BaseEVMCoinHandler):
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=gas_txid,
         )
-        log.error(f"OC-125 1.1: {gas_txid}")
         wallet_transaction.set_waiting_for_gas()
 
-        receipt = res.wait()
+        receipt = wait_receipt(res)
         log.info(receipt)
-        log.error(f"OC-125 1.2: {receipt}")
         acc_transaction.complete(is_gas=True)
 
         wallet = cls.COIN_MANAGER.get_user_wallet(currency, address)
@@ -815,10 +813,9 @@ class TronHandler(BaseEVMCoinHandler):
             tx_state=AccumulationTransaction.STATE_PENDING,
             tx_hash=txid,
         )
-        log.error(f"OC-125 2.1: {txid}")
+
         wallet_transaction.set_accumulation_in_progress()
 
-        receipt = res.wait()
+        receipt = wait_receipt(res)
         log.info(receipt)
-        log.error(f"OC-125 2.3: {receipt}")
         log.info('Token accumulation TX %s sent from %s to: %s', txid, wallet.address, accumulation_address)
