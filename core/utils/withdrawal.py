@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from core.consts.currencies import BEP20_CURRENCIES
 from core.consts.currencies import ERC20_CURRENCIES
@@ -32,7 +32,11 @@ def get_withdrawal_requests_to_process(currencies: list, blockchain_currency='')
     return qs
 
 
-def get_withdrawal_requests_pending(currencies: list, blockchain_currency=''):
+def get_withdrawal_requests_by_status(
+    currencies: list,
+    blockchain_currency: str = '',
+    status: int = PENDING,
+) -> QuerySet:
     # TODO REFACTOR
     common_currencies = []
     not_common_currencies = []
@@ -49,7 +53,7 @@ def get_withdrawal_requests_pending(currencies: list, blockchain_currency=''):
     if common_currencies:
         common_qs = WithdrawalRequest.objects.filter(
             currency__in=common_currencies,
-            state=PENDING,
+            state=status,
             approved=True,
             confirmed=True,
             data__blockchain_currency=blockchain_currency
@@ -60,7 +64,7 @@ def get_withdrawal_requests_pending(currencies: list, blockchain_currency=''):
 
     qs = WithdrawalRequest.objects.filter(
         currency__in=not_common_currencies,
-        state=PENDING,
+        state=status,
         approved=True,
         confirmed=True,
     ).only(
