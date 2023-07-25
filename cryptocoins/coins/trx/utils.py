@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict
 
+import backoff
 import math
 import trontxsize
 from django.conf import settings
@@ -14,6 +15,8 @@ TRC20_FEE_LIMIT = settings.TRC20_FEE_LIMIT
 TRX_NET_FEE = settings.TRX_NET_FEE
 TRC20_ENERGY_UNIT_PRICE = settings.TRC20_ENERGY_UNIT_PRICE
 TRC20_FEE_LIMIT_FACTOR = settings.TRC20_FEE_LIMIT_FACTOR
+RECEIPT_RETRY_INTERVAL = settings.RECEIPT_RETRY_INTERVAL
+RECEIPT_RETRY_ATTEMPTS = settings.RECEIPT_RETRY_ATTEMPTS
 
 
 def is_valid_tron_address(address):
@@ -88,3 +91,14 @@ def get_fee_limit(tx: Dict[str, Any], owner_address: str, to_address: str, amoun
     except Exception:
         log.exception('An error occurred while calculating transaction fee')
         return TRC20_FEE_LIMIT
+
+
+@backoff.on_exception(backoff.constant, Exception, max_tries=RECEIPT_RETRY_ATTEMPTS, interval=RECEIPT_RETRY_INTERVAL)
+def wait_receipt(res) -> Dict:
+    return res.wait()
+
+
+@backoff.on_exception(backoff.constant, Exception, max_tries=RECEIPT_RETRY_ATTEMPTS, interval=RECEIPT_RETRY_INTERVAL)
+def get_transaction_status(tx_id: str) -> Dict:
+    from cryptocoins.coins.trx.tron import tron_client
+    return tron_client.get_transaction_info(tx_id)

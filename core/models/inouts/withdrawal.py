@@ -26,6 +26,7 @@ COMPLETED = 2
 FAILED = 3
 CANCELLED = 4
 VERIFYING = 5
+UNKNOWN = 6
 
 
 STATES = {CREATED: 'Created',
@@ -33,7 +34,8 @@ STATES = {CREATED: 'Created',
           COMPLETED: 'Completed',
           FAILED: 'Failed',
           CANCELLED: 'Cancelled',
-          VERIFYING: 'Verifying'
+          VERIFYING: 'Verifying',
+          UNKNOWN: 'Unknown'
           }
 
 FAILED_RESULTS = ('OUT_OF_ENERGY', )
@@ -52,6 +54,7 @@ class WithdrawalRequest(UserMixinModel, BaseModel):
     STATE_FAILED = FAILED
     STATE_CANCELLED = CANCELLED
     STATE_VERIFYING = VERIFYING
+    STATE_UNKNOWN = UNKNOWN
 
     STATES = (
         (STATE_CREATED, _('Created')),
@@ -60,6 +63,7 @@ class WithdrawalRequest(UserMixinModel, BaseModel):
         (STATE_FAILED, _('Failed')),
         (STATE_CANCELLED, _('Cancelled')),
         (STATE_VERIFYING, _('Verifying')),
+        (STATE_UNKNOWN, _('Unknown'))
     )
 
     currency = CurrencyModelField()

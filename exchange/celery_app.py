@@ -197,6 +197,13 @@ if is_section_enabled('utils'):
                 'queue': 'utils',
             }
         },
+        'cryptocoins.tasks.trx.retry_unknown_withdrawals': {
+            'task': 'cryptocoins.tasks.trx.retry_unknown_withdrawals',
+            'schedule': crontab(minute=0),  # every hour
+            'options': {
+                'queue': 'utils',
+            }
+        },
     })
     app.conf.task_queues += (Queue('utils'),)
 
