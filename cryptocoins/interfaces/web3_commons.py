@@ -16,7 +16,7 @@ from core.models import FeesAndLimits
 from core.models.inouts.withdrawal import PENDING as WR_PENDING
 from core.models.inouts.withdrawal import WithdrawalRequest
 from core.utils.inouts import get_withdrawal_fee
-from core.utils.withdrawal import get_withdrawal_requests_pending
+from core.utils.withdrawal import get_withdrawal_requests_by_status
 from cryptocoins.accumulation_manager import AccumulationManager
 from cryptocoins.evm.base import BaseEVMCoinHandler
 from cryptocoins.exceptions import RetryRequired
@@ -342,10 +342,11 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         coin_deposit_jobs = []
         tokens_deposit_jobs = []
 
-        coins_withdrawal_requests_pending = get_withdrawal_requests_pending([cls.CURRENCY])
-        tokens_withdrawal_requests_pending = get_withdrawal_requests_pending(
+        coins_withdrawal_requests_pending = get_withdrawal_requests_by_status([cls.CURRENCY], status=WR_PENDING)
+        tokens_withdrawal_requests_pending = get_withdrawal_requests_by_status(
             cls.TOKEN_CURRENCIES,
-            blockchain_currency=cls.CURRENCY.code
+            blockchain_currency=cls.CURRENCY.code,
+            status=WR_PENDING,
         )
 
         coin_withdrawals_dict = {i.id: i.data.get('txs_attempts', [])
