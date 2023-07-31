@@ -3,7 +3,7 @@ from channels.routing import URLRouter
 from django.urls import path
 
 import core.websockets.urls
-from core.auth.token_auth import TokenAuthMiddlewareStack
+from core.auth.hmac_auth import HMACAuthMiddlewareStack
 
 
 v1 = []
@@ -14,7 +14,7 @@ urlpatterns = [
 ]
 
 application = ProtocolTypeRouter({
-    "websocket": TokenAuthMiddlewareStack(
+    "websocket": HMACAuthMiddlewareStack(
         URLRouter(urlpatterns),
     ),
 })
