@@ -43,11 +43,11 @@ class HMACAuthMiddleware:
     async def __call__(self, scope, receive, send):
         headers = dict(scope['headers'])
         if b'apikey' in headers and b'signature' in headers and b'nonce' in headers:
-            apikey = headers['apikey']
-            signature = headers['signature']
-            nonce = headers['nonce']
+            apikey = headers[b'apikey'].decode()
+            signature = headers[b'signature'].decode()
+            nonce = headers[b'nonce'].decode()
 
-            user = await sync_to_async(get_hmac_user)(apikey, signature, nonce)
+            user = await sync_to_async(get_hmac_user)(apikey, signature, nonce, 'ws')
             scope['user'] = user if user else AnonymousUser()
 
         return await self.inner(scope, receive, send)
@@ -57,13 +57,13 @@ def HMACAuthMiddlewareStack(inner):
     return HMACAuthMiddleware(AuthMiddlewareStack(inner))
 
 
-def get_hmac_user(api_key, access_signature, nonce):
+def get_hmac_user(api_key, access_signature, nonce, salt=''):
     try:
         nonce = int(nonce)
     except ValueError:
         raise exceptions.AuthenticationFailed('NONCE must be type of int')
 
-    redis_key = 'api_nonce_' + api_key
+    redis_key = 'api_nonce_' + api_key + salt
     last_nonce = int(redis_c.get(redis_key) or 0)
     if last_nonce and nonce <= last_nonce:
         raise exceptions.AuthenticationFailed('Incorrect NONCE header')
