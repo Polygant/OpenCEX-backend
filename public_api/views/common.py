@@ -297,8 +297,7 @@ class PairsListView(NoAuthMixin, ThrottlingViewMixin, APIView):
     @extend_schema(exclude=True)
     def get(self, request):
         """Returns pairs data"""
-        r = [i.to_dict() for i in Pair.objects.all() if i.code not in PairSettings.get_disabled_pairs()]
-        return Response({'pairs': r})
+        return Response({'data': PairSettings.get_enabled_pairs_data()})
 
 
 class MarketsListView(NoAuthMixin, ThrottlingViewMixin, APIView):
