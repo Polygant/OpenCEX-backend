@@ -7,7 +7,7 @@ import lib.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0015_pair_unique_together'),
+        ('core', '0016_auto_20230724_0305'),
     ]
 
     operations = [
