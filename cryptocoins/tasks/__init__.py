@@ -4,10 +4,10 @@ from cryptocoins.tasks.stats import *
 from cryptocoins.tasks.scoring import *
 from cryptocoins.tasks.datasources import *
 from cryptocoins.tasks.evm import *
+from cryptocoins.tasks.trx import *
 
 __all__ = (
     'sat_per_byte_cache',
-    'check_accumulations',
     'process_deffered_deposit',
     'update_crypto_external_prices',
     'check_tx_withdrawal_task',
@@ -23,4 +23,5 @@ __all__ = (
     'accumulate_tokens_task',
     'send_gas_task',
     'accumulate_dust_task',
+    'get_trc20_unit_price',
 )

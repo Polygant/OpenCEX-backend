@@ -1,3 +1,5 @@
+import logging
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.core.cache import cache
@@ -25,6 +27,8 @@ from lib.helpers import normalize_data
 
 channel_layer = get_channel_layer()
 MSG_TYPE = 'exchange.message'
+
+log = logging.getLogger(__name__)
 
 
 class BaseNotificator:
