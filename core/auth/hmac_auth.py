@@ -22,7 +22,7 @@ class HMACAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed('APIKEY, SIGNATURE or NONCE header does not set')
 
         try:
-            user = get_hmac_user(api_key, access_signature, nonce)
+            user = get_hmac_user(api_key, access_signature, nonce, request.get_full_path())
             if user:
                 return user, None
         except exceptions.AuthenticationFailed as auth_exception:
