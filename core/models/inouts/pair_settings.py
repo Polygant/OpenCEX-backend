@@ -1,3 +1,5 @@
+from typing import Dict
+
 from django.core.cache import cache
 from django.db import models
 
@@ -25,13 +27,16 @@ class PairSettings(models.Model):
     deviation = models.DecimalField(default=0.0, max_digits=5, decimal_places=4, help_text='Max order price deviation')
     enable_alerts = models.BooleanField(default=True)
     precisions = ArrayField(models.CharField(max_length=16), default=list)
+    min_order_size = MoneyField(default=0.0)
+    min_base_amount_increment = MoneyField(default=0.0)
+    min_price_increment = MoneyField(default=0.0)
 
     def save(self, *args, **kwargs):
         super(PairSettings, self).save(*args, **kwargs)
         self._cache_data(True)
 
     @classmethod
-    def _cache_data(cls, set_cache=False) -> dict:
+    def _cache_data(cls, set_cache=False) -> Dict[str, dict]:
         data = cache.get(PAIRS_SETTINGS_CACHE_KEY, {})
         if set_cache or not data:
             for entry in cls.objects.all():
@@ -43,6 +48,9 @@ class PairSettings(models.Model):
                     'deviation': entry.deviation,
                     'enable_alerts': entry.enable_alerts,
                     'precisions': entry.precisions,
+                    'min_order_size': entry.min_order_size,
+                    'min_base_amount_increment': entry.min_base_amount_increment,
+                    'min_price_increment': entry.min_price_increment,
                 }
             cache.set(PAIRS_SETTINGS_CACHE_KEY, data)
         return data
@@ -94,6 +102,25 @@ class PairSettings(models.Model):
     def get_stack_precisions_by_pair(cls, pair_code: str):
         precisions = cls.get_stack_precisions()
         return precisions.get(pair_code, [])
+
+    @classmethod
+    def get_enabled_pairs_data(cls) -> Dict[str, dict]:
+        res = {}
+        for pair, pair_data in cls._cache_data().items():
+            if not pair_data['is_enabled']:
+                continue
+
+            base, quote = pair.split('-')
+            res[pair] = {
+                'min_order_size': pair_data['min_order_size'],
+                'min_base_amount_increment': pair_data['min_base_amount_increment'],
+                'min_price_increment': pair_data['min_price_increment'],
+                'code': pair,
+                'base_symbol': base,
+                'quote_symbol': quote,
+            }
+        return res
+
 
     def __str__(self):
         return f'{self.pair}; Enabled: {self.is_enabled}; AutoOrders: {self.is_autoorders_enabled}'

@@ -153,8 +153,10 @@ class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
             #     await self.send_json(data)
             # elif command == 'del_profile':
             #     await self.leave_group(profile_notificator.gen_channel(**params))
+            if command == 'hmac_login':
+                await self.send_json({"kind": "login"})
 
-            if command == 'add_balance':
+            elif command == 'add_balance':
                 await self.join_group(balance_notificator.gen_channel(**params))
                 data = await sync_to_async(balance_notificator.get_data)(**params)
                 data = balance_notificator.prepare_data(data)
