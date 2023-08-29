@@ -1,3 +1,4 @@
+import datetime
 import logging
 from asyncio.futures import Future
 
@@ -74,7 +75,7 @@ class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
         await AsyncJsonWebsocketConsumer.receive(self, text_data=text_data, bytes_data=bytes_data, **kwargs)
 
     async def receive_json(self, content, **kwargs):
-        logger.debug('receive')
+        logger.debug(f'receive json, {content}')
         # if not self.authed.done():
         #     return await self.do_auth(content)
 
@@ -269,7 +270,7 @@ class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
             #     await self.send_json(data)
 
     async def disconnect(self, code):
-        logger.debug('receive')
+        logger.debug(f'{datetime.datetime.now()} - disconnected, code: {code}')
         for i in list(self.groups):
             await self.leave_group(i)
 

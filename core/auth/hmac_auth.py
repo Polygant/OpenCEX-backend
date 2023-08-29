@@ -65,7 +65,7 @@ def get_hmac_user(api_key, access_signature, nonce, salt=''):
 
     redis_key = 'api_nonce_' + api_key + salt
     last_nonce = int(redis_c.get(redis_key) or 0)
-    if last_nonce and nonce <= last_nonce:
+    if last_nonce and nonce + 3 <= last_nonce:
         raise exceptions.AuthenticationFailed('Incorrect NONCE header')
 
     # find profile
