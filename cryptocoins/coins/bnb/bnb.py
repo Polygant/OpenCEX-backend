@@ -5,6 +5,8 @@ from decimal import Decimal
 
 import cachetools.func
 from django.conf import settings
+from django.core.cache import cache
+from web3 import Web3
 from web3.exceptions import BlockNotFound
 
 from core.consts.currencies import BEP20_CURRENCIES
@@ -16,6 +18,7 @@ from cryptocoins.interfaces.common import GasPriceCache
 from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
 from cryptocoins.utils.commons import store_last_processed_block_id
 from exchange.settings import env
+from lib.notifications import send_telegram_message
 
 log = logging.getLogger(__name__)
 
@@ -100,3 +103,29 @@ class BnbHandler(Web3CommonHandler):
     BLOCK_GENERATION_TIME = settings.BNB_BLOCK_GENERATION_TIME
     ACCUMULATION_PERIOD = settings.BNB_BEP20_ACCUMULATION_PERIOD
     W3_CLIENT = w3
+
+    @classmethod
+    def _filter_transactions(cls, transactions, **kwargs) -> list:
+        current_provider = w3.provider.endpoint_uri
+        block_id = kwargs.get('block_id')
+
+        def validate_tx(tx_to_validate):
+            if tx_to_validate['to'] == '0x0000000000000000000000000000000000001000':
+                if tx_to_validate.input == '0x' or not tx_to_validate.input:
+                    return False
+                data_bytes = Web3.to_bytes(hexstr=tx_to_validate.input)
+                if data_bytes[:4] not in [b'\xf3\x40\xfa\x01', b'\x30\x0c\x35\x67', b'\x04\xc4\xfe\xc6']:
+                    return False
+
+            return True
+
+        # check for incorrect block response
+        not_valid_txs = [t for t in transactions if not validate_tx(t)]
+        count_fail = cache.get('bnb_not_valid_block', 1)
+        if len(not_valid_txs) > 0 and count_fail <= 10:
+            w3.change_provider()
+            msg = f'All txs in block {block_id} are zero.\nChange provider from:\n{current_provider}\nto {w3.provider.endpoint_uri}\nCount Fail: {count_fail}'
+            send_telegram_message(msg)
+            cache.set('bnb_not_valid_block', ++count_fail)
+            raise Exception(f'All txs in block {block_id} are zero. not_valid_txs[{len(not_valid_txs)}]')
+        return transactions
