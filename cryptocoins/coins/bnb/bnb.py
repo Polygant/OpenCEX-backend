@@ -72,11 +72,7 @@ class BnbManager(Web3Manager):
             block = self.client.eth.get_block(block_id, full_transactions=True)
             response_time = time.time() - started_at
             check_bnb_response_time(w3, response_time)
-        except BlockNotFound as e:
-            store_last_processed_block_id(currency=BNB_CURRENCY, block_id=block_id)
-            raise e
         except Exception as e:
-            log.exception('Cant parse current block')
             store_last_processed_block_id(currency=BNB_CURRENCY, block_id=block_id)
             self.client.change_provider()
             raise e
