@@ -48,6 +48,22 @@ BNB_RPC_ENDPOINTS = [
     'https://bsc-dataseed.binance.org/',
     'https://bsc-dataseed1.defibit.io/',
     'https://bsc-dataseed1.ninicoin.io/',
+    'https://bsc-dataseed1.binance.org/',
+    'https://bsc-dataseed2.binance.org/',
+    'https://bsc-dataseed3.binance.org/',
+    'https://bsc-dataseed4.binance.org/',
+    'https://bsc-dataseed1.defibit.io/',
+    'https://bsc-dataseed2.defibit.io/',
+    'https://bsc-dataseed3.defibit.io/',
+    'https://bsc-dataseed4.defibit.io/',
+    'https://bsc-dataseed1.ninicoin.io/',
+    'https://bsc-dataseed2.ninicoin.io/',
+    'https://bsc-dataseed3.ninicoin.io/',
+    'https://bsc-dataseed4.ninicoin.io/',
+    'https://bsc-dataseed1.bnbchain.org',
+    'https://bsc-rpc.gateway.pokt.network',
+    'https://bscrpc.com',
+    'https://bsc.publicnode.com',
 ]
 
 TRX_NET_FEE = env('TRX_NET_FEE', default=3_000_000)  # 3 TRX

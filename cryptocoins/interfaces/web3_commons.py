@@ -1,7 +1,7 @@
 import logging
 import time
 from decimal import Decimal
-from typing import Type, Union
+from typing import Type, Union, Optional
 
 from celery import group
 from django.core.cache import cache
@@ -42,7 +42,7 @@ abi_codec = ABICodec(registry)
 
 class Web3Transaction(BlockchainTransaction):
     @classmethod
-    def from_node(cls, tx_data):
+    def from_node(cls, tx_data) -> Optional['Web3Transaction']:
         tx_hash = tx_data['hash']
         if hasattr(tx_hash, 'hex') and callable(getattr(tx_hash, 'hex')):
             tx_hash = tx_hash.hex()
@@ -54,6 +54,8 @@ class Web3Transaction(BlockchainTransaction):
 
         try:
             to_addr = Web3.to_checksum_address(tx_data['to'])
+        except KeyError:
+            return
         except:
             to_addr = tx_data['to']
 
@@ -337,6 +339,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             log.info('Block #%s has no transactions, skipping', block_id)
             return
 
+        transactions = cls._filter_transactions(transactions, block_id=block_id)
         log.info('Transactions count in block #%s: %s', block_id, len(transactions))
 
         coin_deposit_jobs = []
@@ -952,3 +955,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         except RetryRequired:
             # retry with higher gas price
             cls.send_gas(wallet_transaction_id, old_tx_data=tx_data, old_tx_hash=tx_hash)
+
+    @classmethod
+    def _filter_transactions(cls, transactions, **kwargs) -> list:
+        return transactions
