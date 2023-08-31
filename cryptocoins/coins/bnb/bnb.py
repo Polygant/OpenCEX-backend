@@ -123,5 +123,6 @@ class BnbHandler(Web3CommonHandler):
             msg = f'All txs in block {block_id} are zero.\nChange provider from:\n{current_provider}\nto {w3.provider.endpoint_uri}\nCount Fail: {count_fail}'
             send_telegram_message(msg)
             cache.set('bnb_not_valid_block', ++count_fail)
+            store_last_processed_block_id(currency=BNB_CURRENCY, block_id=block_id)
             raise Exception(f'All txs in block {block_id} are zero. not_valid_txs[{len(not_valid_txs)}]')
         return transactions
