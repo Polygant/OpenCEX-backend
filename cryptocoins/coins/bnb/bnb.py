@@ -116,13 +116,18 @@ class BnbHandler(Web3CommonHandler):
             return True
 
         # check for incorrect block response
-        not_valid_txs = [t for t in transactions if not validate_tx(t)]
+        valid_txs = [t for t in transactions if validate_tx(t)]
         count_fail = cache.get('bnb_not_valid_block', 1)
-        if len(not_valid_txs) > 0 and count_fail <= 10:
-            w3.change_provider()
+
+        # if every tx have to_address == '0x0000000000000000000000000000000000001000' we try to change provider 10 times
+        if not valid_txs and count_fail <= 10:
             msg = f'All txs in block {block_id} are zero.\nChange provider from:\n{current_provider}\nto {w3.provider.endpoint_uri}\nCount Fail: {count_fail}'
             send_telegram_message(msg)
-            cache.set('bnb_not_valid_block', ++count_fail)
             store_last_processed_block_id(currency=BNB_CURRENCY, block_id=block_id)
-            raise Exception(f'All txs in block {block_id} are zero. not_valid_txs[{len(not_valid_txs)}]')
-        return transactions
+
+            w3.change_provider()
+            count_fail += 1
+            cache.set('bnb_not_valid_block', count_fail)
+
+            raise Exception(f'All txs in block {block_id} are zero.')
+        return valid_txs
