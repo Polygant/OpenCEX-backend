@@ -99,6 +99,7 @@ class BnbHandler(Web3CommonHandler):
     BLOCK_GENERATION_TIME = settings.BNB_BLOCK_GENERATION_TIME
     ACCUMULATION_PERIOD = settings.BNB_BEP20_ACCUMULATION_PERIOD
     W3_CLIENT = w3
+    DEFAULT_BLOCK_ID_DELTA = 100
 
     @classmethod
     def _filter_transactions(cls, transactions, **kwargs) -> list:
