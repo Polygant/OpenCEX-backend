@@ -730,7 +730,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
 
         # we want to process our tx faster
         gas_price = cls.COIN_MANAGER.gas_price_cache.get_increased_price()
-        gas_amount = gas_price * cls.GAS_CURRENCY
+        gas_amount = gas_price * cls.COIN_MANAGER.GAS_CURRENCY
         withdrawal_amount_wei = amount_wei - gas_amount
         withdrawal_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_amount_wei)
 
@@ -915,7 +915,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             tx_data = {
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': cls.GAS_CURRENCY,
+                'gas': cls.COIN_MANAGER.GAS_CURRENCY,
                 'from': Web3.to_checksum_address(gas_keeper.address),
                 'to': address,
                 'value': accumulation_gas_total_amount,
