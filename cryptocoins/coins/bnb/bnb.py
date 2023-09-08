@@ -106,18 +106,8 @@ class BnbHandler(Web3CommonHandler):
         current_provider = w3.provider.endpoint_uri
         block_id = kwargs.get('block_id')
 
-        def validate_tx(tx_to_validate):
-            if tx_to_validate['to'] == '0x0000000000000000000000000000000000001000':
-                if tx_to_validate.input == '0x' or not tx_to_validate.input:
-                    return False
-                data_bytes = Web3.to_bytes(hexstr=tx_to_validate.input)
-                if data_bytes[:4] not in [b'\xf3\x40\xfa\x01', b'\x30\x0c\x35\x67', b'\x04\xc4\xfe\xc6']:
-                    return False
-
-            return True
-
         # check for incorrect block response
-        valid_txs = [t for t in transactions if validate_tx(t)]
+        valid_txs = [t for t in transactions if t['to'] != '0x0000000000000000000000000000000000001000']
         count_fail = cache.get('bnb_not_valid_block', 1)
 
         # if every tx have to_address == '0x0000000000000000000000000000000000001000' we try to change provider 10 times
