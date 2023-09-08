@@ -1,11 +1,13 @@
 import logging
 from asyncio.futures import Future
+from typing import Dict, Any
 
 from asgiref.sync import sync_to_async
 from cached_property import asyncio
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 
+from core.auth.api_hmac_auth import HMACAuthentication
 from core.utils.auth import get_user_from_token
 from exchange.notifications import balance_notificator, executed_order_notificator, wallet_history_endpoint, \
     opened_orders_endpoint, closed_orders_endpoint, opened_orders_by_pair_endpoint, closed_orders_by_pair_endpoint
@@ -29,7 +31,6 @@ from exchange.notifications import wallets_notificator
 
 logger = logging.getLogger(__name__)
 
-
 class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
     AUTH_TIMEOUT = 10
 
@@ -52,13 +53,33 @@ class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
             token = msg.get('token', None)
             assert token
             user, token = await sync_to_async(get_user_from_token)(token)
-            self.scope['user'] = user
-            await self.join_group(user_notificator.gen_channel(user_id=self.scope['user'].id))
-            data = user_notificator.prepare_data({'hello': self.scope['user'].username})
-            await self.send_json(data)
-            self.authed.set_result(user)
+            await self._set_user(user)
         except Exception as e:
             self.authed.set_exception(e)
+
+    async def do_auth_api_key(self, msg: Dict[str, Any]) -> None:
+        logger.debug('do_auth_api_key')
+        try:
+            authenticator = HMACAuthentication()
+            api_key = msg.get('api_key')
+            signature = msg.get('signature')
+            nonce = msg.get('nonce')
+            user, _ = await sync_to_async(
+                authenticator.authenticate_values
+            )(
+                api_key, signature, nonce
+            )
+            await self._set_user(user)
+        except Exception as e:
+            self.authed.set_exception(e)
+
+    async def _set_user(self, user: User) -> None:
+        logger.debug('set_user')
+        self.scope['user'] = user
+        await self.join_group(user_notificator.gen_channel(user_id=self.scope['user'].id))
+        data = user_notificator.prepare_data({'hello': self.scope['user'].username})
+        await self.send_json(data)
+        self.authed.set_result(user)
 
     async def join_group(self, grp_name):
         await self.channel_layer.group_add(grp_name, self.channel_name)
@@ -78,13 +99,17 @@ class LiveNotificationsConsumer(AsyncJsonWebsocketConsumer):
         # if not self.authed.done():
         #     return await self.do_auth(content)
 
-        if 'token' in content and content.get('token', None) is None:
+        if ('token' in content and content.get('token', None) is None) or \
+           ('api_key' in content and content.get('api_key', None) is None):
             await self.leave_group(user_notificator.gen_channel(user_id=self.scope['user'].id))
             self.authed = Future()
             self.scope['user'] = AnonymousUser()
 
         if not self.authed.done() and 'token' in content and content.get('token', None) is not None:
             return await self.do_auth(content)
+
+        if not self.authed.done() and 'api_key' in content and content.get('api_key', None) is not None:
+            return await self.do_auth_api_key(content)
 
         command = content.get('command', None)
         params = content.get('params', {})
