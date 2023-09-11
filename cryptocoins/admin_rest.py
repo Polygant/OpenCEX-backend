@@ -17,10 +17,11 @@ from cryptocoins.models.proxy import BNBWithdrawalApprove, MaticWithdrawalApprov
 from cryptocoins.models.proxy import BTCWithdrawalApprove
 from cryptocoins.models.proxy import ETHWithdrawalApprove
 from cryptocoins.models.proxy import TRXWithdrawalApprove
-from cryptocoins.serializers import BNBKeySerializer, MaticKeySerializer
+from cryptocoins.serializers import BNBKeySerializer
 from cryptocoins.serializers import BTCKeySerializer
 from cryptocoins.serializers import ETHKeySerializer
 from cryptocoins.serializers import TRXKeySerializer
+from cryptocoins.serializers import MaticKeySerializer
 from cryptocoins.tasks.evm import process_payouts_task
 
 

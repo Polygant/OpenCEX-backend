@@ -10,7 +10,7 @@ from cryptocoins.coins.matic import MATIC_CURRENCY, w3
 from cryptocoins.evm.manager import register_evm_handler
 from cryptocoins.interfaces.common import GasPriceCache
 from cryptocoins.interfaces.web3_commons import Web3Manager, Web3Token, Web3Transaction, Web3CommonHandler
-from exchange.settings.environ import env
+from exchange.settings.env import env
 from lib.helpers import to_decimal
 
 log = logging.getLogger(__name__)
