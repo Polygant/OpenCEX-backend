@@ -122,7 +122,9 @@ class Command(BaseCommand):
         while not yes_no:
             # common token data
             token_symbol = prompt('Token symbol* (i.e. USDT)').upper()
-            blockchain_symbol = prompt('Token blockchain symbol* (i.e. ETH)', choices=['ETH', 'BNB', 'TRX'])
+            blockchain_symbol = prompt('Token blockchain symbol* (i.e. ETH)', choices=[
+                'ETH', 'BNB', 'TRX', 'MATIC',
+            ])
 
             if is_token_exists(token_symbol, blockchain_symbol):
                 print('[!] Token with this blockchain already added')
