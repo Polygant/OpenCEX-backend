@@ -6,8 +6,8 @@ from django.db.transaction import atomic
 from django.shortcuts import render, redirect
 
 from admin_panel.forms import BtcApproveAdminForm, EthApproveAdminForm, MakeTopUpForm, TrxApproveAdminForm, \
-    BnbApproveAdminForm
-from core.consts.currencies import BEP20_CURRENCIES, TRC20_CURRENCIES, ERC20_CURRENCIES
+    BnbApproveAdminForm, MaticApproveAdminForm
+from core.consts.currencies import BEP20_CURRENCIES, TRC20_CURRENCIES, ERC20_CURRENCIES, ERC20_MATIC_CURRENCIES
 from core.models import Transaction
 from core.models.inouts.transaction import REASON_MANUAL_TOPUP
 from core.utils.wallet_history import create_or_update_wallet_history_item_from_transaction
@@ -15,6 +15,7 @@ from core.utils.withdrawal import get_withdrawal_requests_to_process
 from cryptocoins.coins.bnb import BNB_CURRENCY
 from cryptocoins.coins.btc.service import BTCCoinService
 from cryptocoins.coins.eth import ETH_CURRENCY
+from cryptocoins.coins.matic import MATIC_CURRENCY
 from cryptocoins.coins.trx import TRX_CURRENCY
 from cryptocoins.tasks.evm import process_payouts_task
 
@@ -158,6 +159,38 @@ def admin_bnb_withdrawal_request_approve(request):
             messages.error(request, e)
     else:
         form = BnbApproveAdminForm()
+
+    return render(request, 'admin/withdrawal/request_approve_form.html', context={
+        'form': form,
+        'withdrawal_requests': withdrawal_requests,
+        'withdrawal_requests_column': [
+            {'label': 'user', 'param': 'user'},
+            {'label': 'confirmed', 'param': 'confirmed'},
+            {'label': 'currency', 'param': 'currency'},
+            {'label': 'state', 'param': 'state'},
+            {'label': 'details', 'param': 'data.destination'},
+        ]
+    })
+
+
+@staff_member_required
+def admin_matic_withdrawal_request_approve(request):
+    currencies = [MATIC_CURRENCY] + list(ERC20_MATIC_CURRENCIES)
+    withdrawal_requests = get_withdrawal_requests_to_process(currencies, blockchain_currency='MATIC')
+
+    if request.method == 'POST':
+        form = MaticApproveAdminForm(request.POST)
+
+        try:
+            if form.is_valid():
+                password = form.cleaned_data.get('key')
+                process_payouts_task.apply_async(['MATIC', password, ], queue='matic_payouts')
+                messages.success(request, 'Withdrawals in processing')
+                return redirect('admin_withdrawal_request_approve_matic')  # need for clear post data
+        except Exception as e:  # all messages and errors to admin message
+            messages.error(request, e)
+    else:
+        form = MaticApproveAdminForm()
 
     return render(request, 'admin/withdrawal/request_approve_form.html', context={
         'form': form,

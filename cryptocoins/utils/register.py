@@ -2,7 +2,12 @@ import logging
 from functools import partial
 from typing import Dict, Optional, Callable
 
-from core.consts.currencies import ALL_CURRENCIES, CRYPTO_COINS_PARAMS, CRYPTO_WALLET_ACCOUNT_CREATORS
+from core.consts.currencies import (
+    ALL_CURRENCIES,
+    CRYPTO_COINS_PARAMS,
+    CRYPTO_WALLET_ACCOUNT_CREATORS,
+    ERC20_MATIC_CURRENCIES,
+)
 from core.consts.currencies import ALL_TOKEN_CURRENCIES
 from core.consts.currencies import BEP20_CURRENCIES
 from core.consts.currencies import CRYPTO_ADDRESS_VALIDATORS
@@ -95,6 +100,17 @@ def register_token(currency_id, currency_code, blockchains: Optional[Dict[str, T
             address_validators['TRX'] = is_valid_tron_address
 
             log.debug(f'Token {currency} registered as TRC20')
+
+        if 'MATIC' in blockchains:
+            from cryptocoins.coins.matic.wallet import erc20_polygon_wallet_creation_wrapper, is_valid_matic_address
+
+            ERC20_MATIC_CURRENCIES.update({
+                currency: blockchains['MATIC']
+            })
+            wallet_creators['MATIC'] = erc20_polygon_wallet_creation_wrapper
+            address_validators['MATIC'] = is_valid_matic_address
+
+            log.debug(f'Token {currency} registered as ERC20 Polygon')
 
         CRYPTO_WALLET_CREATORS[currency] = wallet_creators
         CRYPTO_ADDRESS_VALIDATORS[currency] = address_validators
