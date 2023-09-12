@@ -19,3 +19,8 @@ class TRXWithdrawalApprove(BaseWithdrawalRequest):
 class BNBWithdrawalApprove(BaseWithdrawalRequest):
     class Meta:
         proxy = True
+
+
+class MaticWithdrawalApprove(BaseWithdrawalRequest):
+    class Meta:
+        proxy = True

@@ -1,7 +1,7 @@
 import logging
 import time
 from decimal import Decimal
-from typing import Type, Union
+from typing import Type, Union, Optional
 
 from celery import group
 from django.core.cache import cache
@@ -42,7 +42,7 @@ abi_codec = ABICodec(registry)
 
 class Web3Transaction(BlockchainTransaction):
     @classmethod
-    def from_node(cls, tx_data):
+    def from_node(cls, tx_data) -> Optional['Web3Transaction']:
         tx_hash = tx_data['hash']
         if hasattr(tx_hash, 'hex') and callable(getattr(tx_hash, 'hex')):
             tx_hash = tx_hash.hex()
@@ -54,6 +54,8 @@ class Web3Transaction(BlockchainTransaction):
 
         try:
             to_addr = Web3.to_checksum_address(tx_data['to'])
+        except KeyError:
+            return
         except:
             to_addr = tx_data['to']
 
@@ -337,6 +339,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             log.info('Block #%s has no transactions, skipping', block_id)
             return
 
+        transactions = cls._filter_transactions(transactions, block_id=block_id)
         log.info('Transactions count in block #%s: %s', block_id, len(transactions))
 
         coin_deposit_jobs = []
@@ -727,7 +730,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
 
         # we want to process our tx faster
         gas_price = cls.COIN_MANAGER.gas_price_cache.get_increased_price()
-        gas_amount = gas_price * cls.GAS_CURRENCY
+        gas_amount = gas_price * cls.COIN_MANAGER.GAS_CURRENCY
         withdrawal_amount_wei = amount_wei - gas_amount
         withdrawal_amount = cls.COIN_MANAGER.get_amount_from_base_denomination(withdrawal_amount_wei)
 
@@ -912,7 +915,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
             tx_data = {
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': cls.GAS_CURRENCY,
+                'gas': cls.COIN_MANAGER.GAS_CURRENCY,
                 'from': Web3.to_checksum_address(gas_keeper.address),
                 'to': address,
                 'value': accumulation_gas_total_amount,
@@ -952,3 +955,7 @@ class Web3CommonHandler(BaseEVMCoinHandler):
         except RetryRequired:
             # retry with higher gas price
             cls.send_gas(wallet_transaction_id, old_tx_data=tx_data, old_tx_hash=tx_hash)
+
+    @classmethod
+    def _filter_transactions(cls, transactions, **kwargs) -> list:
+        return transactions

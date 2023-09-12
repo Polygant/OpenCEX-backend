@@ -3,7 +3,7 @@ import logging
 import requests
 from django.conf import settings
 
-from core.consts.currencies import ERC20_POLYGON_CURRENCIES
+from core.consts.currencies import ERC20_MATIC_CURRENCIES
 from core.currency import Currency
 from lib.services.etherscan_client import EtherscanClient
 
@@ -25,4 +25,4 @@ class PolygonscanClient(EtherscanClient):
         return res
 
     def get_token_params(self, currency_code):
-        return ERC20_POLYGON_CURRENCIES.get(Currency.get(currency_code))
+        return ERC20_MATIC_CURRENCIES.get(Currency.get(currency_code))

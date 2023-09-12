@@ -15,6 +15,8 @@ BNB_SAFE_ADDR = env('BNB_SAFE_ADDR')
 
 TRX_SAFE_ADDR = env('TRX_SAFE_ADDR')
 
+MATIC_SAFE_ADDR = env('MATIC_SAFE_ADDR')
+
 
 BTC_BLOCK_GENERATION_TIME = 5 * 60.0
 BTC_NODE_CONNECTION_RETRIES = 5
@@ -48,6 +50,22 @@ BNB_RPC_ENDPOINTS = [
     'https://bsc-dataseed.binance.org/',
     'https://bsc-dataseed1.defibit.io/',
     'https://bsc-dataseed1.ninicoin.io/',
+    'https://bsc-dataseed1.binance.org/',
+    'https://bsc-dataseed2.binance.org/',
+    'https://bsc-dataseed3.binance.org/',
+    'https://bsc-dataseed4.binance.org/',
+    'https://bsc-dataseed1.defibit.io/',
+    'https://bsc-dataseed2.defibit.io/',
+    'https://bsc-dataseed3.defibit.io/',
+    'https://bsc-dataseed4.defibit.io/',
+    'https://bsc-dataseed1.ninicoin.io/',
+    'https://bsc-dataseed2.ninicoin.io/',
+    'https://bsc-dataseed3.ninicoin.io/',
+    'https://bsc-dataseed4.ninicoin.io/',
+    'https://bsc-dataseed1.bnbchain.org',
+    'https://bsc-rpc.gateway.pokt.network',
+    'https://bscrpc.com',
+    'https://bsc.publicnode.com',
 ]
 
 TRX_NET_FEE = env('TRX_NET_FEE', default=3_000_000)  # 3 TRX
@@ -59,9 +77,19 @@ TRC20_FEE_LIMIT_FACTOR = 1.1
 RECEIPT_RETRY_INTERVAL = 5
 RECEIPT_RETRY_ATTEMPTS = 3
 
+MATIC_CHAIN_ID = 137
+MATIC_TX_GAS = 21000
+MATIC_ACCUMULATION_PERIOD = 60
+MATIC_BLOCK_GENERATION_TIME = 15
+MATIC_GAS_PRICE_UPDATE_PERIOD = 60
+MATIC_GAS_PRICE_COEFFICIENT = 0.1
+MATIC_MAX_GAS_PRICE = 300000000000
+MATIC_MIN_GAS_PRICE = 5000000000
+
 TRONGRID_API_KEY = [env('TRONGRID_API_KEY', default='')]
 ETHERSCAN_KEY = env('ETHERSCAN_KEY', default='')
 BSCSCAN_KEY = env('BSCSCAN_KEY', default='')
+POLYGONSCAN_KEY = env('POLYGONSCAN_KEY', default='')
 
 LATEST_ADDRESSES_REGENERATION = timezone.datetime(2021, 1, 28, 11, 20)
 

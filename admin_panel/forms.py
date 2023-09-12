@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from core.consts.currencies import CURRENCIES_LIST
 from core.currency import Currency
 from cryptocoins.coins.eth.ethereum import ethereum_manager
+from cryptocoins.coins.matic.polygon import matic_manager
 from cryptocoins.coins.trx.tron import tron_manager
 from cryptocoins.coins.bnb.bnb import bnb_manager
 from lib.cipher import AESCoderDecoder
@@ -97,3 +98,9 @@ class BnbApproveAdminForm(BaseApproveAdminForm):
 
     def get_encrypted_string(self):
         return bnb_manager.get_keeper_wallet().private_key
+
+
+class MaticApproveAdminForm(BaseApproveAdminForm):
+
+    def get_encrypted_string(self):
+        return matic_manager.get_keeper_wallet().private_key
