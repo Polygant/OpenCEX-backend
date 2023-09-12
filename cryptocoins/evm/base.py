@@ -86,6 +86,7 @@ class BaseEVMCoinHandler:
                     current_block_id + 1,
                 ))
                 blocks_to_process.insert(0, last_processed_block_id)
+                blocks_to_process = blocks_to_process[:cls.DEFAULT_BLOCK_ID_DELTA]
 
                 if len(blocks_to_process) > 1:
                     log.info('Need to process blocks #%s..#%s', last_processed_block_id + 1, current_block_id)
