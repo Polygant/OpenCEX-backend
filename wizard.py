@@ -38,6 +38,7 @@ from cryptocoins.coins.eth import ETH
 from cryptocoins.coins.usdt import USDT
 from cryptocoins.coins.bnb import BNB
 from cryptocoins.coins.trx import TRX
+from cryptocoins.coins.matic import MATIC
 
 from cryptocoins.utils.btc import generate_btc_multisig_keeper
 
@@ -52,8 +53,9 @@ BACKUP_PATH = os.path.join(settings.BASE_DIR, 'backup')
 
 def main():
 
-    IS_TRON = True if env('COMMON_TASKS_TRON', default=True) else False
-    IS_BSC = True if env('COMMON_TASKS_BNB', default=True) else False
+    IS_TRON = env('COMMON_TASKS_TRON', default=True, cast=bool)
+    IS_BSC = env('COMMON_TASKS_BNB', default=True, cast=bool)
+    IS_MATIC = env('COMMON_TASKS_BNB', default=True, cast=bool)
 
     coin_list = [
         ETH,
@@ -61,6 +63,7 @@ def main():
         USDT,
         BNB,
         TRX,
+        MATIC,
     ]
     coin_info = {
         ETH: [
@@ -358,6 +361,55 @@ def main():
                 },
             },
         ],
+        MATIC: [
+            {
+                'model': CoinInfo,
+                'find': {'currency': MATIC},
+                'attributes': {
+                    'name': 'MATIC',
+                    'decimals': 8,
+                    'index': 27,
+                    'tx_explorer': 'https://polygonscan.com/tx/',
+                    'links': {
+                        "bt": {"href": "", "title": "BitcoinTalk"},
+                        "cmc": {"href": "", "title": "CoinMarketCap"},
+                        "exp": {"href": "", "title": "Explorer"},
+                        "official": {"href": "", "title": ""}
+                    },
+                    'logo': 'https://s2.coinmarketcap.com/static/img/coins/64x64/3890.png',
+                },
+            },
+            {
+                'model': FeesAndLimits,
+                'find': {'currency': MATIC},
+                'attributes': {
+                    'limits_deposit_min': 0.00010000,
+                    'limits_deposit_max': 10000000.00000000,
+                    'limits_withdrawal_min': 0.00010000,
+                    'limits_withdrawal_max': 10000000.00000000,
+                    'limits_order_min': 0.01000000,
+                    'limits_order_max': 100000000.00000000,
+                    'limits_code_max': 10000000.00000000,
+                    'limits_accumulation_min': 0.00010000,
+                    'fee_deposit_address': 0,
+                    'fee_deposit_code': 0,
+                    'fee_withdrawal_code': 0,
+                    'fee_order_limits': 0.00100000,
+                    'fee_order_market': 0.00200000,
+                    'fee_exchange_value': 0.00200000,
+                    'limits_keeper_accumulation_balance': 100.00000000,
+                    'limits_accumulation_max_gas_price': 500.00000000,
+                },
+            },
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': MATIC},
+                'attributes': {
+                    'blockchain_currency': MATIC,
+                    'address_fee': 0.00300000
+                },
+            },
+        ],
     }
 
     if not IS_BSC:
@@ -381,6 +433,22 @@ def main():
             {
                 'model': DisabledCoin,
                 'find': {'currency': TRX},
+                'attributes': {
+                    'disable_all': True,
+                    'disable_stack': True,
+                    'disable_pairs': True,
+                    'disable_exchange': True,
+                    'disable_withdrawals': True,
+                    'disable_topups': True,
+                },
+            },
+        )
+
+    if not IS_MATIC:
+        coin_info[TRX].append(
+            {
+                'model': DisabledCoin,
+                'find': {'currency': MATIC},
                 'attributes': {
                     'disable_all': True,
                     'disable_stack': True,
@@ -442,6 +510,7 @@ def main():
                 USDT: 100_000,
                 BNB: 10,
                 TRX: 100_000,
+                MATIC: 10_000,
             }
 
             for currency_id, amount in topup_list.items():
@@ -457,7 +526,11 @@ def main():
         to_write.append(f'Email: {name}  Password: {settings.BOT_PASSWORD}')
         to_write.append('='*10)
 
-        for pair_data in PAIRS_LIST:
+        pairs = PAIRS_LIST + [
+            (12, 'MATIC-USDT')
+        ]
+
+        for pair_data in pairs:
             id_value, code = pair_data
             base, quote = code.split('-')
             Pair.objects.get_or_create(id=id_value, base=base, quote=quote)
@@ -570,6 +643,35 @@ def main():
                     'low_orders_spread_size': 1,
                     'low_orders_min_order_size': 1,
                     'enabled': IS_BSC,
+                }
+            },
+            Pair.get('MATIC-USDT'): {
+                PairSettings: {
+                    'is_enabled': IS_MATIC,
+                    'is_autoorders_enabled': True,
+                    'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
+                    'custom_price': 0,
+                    'deviation': 0.0,
+                    'precisions': ['10', '1', '0.1', '0.01', '0.001'],
+                },
+                BotConfig: {
+                    'name': 'MATIC-USDT',
+                    'user': bot,
+                    'strategy': BotConfig.TRADE_STRATEGY_DRAW,
+                    'symbol_precision': 6,
+                    'quote_precision': 6,
+                    'instant_match': True,
+                    'ohlc_period': 60,
+                    'loop_period_random': True,
+                    'min_period': 60,
+                    'max_period': 180,
+                    'ext_price_delta': 0.001,
+                    'min_order_quantity': 10,
+                    'max_order_quantity': 10000,
+                    'low_orders_max_match_size': 1,
+                    'low_orders_spread_size': 1,
+                    'low_orders_min_order_size': 1,
+                    'enabled': IS_MATIC,
                 }
             },
         }
