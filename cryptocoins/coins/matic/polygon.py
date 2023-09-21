@@ -67,5 +67,7 @@ class MaticHandler(Web3CommonHandler):
     BLOCK_GENERATION_TIME = settings.MATIC_BLOCK_GENERATION_TIME
     IS_ENABLED = env('COMMON_TASKS_MATIC', default=True)
     W3_CLIENT = w3
-    SAFE_ADDR = w3.to_checksum_address(settings.MATIC_SAFE_ADDR)
     ACCUMULATION_PERIOD = settings.MATIC_ACCUMULATION_PERIOD
+
+    if IS_ENABLED:
+        SAFE_ADDR = w3.to_checksum_address(settings.MATIC_SAFE_ADDR)
