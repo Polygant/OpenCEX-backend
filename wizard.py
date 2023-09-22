@@ -55,7 +55,7 @@ def main():
 
     IS_TRON = env('COMMON_TASKS_TRON', default=True, cast=bool)
     IS_BSC = env('COMMON_TASKS_BNB', default=True, cast=bool)
-    IS_MATIC = env('COMMON_TASKS_BNB', default=True, cast=bool)
+    IS_MATIC = env('COMMON_TASKS_MATIC', default=True, cast=bool)
 
     coin_list = [
         ETH,
