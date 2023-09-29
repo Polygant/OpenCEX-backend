@@ -460,9 +460,11 @@ class WalletHistoryItemApiAdmin(DefaultApiAdmin):
 @api_admin.register(User)
 class UserApiAdmin(DefaultApiAdmin):
     vue_resource_extras = {'aside': {'edit': True}}
-    list_display = ('id', 'date_joined', 'email', 'first_name', 'last_name', 'user_type', 'is_staff', 'is_superuser',
-                    'is_active', 'kyc', 'kyc_reject_type', 'two_fa',
-                    'withdrawals_count', 'orders_count', 'email_verified', 'withdrawals_sms_confirmation',)
+    list_display = ('id', 'date_joined', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active',
+                    'user_type', 'kyc', 'kyc_reject_type', 'two_fa',
+                    'withdrawals_count', 'orders_count',
+                    'email_verified', 'withdrawals_sms_confirmation',
+                    )
     fields = (
         'id',
         'username',
@@ -523,7 +525,7 @@ class UserApiAdmin(DefaultApiAdmin):
                 default=Value(False),
                 output_field=models.BooleanField(),
             ),
-        ).prefetch_related('withdrawalrequest_set', 'order_set', 'twofactorsecrettokens_set', 'userkyc', 'profile')
+        )
 
     def kyc(self, obj):
         return obj.kyc

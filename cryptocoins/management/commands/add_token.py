@@ -7,7 +7,7 @@ from django.db.models import Max
 from web3 import Web3
 
 from core.consts.currencies import BEP20_CURRENCIES, ERC20_CURRENCIES, TRC20_CURRENCIES, CURRENCIES_LIST, \
-    CRYPTO_ADDRESS_VALIDATORS
+    CRYPTO_ADDRESS_VALIDATORS, ERC20_MATIC_CURRENCIES
 from core.currency import Currency, CurrencyNotFound
 from core.models import PairSettings, FeesAndLimits, WithdrawalFee
 from core.models.facade import CoinInfo
@@ -17,8 +17,18 @@ from cryptocoins.data_sources.crypto import binance_data_source, kucoin_data_sou
 from cryptocoins.tokens_manager import read_tokens_file, write_tokens_file, get_tokens_backup_diffs, \
     restore_backup_file, register_tokens_and_pairs
 
-TOKENS_BLOCKCHAINS_MAP = {'ETH': ERC20_CURRENCIES, 'BNB': BEP20_CURRENCIES, 'TRX': TRC20_CURRENCIES}
-EXPLORERS_MAP = {'ETH': 'https://etherscan.io/', 'BNB': 'https://bscscan.com/', 'TRX': 'https://tronscan.org/'}
+TOKENS_BLOCKCHAINS_MAP = {
+    'ETH': ERC20_CURRENCIES,
+    'BNB': BEP20_CURRENCIES,
+    'TRX': TRC20_CURRENCIES,
+    'MATIC': ERC20_MATIC_CURRENCIES,
+}
+EXPLORERS_MAP = {
+    'ETH': 'https://etherscan.io/',
+    'BNB': 'https://bscscan.com/',
+    'TRX': 'https://tronscan.org/',
+    'MATIC': 'https://polygonscan.com/',
+}
 
 HEADER = """ 
  000000\                                 000000\  00000000\ 00\   00\ 
@@ -112,7 +122,9 @@ class Command(BaseCommand):
         while not yes_no:
             # common token data
             token_symbol = prompt('Token symbol* (i.e. USDT)').upper()
-            blockchain_symbol = prompt('Token blockchain symbol* (i.e. ETH)', choices=['ETH', 'BNB', 'TRX'])
+            blockchain_symbol = prompt('Token blockchain symbol* (i.e. ETH)', choices=[
+                'ETH', 'BNB', 'TRX', 'MATIC',
+            ])
 
             if is_token_exists(token_symbol, blockchain_symbol):
                 print('[!] Token with this blockchain already added')
