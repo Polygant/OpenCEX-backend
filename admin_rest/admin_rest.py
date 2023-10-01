@@ -28,7 +28,7 @@ from admin_rest.fields import BooleanReadOnlyField, WithdrawalSmsConfirmationFie
 from admin_rest.mixins import JsonListApiViewMixin
 from admin_rest.mixins import NoDeleteMixin, NoCreateMixin
 from admin_rest.mixins import ReadOnlyMixin
-from admin_rest.models import AllOrder
+from admin_rest.models import AllOrder, ExchangeUser
 from admin_rest.models import AllOrderNoBot
 from admin_rest.models import Balance
 from admin_rest.models import Match
@@ -345,7 +345,7 @@ class WalletTransactionsApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
             blockchain=F('wallet__blockchain_currency'),
             tx_amount=F('transaction__amount'),
         )
-        return qs.prefetch_related('wallet', 'transaction', 'transaction__user')
+        return qs
 
     @serial_field(serial_class=CurrencySerialRestField)
     def blockchain(self, obj):
@@ -458,7 +458,16 @@ class WalletHistoryItemApiAdmin(DefaultApiAdmin):
 
 
 @api_admin.register(User)
-class UserApiAdmin(DefaultApiAdmin):
+class UserApiAdmin(DefaultApiAdmin, ReadOnlyMixin):
+    list_display = ('id', 'date_joined', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active')
+    fields = ('id', 'date_joined', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active')
+    search_fields = ['username']
+    ordering = ('-date_joined',)
+
+
+
+@api_admin.register(ExchangeUser)
+class ExchangeUserApiAdmin(DefaultApiAdmin):
     vue_resource_extras = {'aside': {'edit': True}}
     list_display = ('id', 'date_joined', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active',
                     'user_type', 'kyc', 'kyc_reject_type', 'two_fa',
@@ -491,7 +500,7 @@ class UserApiAdmin(DefaultApiAdmin):
     filterset_fields = ['profile__user_type', ]
 
     def get_queryset(self):
-        qs = super(UserApiAdmin, self).get_queryset()
+        qs = super(ExchangeUserApiAdmin, self).get_queryset()
         return qs.annotate(
             withdrawals_sms_confirmation=F("profile__withdrawals_sms_confirmation"),
             withdrawals_count=Count('withdrawalrequest', distinct=True),
