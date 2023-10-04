@@ -14,7 +14,7 @@ VUE_ADMIN_SIDE_MENU = [
     {'icon': 'mdi-view-dashboard', 'text': 'Dashboard', 'link': '/',},
     {'divider': True},
     {'heading': 'Users Management'},
-    {'icon': 'mdi-account', 'link': {'name': 'auth_user_list'}, 'text': 'Users'},
+    {'icon': 'mdi-account', 'link': {'name': 'admin_rest_exchangeuser_list'}, 'text': 'Users'},
     {'icon': 'mdi-account', 'link': {'name': 'core_userfee_list'}, 'text': 'Fee Users'},
     {'icon': 'mdi-account-badge-horizontal-outline', 'link': {'name': 'core_userkyc_list'}, 'text': 'User kyc'},
     {'icon': 'mdi-wallet-outline', 'link': {'name': 'core_userwallet_list'}, 'text': 'User Wallets'},
