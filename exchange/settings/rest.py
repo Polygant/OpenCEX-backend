@@ -26,8 +26,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '5/second',
-        'user': '5/second',
-        'dj_rest_auth': '5/second',
+        'user': '10/second',
+        'dj_rest_auth': '10/second',
     },
     'EXCEPTION_HANDLER': 'lib.utils.exception_handler',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',

@@ -95,3 +95,7 @@ class BalanceSummary(BaseBalance):
     class Meta:
         proxy = True
 
+
+class ExchangeUser(User):
+    class Meta:
+        proxy = True
