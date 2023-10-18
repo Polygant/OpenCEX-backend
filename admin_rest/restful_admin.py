@@ -642,12 +642,12 @@ class RestFulModelAdmin(AuthPermissionViewSetMixin, viewsets.ModelViewSet):
 
             if isinstance(model_field, models.DateTimeField):
                 CustomField = JSDatetimeField
+            elif field_type == PairModelField:
+                CustomField = PairSerialRestField
             elif isinstance(model_field, models.ForeignKey) and not single:
                 CustomField = ForeignSerialField
             elif field_type == CurrencyModelField:
                 CustomField = CurrencySerialRestField
-            elif field_type == PairModelField:
-                CustomField = PairSerialRestField
             elif field_type == RichTextField:
                 CustomField = RichTextSerialField
             elif field_type == models.TextField:
