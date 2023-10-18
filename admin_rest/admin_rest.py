@@ -21,6 +21,7 @@ from django.utils.translation import ugettext_lazy
 from django_otp.conf import settings
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
 
 from admin_rest import restful_admin as api_admin
 from admin_rest.fields import BooleanReadOnlyField, WithdrawalSmsConfirmationField, serial_field, \
@@ -635,6 +636,7 @@ class BalanceApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
 
 @api_admin.register(AllOrder)
 class AllOrderApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
+    permission_classes = [AllowAny,]
     list_display = ['id', 'user', 'created', 'pair', 'operation', 'type', 'quantity',
                     'quantity_left', 'price', 'amount', 'fee', 'state', 'executed',
                     'state_changed_at']

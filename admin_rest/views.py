@@ -68,7 +68,7 @@ def login(request):
     refresh = RefreshToken.for_user(user)
     token = str(refresh.access_token)
 
-    response = JsonResponse({'status': True, 'access_token': token}, safe=False, status=status.HTTP_200_OK)
+    response = JsonResponse({'status': True, 'access_token': token, 'refresh_token': refresh}, safe=False, status=status.HTTP_200_OK)
     response.set_cookie(settings.JWT_AUTH_COOKIE, token, settings.JWT_EXPIRATION_DELTA.total_seconds(), httponly=True)
 
     return response
