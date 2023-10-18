@@ -484,7 +484,18 @@ class ExchangeUserApiAdmin(DefaultApiAdmin):
         'is_superuser',
         'is_active',
     )
-    readonly_fields = ['id', 'is_superuser', 'is_staff', 'user_type']
+    readonly_fields = [
+        'id',
+        'is_superuser',
+        'is_staff',
+        'user_type',
+        'two_fa',
+        'email_verified',
+        'withdrawals_count',
+        'orders_count',
+        'kyc',
+        'kyc_reject_type',
+    ]
     search_fields = ['username']
     ordering = ('-date_joined',)
     actions = {
