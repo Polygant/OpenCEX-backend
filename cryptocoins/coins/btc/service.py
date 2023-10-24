@@ -197,19 +197,19 @@ class BTCCoinService(BitCoreCoinServiceBase):
                 self.process_deposit(tx_id, addr, amount)
 
     def accumulate_deposit(self, wallet_transaction, inputs_dict, private_keys_dict):
-        #private_keys = {}
         item = inputs_dict.get(wallet_transaction.tx_hash)
         if not item:
             return
-        #private_keys[item['txid'] + ':' + str(item['vout'])] = private_keys_dict[item['address']]
-        private_keys_dict[item['txid'] + ':' + str(item['vout'])] = private_keys_dict[item['address']]
+        private_keys_dict[item['address']] = private_keys_dict[item['address']]
         total_amount = wallet_transaction.amount
 
         accumulation_address = wallet_transaction.external_accumulation_address or self.get_accumulation_address(total_amount)
         accumulation_amount = 0
 
         try:
-            tx_id, accumulation_amount = self.transfer_to([item], accumulation_address, total_amount,  private_keys_dict)
+            tx_id, accumulation_amount = self.transfer_to(
+                [item], accumulation_address, total_amount,  private_keys_dict
+            )
         except TransferAmountLowError:
             wallet_transaction.set_balance_too_low()
             tx_id = None
