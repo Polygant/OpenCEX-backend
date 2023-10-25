@@ -1118,7 +1118,8 @@ class UserWalletAdmin(ReadOnlyMixin, DefaultApiAdmin):
 
 @api_admin.register(PairSettings)
 class PairSettingsAdmin(DefaultApiAdmin):
-    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'precisions']
+    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price',
+               'deviation', 'precisions', 'min_order_size', 'min_base_amount_increment', 'min_price_increment']
     list_display = _fields
     fields = _fields
 
