@@ -348,7 +348,7 @@ class ClosedOrdersNotificator(OpenedOrdersNotificator):
         queryset = Order.objects.filter(
             user_id=user_id,
             state__in=[Order.STATE_CLOSED, Order.STATE_REVERT, Order.STATE_CANCELLED]
-        ).order_by('-created')
+        ).order_by('-updated')
         return queryset
 
 
