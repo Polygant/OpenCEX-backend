@@ -29,7 +29,7 @@ class BlockchainTransaction:
         self.to_addr = tx_data['to_addr']
         self.value = tx_data['value']
         self.contract_address = tx_data['contract_address']
-        self.is_success = tx_data.get('is_success') or True
+        self.is_success = tx_data.get('is_success', True)
 
     def as_dict(self) -> dict:
         return {
