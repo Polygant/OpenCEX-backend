@@ -25,7 +25,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.auth.api_hmac_auth import HMACAuthentication
+from core.auth.hmac_auth import HMACAuthentication
 from core.consts.inouts import DISABLE_STACK
 from core.models import PairSettings
 from core.models.facade import CoinInfo
@@ -297,8 +297,7 @@ class PairsListView(NoAuthMixin, ThrottlingViewMixin, APIView):
     @extend_schema(exclude=True)
     def get(self, request):
         """Returns pairs data"""
-        r = [i.to_dict() for i in Pair.objects.all() if i.code not in PairSettings.get_disabled_pairs()]
-        return Response({'pairs': r})
+        return Response({'data': PairSettings.get_enabled_pairs_data()})
 
 
 class MarketsListView(NoAuthMixin, ThrottlingViewMixin, APIView):
@@ -508,3 +507,10 @@ def render_docs(request):
         md_content = f.read()
     html = markdown.markdown(md_content, extensions=['extra', 'codehilite', 'attr_list', 'def_list'])
     return render(request, 'api/docs.html', {"html": html})
+
+
+@extend_schema(exclude=True)
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def server_time(request):
+    return Response({'server_time': int(time.time() * 1000)}, status=status.HTTP_200_OK)

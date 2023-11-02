@@ -484,7 +484,18 @@ class ExchangeUserApiAdmin(DefaultApiAdmin):
         'is_superuser',
         'is_active',
     )
-    readonly_fields = ['id', 'is_superuser', 'is_staff', 'user_type']
+    readonly_fields = [
+        'id',
+        'is_superuser',
+        'is_staff',
+        'user_type',
+        'two_fa',
+        'email_verified',
+        'withdrawals_count',
+        'orders_count',
+        'kyc',
+        'kyc_reject_type',
+    ]
     search_fields = ['username']
     ordering = ('-date_joined',)
     actions = {
@@ -1107,7 +1118,8 @@ class UserWalletAdmin(ReadOnlyMixin, DefaultApiAdmin):
 
 @api_admin.register(PairSettings)
 class PairSettingsAdmin(DefaultApiAdmin):
-    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price', 'deviation', 'precisions']
+    _fields = ['pair', 'is_enabled', 'is_autoorders_enabled', 'price_source', 'custom_price',
+               'deviation', 'precisions', 'min_order_size', 'min_base_amount_increment', 'min_price_increment']
     list_display = _fields
     fields = _fields
 
