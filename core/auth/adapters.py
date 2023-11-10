@@ -3,6 +3,8 @@ from allauth.utils import email_address_exists
 from django.utils import translation
 from rest_framework.exceptions import ValidationError
 
+from core.utils import get_rand_code
+
 
 class AccountAdapter(DefaultAccountAdapter):
 
@@ -26,3 +28,6 @@ class AccountAdapter(DefaultAccountAdapter):
         context.update({"lang": lang})
         with translation.override(lang):
             return super().render_mail(template_prefix, email, context, headers)
+
+    def generate_emailconfirmation_key(self, email):
+        return get_rand_code(6)
