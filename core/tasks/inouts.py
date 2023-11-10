@@ -137,6 +137,7 @@ def send_withdrawal_confirmation_email(withdrawal_request_id):
     confirmation_url = f'https://{site.domain}/account/confirm-withdrawal-request/{token}'
     context = {
         'confirmation_url': confirmation_url,
+        'code': token,
     }
     message = loader.get_template('withdrawal_request_confirmation.txt').render(context)
 
@@ -144,5 +145,5 @@ def send_withdrawal_confirmation_email(withdrawal_request_id):
         subject=_('Withdrawal request confirmation'),
         message=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[withdrawal_request.user.username],
+        recipient_list=[withdrawal_request.user.email],
     )

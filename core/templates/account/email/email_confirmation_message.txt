@@ -5,14 +5,11 @@
 
 Hello, {{ user_display }}!
 
-Your e-mail address was specified during the registration process on {{ site_name }}
-To confirm your account, please click on the link below:
+You have requested adding an email address to your account on {{ site_name }}.
+Copy and enter the code to confirm the action:
 
+{{key}}
 
-https://{{site_domain}}/account/email-verify/{{key}}
-
-If you received this email by mistake, just ignore it.
-
-Yours faithfully, {{ site_name }}
+If you have not performed this action, immediately write to support.
 {% endblocktrans %}
 {% endautoescape %}
