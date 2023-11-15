@@ -127,12 +127,12 @@ future==0.18.3
 fuzzywuzzy==0.18.0
 graypy==2.1.0
 gunicorn==20.1.0
-h11==0.12.0
+h11==0.14.0
 hdwallets==0.1.2
 hexbytes==0.2.2
 hiredis==2.0.0
 html5lib==1.1
-httpcore==0.15.0
+httpcore==1.0.2
 httpx==0.25.1
 humanize==3.11.0
 hyperlink==21.0.0
