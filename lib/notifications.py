@@ -5,7 +5,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def send_telegram_message(message, logger=None, chat_id=None, bot_token=None):
+async def send_telegram_message(message, logger=None, chat_id=None, bot_token=None):
     logger = logger or log
     try:
         token = bot_token or settings.TELEGRAM_BOT_TOKEN
