@@ -15,6 +15,6 @@ def send_telegram_message(message, logger=None, chat_id=None, bot_token=None):
             return
 
         bot = telegram.Bot(token=token)
-        bot.send_message(chat_id, f'Instance: {settings.INSTANCE_NAME}\n' + message)
+        await bot.send_message(chat_id, f'Instance: {settings.INSTANCE_NAME}\n' + message)
     except Exception as e:
         logger.error(e)
