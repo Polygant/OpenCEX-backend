@@ -192,7 +192,7 @@ class CustomMetadata(SimpleMetadata):
 
     def __init__(self, *args, **kwargs):
         super(CustomMetadata, self).__init__(*args, **kwargs)
-        #TODO make consts for out fields
+        # TODO make consts for out fields
         self.label_lookup[JSDatetimeField] = 'datetime'
         self.label_lookup[PrimaryKeyRelatedField] = 'foreign'
         self.label_lookup[ManyRelatedField] = 'foreign'
@@ -254,7 +254,6 @@ class CustomMetadata(SimpleMetadata):
             serializer = view.get_all_fields_serializer()
             fields = self.get_serializer_info(serializer)
             metadata['filters'] = {k: v for k, v in fields.items() if v['filterable']}
-
 
         return metadata
 
@@ -386,7 +385,8 @@ class CustomMetadata(SimpleMetadata):
             field_info['filterable'] = True
 
         field_info['attributes'] = self.get_field_attributes(field, model_field)
-        field_info['attributes']['searchable'] = field.field_name in (view.vue_resource_extras.get('searchable_fields') or [])
+        field_info['attributes']['searchable'] = field.field_name in (
+                view.vue_resource_extras.get('searchable_fields') or [])
 
         return field_info
 
@@ -540,6 +540,7 @@ class RestFulModelAdmin(AuthPermissionViewSetMixin, viewsets.ModelViewSet):
 
     def get_serializer_representation_fn(self, cls):
         """Custom fields representation fn"""
+
         def validate_fn(sf, instance):
             """
             Object instance -> Dict of primitive datatypes.

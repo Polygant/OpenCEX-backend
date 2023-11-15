@@ -293,7 +293,7 @@ class UserFeeApiAdmin(DefaultApiAdmin):
 
 
 @api_admin.register(UserKYC)
-class UserKYCApiAdmin(DefaultApiAdmin):
+class UserKYCApiAdmin(NoCreateMixin, DefaultApiAdmin):
     search_fields = ['user__email']
 
 
@@ -467,7 +467,7 @@ class UserApiAdmin(DefaultApiAdmin, ReadOnlyMixin):
 
 
 @api_admin.register(ExchangeUser)
-class ExchangeUserApiAdmin(DefaultApiAdmin):
+class ExchangeUserApiAdmin(NoCreateMixin, DefaultApiAdmin):
     vue_resource_extras = {'aside': {'edit': True}}
     list_display = ('id', 'date_joined', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_active',
                     'user_type', 'kyc', 'kyc_reject_type', 'two_fa',
@@ -620,7 +620,7 @@ class ExchangeUserApiAdmin(DefaultApiAdmin):
 
 
 @api_admin.register(Transaction)
-class TransactionApiAdmin(DefaultApiAdmin):
+class TransactionApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
     list_display = ['user', 'created', 'reason', 'currency', 'amount', 'state']
     filterset_fields = ['reason', 'currency', 'created', 'state',]
     search_fields = ['user__email']
@@ -821,7 +821,7 @@ class MatchApiAdmin(ReadOnlyMixin, DefaultApiAdmin):
 
 # TODO optimize
 @api_admin.register(WithdrawalRequest)
-class WithdrawalRequestAdmin(RestFulModelAdmin):
+class WithdrawalRequestAdmin(ReadOnlyMixin, RestFulModelAdmin):
     list_display = (
         'created', 'user', 'approved', 'confirmed', 'currency', 'blockchain', 'amount',
         'state', 'details', 'sci_gate', 'txid', 'is_freezed',)
@@ -944,7 +944,7 @@ class WithdrawalRequestAdmin(RestFulModelAdmin):
 
 
 @api_admin.register(UserDailyStat)
-class UserPairDailyStatAdmin(NoDeleteMixin, DefaultApiAdmin):
+class UserPairDailyStatAdmin(ReadOnlyMixin, DefaultApiAdmin):
     list_display = ['user', 'pair', 'day', 'currency1', 'currency2', 'volume_got1', 'volume_got2',
                     'fee_amount_paid1', 'fee_amount_paid2', 'volume_spent1', 'volume_spent2']
     readonly_fields = list_display
@@ -1084,7 +1084,7 @@ class DepositsWithdrawalsStatsAdmin(JsonListApiViewMixin, ReadOnlyMixin, Default
 
 
 @api_admin.register(DisabledCoin)
-class DisabledInoutCoinAdmin(DefaultApiAdmin):
+class DisabledInoutCoinAdmin(NoCreateMixin, DefaultApiAdmin):
     list_filter = ['currency'] + DISABLE_COIN_STATES
     list_display = ['currency'] + DISABLE_COIN_STATES
     readonly_fields = ('currency',)
