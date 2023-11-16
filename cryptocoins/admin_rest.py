@@ -41,7 +41,7 @@ class BaseWithdrawalApprove(ReadOnlyMixin, DefaultApiAdmin):
 
 
 @api_admin.register(BTCWithdrawalApprove)
-class BTCWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
+class BTCWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
 
     def get_queryset(self):
         service = BTCCoinService()
@@ -61,7 +61,7 @@ class BTCWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
 
 
 @api_admin.register(ETHWithdrawalApprove)
-class ETHWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
+class ETHWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
 
     def get_queryset(self):
         return get_withdrawal_requests_to_process([ETH_CURRENCY, *ERC20_CURRENCIES], blockchain_currency='ETH')
@@ -77,7 +77,7 @@ class ETHWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
 
 
 @api_admin.register(TRXWithdrawalApprove)
-class TRXWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
+class TRXWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
     def get_queryset(self):
         return get_withdrawal_requests_to_process([TRX_CURRENCY, *TRC20_CURRENCIES], blockchain_currency='TRX')
 
@@ -92,7 +92,7 @@ class TRXWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
 
 
 @api_admin.register(BNBWithdrawalApprove)
-class BNBWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
+class BNBWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
     def get_queryset(self):
         return get_withdrawal_requests_to_process([BNB_CURRENCY, *BEP20_CURRENCIES], blockchain_currency='BNB')
 
@@ -107,7 +107,7 @@ class BNBWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
 
 
 @api_admin.register(MaticWithdrawalApprove)
-class MaticWithdrawalApproveApiAdmin(ReadOnlyMixin, BaseWithdrawalApprove):
+class MaticWithdrawalApproveApiAdmin(BaseWithdrawalApprove):
     def get_queryset(self):
         return get_withdrawal_requests_to_process(
             [MATIC_CURRENCY, *ERC20_MATIC_CURRENCIES],
