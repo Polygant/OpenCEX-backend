@@ -59,7 +59,8 @@ def get_bot_matches_qs(ts_before):
 def get_bot_excluded_matches_qs(order_ids):
     return ExecutionResult.objects.filter(
         Q(order_id__in=order_ids) | Q(matched_order_id__in=order_ids),
-        ~Q(order__user__username__iregex=BOT_RE) | ~Q(matched_order__user__username__iregex=BOT_RE)
+        ~Q(order__user__username__iregex=BOT_RE) |
+        (Q(matched_order__isnull=False) & ~Q(matched_order__user__username__iregex=BOT_RE))
     ).only(
         'order_id',
         'matched_order_id'
