@@ -166,7 +166,7 @@ class WithdrawalRequest(UserMixinModel, BaseModel):
 
     def fail(self):
         # TODO: better check for race conditions!
-        assert self.state in (CREATED, PENDING)
+        assert self.state in (CREATED, PENDING, UNKNOWN)
         assert self.transaction.state == TRANSACTION_PENDING
         from core.tasks.inouts import withdrawal_failed_email
         with atomic():

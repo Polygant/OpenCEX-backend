@@ -612,8 +612,8 @@ class TronHandler(BaseEVMCoinHandler):
             and "result" in receipt["receipt"]
             and receipt["receipt"]["result"] in FAILED_RESULTS
         ):
+            log.error('TRX withdrawal TX Failed - %s, %s', receipt['receipt']['result'], receipt)
             withdrawal_request.fail()
-            log.error('Failed - %s', receipt['receipt']['result'])
         else:
             withdrawal_request.state = WR_PENDING
             withdrawal_request.save(update_fields=['state', 'updated'])
