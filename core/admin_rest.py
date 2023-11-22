@@ -10,7 +10,7 @@ from core.models import Balance, WithdrawalRequest, Settings
 from core.models.inouts.withdrawal import WithdrawalLimitLevel, WithdrawalUserLimit
 from core.models.stats import InoutsStats
 from core.models.facade import SmsConfirmationHistory
-from admin_rest.mixins import ReadOnlyMixin
+from admin_rest.mixins import ReadOnlyMixin, NoCreateMixin
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class WithdrawalLimitLevelAdmin(DefaultApiAdmin):
 
 
 @api_admin.register(WithdrawalUserLimit)
-class WithdrawalUserLimitAdmin(DefaultApiAdmin):
+class WithdrawalUserLimitAdmin(NoCreateMixin, DefaultApiAdmin):
     search_fields = ['user__email']
     list_display = [
         'id',
