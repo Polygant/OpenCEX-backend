@@ -7,9 +7,10 @@ from django.db.transaction import atomic
 from django.utils import timezone
 
 from core.consts.orders import ORDER_OPENED, ORDER_CANCELED
+from core.models import WalletHistoryItem
 from core.models.inouts.transaction import REASON_ORDER_OPENED, REASON_ORDER_EXECUTED, REASON_ORDER_CANCELED
 from core.models.inouts.transaction import Transaction
-from core.models.orders import ExecutionResult, Order
+from core.models.orders import ExecutionResult, Order, OrderChangeHistory, OrderStateChangeHistory
 from lib.backup_utils import backup_qs_to_csv
 from lib.helpers import BOT_RE
 from lib.helpers import chunked
@@ -26,12 +27,14 @@ get_ids_sql = """
 select
        o.id as order_id,
        array_remove(array_agg(distinct er.id), NULL) as er_ids,
-       array_remove(array_agg(distinct tr_ercb.id) || array_agg(distinct tr_o_in.id) || array_agg(distinct tr_er.id), NULL) as tr_ids
+       array_remove(array_agg(distinct tr_ercb.id) || array_agg(distinct tr_o_in.id) || array_agg(distinct tr_er.id), NULL) as tr_ids,
+       array_remove(array_agg(distinct whi.id), NULL) as whi_ids
 from core_order o
 left outer join core_executionresult er on er.order_id = o.id or er.matched_order_id = o.id
 left outer join core_transaction tr_o_in on tr_o_in.id = o.in_transaction_id
 left outer join core_transaction tr_er on tr_er.id = er.transaction_id
 left outer join core_transaction tr_ercb on tr_ercb.id = er.cacheback_transaction_id
+left outer join core_wallethistoryitem whi on whi.transaction_id = o.in_transaction_id
 where o.id = any(%s)
 group by o.id;
 """
@@ -56,7 +59,8 @@ def get_bot_matches_qs(ts_before):
 def get_bot_excluded_matches_qs(order_ids):
     return ExecutionResult.objects.filter(
         Q(order_id__in=order_ids) | Q(matched_order_id__in=order_ids),
-        ~Q(order__user__username__iregex=BOT_RE) | ~Q(matched_order__user__username__iregex=BOT_RE)
+        ~Q(order__user__username__iregex=BOT_RE) |
+        (Q(matched_order__isnull=False) & ~Q(matched_order__user__username__iregex=BOT_RE))
     ).only(
         'order_id',
         'matched_order_id'
@@ -215,6 +219,7 @@ def strip_orders(order_ids, only_backup=False):
     all_er = 0
     all_tr = 0
     all_or = 0
+    all_whi = 0
     for chunk in chunked(order_ids, DEFAULT_BATCH_SIZE):
         with atomic():
             log.info('Batch %s', counter * DEFAULT_BATCH_SIZE)
@@ -226,75 +231,50 @@ def strip_orders(order_ids, only_backup=False):
                 # extract ids
                 er_ids = list(map(lambda x: x[1], results))
                 tx_ids = list(map(lambda x: x[2], results))
+                whi_ids = list(map(lambda x: x[3], results))
 
                 er_ids = list(set(itertools.chain.from_iterable(er_ids)))
                 tx_ids = list(set(itertools.chain.from_iterable(tx_ids)))
+                whi_ids = list(set(itertools.chain.from_iterable(whi_ids)))
 
             log.info('ExecutionResult count: %s', len(er_ids))
             log.info('Transaction count: %s', len(tx_ids))
+            log.info('WalletHistoryItem count: %s', len(whi_ids))
 
             txs_qs = Transaction.objects.filter(id__in=tx_ids)
             er_qs = ExecutionResult.objects.filter(id__in=er_ids)
             orders_qs = Order.objects.filter(id__in=list(chunk))
+            wallet_history_qs = WalletHistoryItem.objects.filter(id__in=whi_ids)
 
             backup_qs_to_csv(txs_qs)
             backup_qs_to_csv(er_qs)
             backup_qs_to_csv(orders_qs)
+            backup_qs_to_csv(wallet_history_qs)
 
             if not only_backup:
                 log.info('Delete ExecutionResult')
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        """
-                        delete from core_executionresult
-                        where id = any(%s)
-                        """,
-                        [er_ids],
-                    )
+                er_qs._raw_delete(er_qs.db)
 
                 log.info('Delete OrderChangeHistory')
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        """
-                        delete from core_orderchangehistory
-                        where order_id = any(%s)
-                        """,
-                        [list(chunk)],
-                    )
+                order_change_history_qs = OrderChangeHistory.objects.filter(id__in=list(chunk))
+                order_change_history_qs._raw_delete(order_change_history_qs.db)
 
                 log.info('Delete OrderStateChangeHistory')
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        """
-                        delete from core_orderstatechangehistory
-                        where order_id = any(%s)
-                        """,
-                        [list(chunk)],
-                    )
+                order_state_change_history_qs = OrderStateChangeHistory.objects.filter(id__in=list(chunk))
+                order_state_change_history_qs._raw_delete(order_state_change_history_qs.db)
 
                 log.info('Delete Order')
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        """
-                        delete from core_order
-                        where id = any(%s)
-                        """,
-                        [list(chunk)],
-                    )
+                orders_qs._raw_delete(orders_qs.db)
 
                 log.info('Delete Transaction')
                 tx_counter = 0
                 for tx_chunk in chunked(tx_ids, DEFAULT_BATCH_SIZE):
                     log.info('Tx chunk %s', tx_counter * DEFAULT_BATCH_SIZE)
                     log.info(timezone.now() - start_time)
-                    with connection.cursor() as cursor:
-                        cursor.execute(
-                            """
-                            delete from core_transaction
-                            where id = any(%s)
-                            """,
-                            [list(tx_chunk)],
-                        )
+                    transaction_qs = Transaction.objects.filter(id__in=list(tx_chunk))
+                    transaction_qs._raw_delete(transaction_qs.db)
+                    wallet_history_item_qs = WalletHistoryItem.objects.filter(transaction__in=list(tx_chunk))
+                    wallet_history_item_qs._raw_delete(wallet_history_item_qs.db)
 
                     tx_counter += 1
 
@@ -302,7 +282,9 @@ def strip_orders(order_ids, only_backup=False):
                 all_er += len(er_ids)
                 all_tr += len(tx_ids)
                 all_or += len(list(chunk))
+                all_whi += len(whi_ids)
                 log.info('All ExecutionResult count: %s', all_er)
                 log.info('All Transaction count: %s', all_tr)
                 log.info('All Order count: %s', all_or)
-                log.info('='*10)
+                log.info('All WalletHistoryItem count: %s', all_whi)
+                log.info('=' * 10)
