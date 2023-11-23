@@ -1,4 +1,9 @@
+{% load i18n %}
+{% blocktrans %}
 Withdrawal request confirmation
 
-To confirm or cancel withdrawal request please follow this link: {{ confirmation_url }}
-Withdrawal would be processed after confirmation.
+To confirm creation of the withdrawal request please enter the code
+
+Confirmation Code
+{{ code }}
+{% endblocktrans %}

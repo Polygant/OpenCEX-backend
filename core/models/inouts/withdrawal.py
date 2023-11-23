@@ -84,7 +84,7 @@ class WithdrawalRequest(UserMixinModel, BaseModel):
     data = JSONField(default=dict, blank=True)
     # SHA-256 hash
     confirmation_token = models.CharField(
-        max_length=64, null=True, blank=True, unique=True, default=None)
+        max_length=64, null=True, blank=True, default=None)
 
     def change_state(self, target_state):
         n = self.__class__.objects.filter(id=self.id, state=self.state).update(state=target_state)
@@ -219,6 +219,7 @@ class WithdrawalRequest(UserMixinModel, BaseModel):
             # there would be frequent queries by token
             models.Index(fields=['confirmation_token']),
         ]
+        unique_together = ('user', 'confirmation_token')
 
 
 class WithdrawalLimitLevel(models.Model):

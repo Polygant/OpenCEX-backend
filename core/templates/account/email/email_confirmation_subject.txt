@@ -1,6 +1,6 @@
 {% load i18n %}
 {% autoescape off %}
 
-	{% trans "Account activation" %}
+	{% trans "Email Confirmation" %}
 
 {% endautoescape %}

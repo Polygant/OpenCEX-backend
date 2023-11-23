@@ -154,4 +154,14 @@ class WithdrawalSerializer(CryptoWithdrawalSerializerMixIn, SciWithdrawalSeriali
 
 
 class ConfirmationTokenSerializer(serializers.Serializer):
-    confirmation_token = serializers.CharField(max_length=64, min_length=64)
+    confirmation_token = serializers.CharField(max_length=6, min_length=6)
+
+
+class ResendWithdrawalRequestConfirmationEmailSerializer(serializers.Serializer):
+    confirmation_token = serializers.CharField(max_length=6, min_length=6, required=False)
+    withdrawal_request_id = serializers.IntegerField(required=False)
+
+
+class CancelWithdrawalRequestEmailSerializer(serializers.Serializer):
+    confirmation_token = serializers.CharField(max_length=6, min_length=6, required=False)
+    withdrawal_request_id = serializers.IntegerField(required=False)

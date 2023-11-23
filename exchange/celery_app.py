@@ -204,6 +204,14 @@ if is_section_enabled('utils'):
                 'queue': 'utils',
             }
         },
+        "delete_expired_conformation": {
+            "task": "core.tasks.auth.delete_expired_conformation",
+            "schedule": crontab(minute=5),
+            "options": {
+                "expires": 10,
+                "queue": "utils",
+            },
+        },
     })
     app.conf.task_queues += (Queue('utils'),)
 
