@@ -7,12 +7,18 @@ from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework import permissions, status, views, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from core.exceptions.inouts import WithdrawalAlreadyConfirmed
 from core.models.inouts.withdrawal import WithdrawalRequest, WithdrawalUserLimit
-from core.serializers.withdrawal import WithdrawalSerializer, ConfirmationTokenSerializer
+from core.serializers.withdrawal import (
+    WithdrawalSerializer,
+    ConfirmationTokenSerializer,
+    ResendWithdrawalRequestConfirmationEmailSerializer, CancelWithdrawalRequestEmailSerializer
+)
 from core.tasks.inouts import send_withdrawal_confirmation_email
+from core.utils import get_rand_code
 from lib.filterbackend import FilterBackend
 
 
@@ -38,17 +44,19 @@ class WithdrawalRequestView(viewsets.ReadOnlyModelViewSet, viewsets.mixins.Creat
 
     @staticmethod
     def _make_confirmation_token(withdrawal_request: WithdrawalRequest) -> str:
-        raw_token = f'{withdrawal_request.id}:{uuid.uuid4()}'.encode()
-        return hashlib.sha256(raw_token).hexdigest().upper()
+        token = get_rand_code(6)
+        while WithdrawalRequest.objects.filter(confirmation_token=token, user=withdrawal_request.user).exists():
+            token = get_rand_code(6)
+        return token
 
 
 class ConfirmWithdrawalRequestView(views.APIView):
     """
     Email withdrawal confirmation link handler
     """
-    permission_classes = [
-        permissions.AllowAny,
-    ]
+    # permission_classes = [
+    #     permissions.AllowAny,
+    # ]
 
     @extend_schema(
         request=ConfirmationTokenSerializer,
@@ -61,6 +69,7 @@ class ConfirmWithdrawalRequestView(views.APIView):
         withdrawal_request = WithdrawalRequest.objects.filter(
             confirmation_token__iexact=serializer.data['confirmation_token'],
             created__gt=expiration_date,
+            user=request.user,
         ).only('id').first()
 
         if withdrawal_request is None:
@@ -85,17 +94,32 @@ class CancelWithdrawalRequestView(views.APIView):
     ]
 
     @extend_schema(
-        request=ConfirmationTokenSerializer,
+        request=CancelWithdrawalRequestEmailSerializer,
     )
     def post(self, request):
-        serializer = ConfirmationTokenSerializer(data=request.data)
+        serializer = CancelWithdrawalRequestEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         expiration_date = timezone.now() - timezone.timedelta(minutes=settings.WITHDRAWAL_REQUEST_EXPIRATION_M)
+        filter_data = {
+            'created__gt': expiration_date,
+            'confirmed': False,
+        }
+
+        if 'confirmation_token' not in serializer.data and 'withdrawal_request_id' not in serializer.data:
+            raise ValidationError({
+                "confirmation_token": "Incorrect data.",
+                "withdrawal_request_id": "Incorrect data.",
+            }, code="incorrect_data")
+
+        if 'confirmation_token' in serializer.data:
+            filter_data['confirmation_token'] = serializer.data['confirmation_token']
+
+        if 'withdrawal_request_id' in serializer.data:
+            filter_data['pk'] = serializer.data['withdrawal_request_id']
+
         withdrawal_request = WithdrawalRequest.objects.filter(
-            confirmation_token__iexact=serializer.data['confirmation_token'],
-            created__gt=expiration_date,
-            confirmed=False,
+            **filter_data
         ).only('id').first()
 
         if withdrawal_request is None:
@@ -144,16 +168,32 @@ class ResendWithdrawalRequestConfirmationEmailView(views.APIView):
     Resend confirmation email
     """
     @extend_schema(
-        request=ConfirmationTokenSerializer,
+        request=ResendWithdrawalRequestConfirmationEmailSerializer,
     )
     def post(self, request):
-        serializer = ConfirmationTokenSerializer(data=request.data)
+        serializer = ResendWithdrawalRequestConfirmationEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         expiration_date = timezone.now() - timezone.timedelta(minutes=settings.WITHDRAWAL_REQUEST_EXPIRATION_M)
+
+        filter_data = {
+            'created__gt': expiration_date
+        }
+
+        if 'confirmation_token' not in serializer.data and 'withdrawal_request_id' not in serializer.data:
+            raise ValidationError({
+                "confirmation_token": "Incorrect data.",
+                "withdrawal_request_id": "Incorrect data.",
+            }, code="incorrect_data")
+
+        if 'confirmation_token' in serializer.data:
+            filter_data['confirmation_token'] = serializer.data['confirmation_token']
+
+        if 'withdrawal_request_id' in serializer.data:
+            filter_data['pk'] = serializer.data['withdrawal_request_id']
+
         withdrawal_request = WithdrawalRequest.objects.filter(
-            confirmation_token__iexact=serializer.data['confirmation_token'],
-            created__gt=expiration_date,
+            **filter_data,
         ).only('id').first()
 
         if withdrawal_request is None:

@@ -159,7 +159,8 @@ class Command(BaseCommand):
         print(STEP2_HEADER)
 
         pair_to_usdt = f'{token_symbol}-USDT'
-        is_price_external = binance_data_source.is_pair_exists(pair_to_usdt) or kucoin_data_source.is_pair_exists(pair_to_usdt)
+        is_price_external = binance_data_source.is_pair_exists(pair_to_usdt) or kucoin_data_source.is_pair_exists(
+            pair_to_usdt)
         yes_no = False
         while not yes_no:
             precisions = prompt_precisions(token_symbol)
@@ -347,20 +348,28 @@ def prompt(text, arg_type=str, choices=None, default=None):
     return res
 
 
+def check_address(currency, addr, blockchain_currency):
+    currency = Currency.get(currency)
+    validator = CRYPTO_ADDRESS_VALIDATORS[currency]
+    if isinstance(validator, dict):
+        blockchain_currency = Currency.get(blockchain_currency)
+        return validator[blockchain_currency](addr)
+    return validator(addr)
+
+
 def prompt_contract(blockchain):
-    fn = CRYPTO_ADDRESS_VALIDATORS[Currency.get(blockchain)]
     while 1:
         contract = prompt('Token contract address* (i.e. 0xdAC17F958D2ee523a2206206994597C13D831ec7)')
-        if not fn(contract):
-            print('[!] Contract address is not valid')
-        else:
-            if blockchain in ['ETH', 'BNB']:
-                contract = Web3.to_checksum_address(contract)
-            exists_contracts = [v.contract_address for k, v in TOKENS_BLOCKCHAINS_MAP[blockchain].items()]
-            if contract in exists_contracts:
-                print('[!] Contract with this address already exists')
-                continue
-            return contract
+        if not check_address(blockchain, contract, blockchain):
+            print('[!] Incorrect contract address')
+            continue
+        if blockchain in ['ETH', 'BNB', 'MATIC']:
+            contract = Web3.to_checksum_address(contract)
+        exists_contracts = [v.contract_address for k, v in TOKENS_BLOCKCHAINS_MAP[blockchain].items()]
+        if contract in exists_contracts:
+            print('[!] Contract with this address already exists')
+            continue
+        return contract
 
 
 def prompt_precisions(token_symbol):
@@ -414,4 +423,3 @@ def create_withdrawal_fee(token_symbol, blockchain_symbol):
             blockchain_currency=blockchain_symbol,
             address_fee=1.00000000
         )
-
