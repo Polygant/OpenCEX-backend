@@ -140,11 +140,11 @@ class BTCCoinService(BitCoreCoinServiceBase):
 
     def get_multi_tx_size(self, inputs: list, outputs: list, private_key: str, private_key_s: str, redeem_script: str):
         """
-        get size raw_tx in bytes
+        get size raw_tx in vbytes
         """
         raw_tx = self.multi_tx_sign(inputs, outputs, private_key, private_key_s, redeem_script)
         tx_decode = self.rpc.decoderawtransaction(raw_tx)
-        return tx_decode.get('size')
+        return tx_decode.get("vsize")
 
     def check_tx_for_deposit(self, tx_data):
         tx_id = tx_data['txid']
