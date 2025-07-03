@@ -138,6 +138,7 @@ class CustomMenu(Menu):
                         _('Withdrawal Approve'),
                         children=[
                             items.MenuItem('Approve BTC', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/btc/'),
+                            items.MenuItem('Approve TENZ', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/tenz/'),
                             items.MenuItem('Approve ETH', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/eth/'),
                             items.MenuItem('Approve TRX', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/trx/'),
                             items.MenuItem('Approve BNB', f'/{ADMIN_BASE_URL}/withdrawal_request/approve/bnb/'),
