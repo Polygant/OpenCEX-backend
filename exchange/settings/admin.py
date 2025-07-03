@@ -33,6 +33,7 @@ VUE_ADMIN_SIDE_MENU = [
     {'heading': 'Topups and Withdrawals'},
     {'icon': 'mdi-bank-transfer-out', 'link': {'name': 'admin_rest_withdrawalrequest_list'}, 'text': 'Withdrawal requests'},
     {'icon': 'mdi-bitcoin', 'link': {'name': 'cryptocoins_btcwithdrawalapprove_list'}, 'text': 'BTC Withdrawal Approve'},
+    {'icon': 'mdi-bitcoin', 'link': {'name': 'cryptocoins_tenzwithdrawalapprove_list'}, 'text': 'TENZ Withdrawal Approve'},
     {'icon': 'mdi-ethereum', 'link': {'name': 'cryptocoins_ethwithdrawalapprove_list'}, 'text': 'ETH Withdrawal Approve'},
     {'icon': 'mdi-coins', 'link': {'name': 'cryptocoins_trxwithdrawalapprove_list'}, 'text': 'TRX Withdrawal Approve'},
     {'icon': 'mdi-coins', 'link': {'name': 'cryptocoins_bnbwithdrawalapprove_list'}, 'text': 'BSC Withdrawal Approve'},

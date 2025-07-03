@@ -17,6 +17,7 @@ from cryptocoins.coins.btc.service import BTCCoinService
 from cryptocoins.coins.eth import ETH_CURRENCY
 from cryptocoins.coins.matic import MATIC_CURRENCY
 from cryptocoins.coins.trx import TRX_CURRENCY
+from cryptocoins.coins.tenz.service import TENZCoinService
 from cryptocoins.tasks.evm import process_payouts_task
 
 
@@ -59,6 +60,38 @@ def admin_withdrawal_request_approve(request):
                 service.process_withdrawals(private_key=private_key)
                 messages.success(request, 'Withdrawal completed')
                 return redirect('admin_withdrawal_request_approve_btc')  # need for clear post data
+        except Exception as e:  # all messages and errors to admin message
+            messages.error(request, e)
+    else:
+        form = BtcApproveAdminForm()
+
+    return render(request, 'admin/withdrawal/request_approve_form.html', context={
+        'form': form,
+        'withdrawal_requests': withdrawal_requests,
+        'withdrawal_requests_column': [
+            {'label': 'user', 'param': 'user'},
+            {'label': 'confirmed', 'param': 'confirmed'},
+            {'label': 'currency', 'param': 'currency'},
+            {'label': 'state', 'param': 'state'},
+            {'label': 'details', 'param': 'data.destination'},
+        ]
+    })
+
+
+@staff_member_required
+def admin_tenz_withdrawal_request_approve(request):
+    service = TENZCoinService()
+    withdrawal_requests = service.get_withdrawal_requests()
+
+    if request.method == 'POST':
+        form = BtcApproveAdminForm(request.POST)  # Using BTC form since TENZ is Bitcoin-compatible
+
+        try:
+            if form.is_valid():
+                private_key = form.cleaned_data.get('key')
+                service.process_withdrawals(private_key=private_key)
+                messages.success(request, 'TENZ Withdrawal completed')
+                return redirect('admin_withdrawal_request_approve_tenz')  # need for clear post data
         except Exception as e:  # all messages and errors to admin message
             messages.error(request, e)
     else:

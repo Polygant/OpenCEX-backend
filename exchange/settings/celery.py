@@ -26,6 +26,13 @@ CRYPTO_AUTO_SCHEDULE_CONF = [
         'accumulate_period': DEFAULT_CRYPTO_ACCUMULATE_PERIOD,
         'process_new_blocks_period': DEFAULT_CRYPTO_PROCESS_NEW_BLOCKS_PERIOD,
     },
+    {
+        'currency': 'TENZ',
+        'enabled': True,
+        'payouts_period': False,
+        'accumulate_period': DEFAULT_CRYPTO_ACCUMULATE_PERIOD,
+        'process_new_blocks_period': DEFAULT_CRYPTO_PROCESS_NEW_BLOCKS_PERIOD,
+    },
 
 ]
 

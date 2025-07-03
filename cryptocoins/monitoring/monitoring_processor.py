@@ -7,11 +7,13 @@ from cryptocoins.monitoring.monitors.erc20_monitor import UsdtEthMonitor
 from cryptocoins.monitoring.monitors.eth_monitor import EthMonitor
 from cryptocoins.monitoring.monitors.trc20_monitor import UsdtTrxMonitor
 from cryptocoins.monitoring.monitors.trx_monitor import TrxMonitor
+from cryptocoins.monitoring.monitors.tenz_monitor import TenzMonitor
 
 log = logging.getLogger(__name__)
 
 MONITORS = {
     'BTC': BtcMonitor,
+    'TENZ': TenzMonitor,
     'ETH': EthMonitor,
     'TRX': TrxMonitor,
     'BNB': BnbMonitor,
