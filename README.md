@@ -9,8 +9,12 @@ OpenCEX is a free and open source cryptocurrency exchange platform.<br>
 Developed by <a href="https://polygant.net" target="_blank">Polygant</a>.  
 
 <p align="center">
-<a href="https://a.65.109.204.172.sslip.io" target="_blank">Live demo</a> | <a href="https://polygant.notion.site/OpenCEX-Help-Center-8cf8c842bde947c3818a615a88ceef9c" target="_blank">OpenCEX documentation</a> | <a href="https://t.me/opencex" target="_blank">Telegram chat</a>
+<a href="https://polygant.notion.site/OpenCEX-Help-Center-8cf8c842bde947c3818a615a88ceef9c" target="_blank">OpenCEX documentation</a> | <a href="https://t.me/opencex" target="_blank">Telegram chat</a>
 </p>
+
+> [!CAUTION]
+> This repository has not been maintained since **2024**.  
+> The code is provided as-is.
 
 <p align="center"><b>Please go to the main repo to install OpenCEX <a href="https://github.com/Polygant/OpenCEX/">https://github.com/Polygant/OpenCEX/</a></b></p>
 
