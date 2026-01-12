@@ -11,6 +11,7 @@ def transfer_precisions(apps, schema_editor):
         'ETH-USDT': ['100', '10', '1', '0.1', '0.01'],
         'BNB-USDT': ['100', '10', '1', '0.1', '0.01'],
         'TRX-USDT': ['0.01', '0.001', '0.0001', '0.00001', '0.000001'],
+        'TENZ-USDT': ['0.01', '0.001', '0.0001', '0.00001', '0.000001'],
     }
     for ps in PairSettings.objects.all():
         if ps.pair.code in precisions_map:
