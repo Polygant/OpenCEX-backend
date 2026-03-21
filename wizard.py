@@ -39,6 +39,7 @@ from cryptocoins.coins.usdt import USDT
 from cryptocoins.coins.bnb import BNB
 from cryptocoins.coins.trx import TRX
 from cryptocoins.coins.matic import MATIC
+from cryptocoins.coins.tenz import TENZ
 
 from cryptocoins.utils.btc import generate_btc_multisig_keeper
 
@@ -56,6 +57,7 @@ def main():
     IS_TRON = env('COMMON_TASKS_TRON', default=True, cast=bool)
     IS_BSC = env('COMMON_TASKS_BNB', default=True, cast=bool)
     IS_MATIC = env('COMMON_TASKS_MATIC', default=True, cast=bool)
+    IS_TENZ = env('COMMON_TASKS_TENZ', default=True, cast=bool)
 
     coin_list = [
         ETH,
@@ -64,6 +66,7 @@ def main():
         BNB,
         TRX,
         MATIC,
+        TENZ,
     ]
     coin_info = {
         ETH: [
@@ -181,6 +184,64 @@ def main():
                 'attributes': {
                     'blockchain_currency': BTC,
                     'address_fee': 0.00000001
+                },
+            },
+        ],
+        TENZ: [
+            {
+                'model': CoinInfo,
+                'find': {'currency': TENZ},
+                'attributes': {
+                    'name': 'Tenzura',
+                    'decimals': 8,
+                    'index': 29,
+                    'tx_explorer': 'https://chain.tenzura.io/tx/',
+                    'links': {
+                        "bt": {
+                            "href": "https://bitcointalk.org/index.php?topic=428589.0",
+                            "title": "BitcoinTalk"
+                        },
+                        "cmc": {
+                            "href": "https://coinmarketcap.com/currencies/tenzura/",
+                            "title": "CoinMarketCap"
+                        },
+                        "exp": {
+                            "href": "https://chain.tenzura.io/",
+                            "title": "Explorer"
+                        },
+                        "official": {
+                            "href": "https://www.tenzura.org",
+                            "title": "tenzura.org"
+                        }
+                    }
+                },
+            },
+            {
+                'model': FeesAndLimits,
+                'find': {'currency': TENZ},
+                'attributes': {
+                    'limits_deposit_min': 10000,
+                    'limits_deposit_max': 10000000,
+                    'limits_withdrawal_min': 10000,
+                    'limits_withdrawal_max': 10000000,
+                    'limits_order_min': 10000.00000000,
+                    'limits_order_max': 50000000.00000000,
+                    'limits_code_max': 50000000.00000000,
+                    'limits_accumulation_min': 0.00020000,
+                    'fee_deposit_address': 0,
+                    'fee_deposit_code': 0,
+                    'fee_withdrawal_code': 0,
+                    'fee_order_limits': 0.00100000,
+                    'fee_order_market': 0.00200000,
+                    'fee_exchange_value': 0.00200000,
+                },
+            },
+            {
+                'model': WithdrawalFee,
+                'find': {'currency': TENZ},
+                'attributes': {
+                    'blockchain_currency': TENZ,
+                    'address_fee': 5500
                 },
             },
         ],
@@ -645,6 +706,33 @@ def main():
                     'enabled': IS_BSC,
                 }
             },
+            Pair.get('TENZ-USDT'): {
+                PairSettings: {
+                    'is_enabled': IS_TENZ,
+                    'is_autoorders_enabled': True,
+                    'price_source': PairSettings.PRICE_SOURCE_EXTERNAL,
+                    'custom_price': 0,
+                    'deviation': 0.99000000,
+                    'precisions': ['0.01', '0.001', '0.0001', '0.00001', '0.000001']
+                },
+                BotConfig: {
+                    'name': 'TENZ-USDT',
+                    'user': bot,
+                    'strategy': BotConfig.TRADE_STRATEGY_DRAW,
+                    'instant_match': True,
+                    'ohlc_period': 5,
+                    'loop_period_random': True,
+                    'min_period': 75,
+                    'max_period': 280,
+                    'ext_price_delta': 0,
+                    'min_order_quantity': 0.001,
+                    'max_order_quantity': 0.05,
+                    'low_orders_max_match_size': 0.0029,
+                    'low_orders_spread_size': 200,
+                    'low_orders_min_order_size': 0.0003,
+                    'enabled': IS_TENZ,
+                }
+            },
             Pair.get('MATIC-USDT'): {
                 PairSettings: {
                     'is_enabled': IS_MATIC,
@@ -737,6 +825,15 @@ def main():
         last_processed_block_instance.block_id = service.get_last_network_block_id()
         last_processed_block_instance.save()
 
+        # tenz
+        from cryptocoins.coins.tenz.service import TENZCoinService
+        tenz_service = TENZCoinService()
+        tenz_last_processed_block_instance, _ = LastProcessedBlock.objects.get_or_create(
+            currency=TENZ
+        )
+        tenz_last_processed_block_instance.block_id = tenz_service.get_last_network_block_id()
+        tenz_last_processed_block_instance.save()
+
         # btc
         if not Keeper.objects.filter(currency=BTC_CURRENCY).exists():
             btc_info, btc_keeper = generate_btc_multisig_keeper()
@@ -750,8 +847,19 @@ def main():
             to_write.append('Keeper exists, see previous file')
             to_write.append('='*10)
 
+        # tenz
+        if not Keeper.objects.filter(currency=TENZ).exists():
+            k_password, keeper = keeper_create(TENZ)
+            to_write.append('TENZ Info')
+            to_write.append(f'Keeper address: {keeper.user_wallet.address}, Password: {k_password}')
+            to_write.append('='*10)
+        else:
+            to_write.append('TENZ Info')
+            to_write.append('Keeper exists, see previous file')
+            to_write.append('='*10)
+
         for currency_id in coin_list:
-            if currency_id in [USDT, BTC]:
+            if currency_id in [USDT, BTC, TENZ]:
                 continue
 
             currency = Currency.get(currency_id)
